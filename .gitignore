@@ -1,5 +1,6 @@
 # API Keys - never sync
 pocs/keys.env
+backend/.env
 
 # Virtual environments
 .venv/

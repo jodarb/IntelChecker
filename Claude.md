@@ -23,6 +23,9 @@
 * **Styling:** **Tailwind CSS** configured with a clean, high-contrast dark theme optimized for SOC and Threat Intel operations.
 * **UI Components:** **shadcn/ui** as the component library, providing accessible and composable primitives that integrate natively with Tailwind.
 
+### Infrastructure
+* **Containerisation:** The entire application is orchestrated via **Docker Compose**. Each service (backend, frontend) runs in its own container. The single entry point to spin up the full stack is `docker compose up`.
+
 ---
 
 ## 3. Architecture & Data Flow
@@ -77,14 +80,18 @@ intelchecker/
 │   │   │   └── ...
 │   │   └── utils/
 │   │       └── parser.py      # Regex and logical parsing for "Free Text" detection
+│   ├── Dockerfile
 │   ├── .env.example
 │   └── requirements.txt
-└── frontend/
-    ├── src/
-    │   ├── components/        # UI Cards for individual API source tracking
-    │   ├── App.tsx
-    │   └── main.tsx
-    ├── package.json
-    ├── tsconfig.json
-    └── tailwind.config.js
+├── frontend/
+│   ├── src/
+│   │   ├── components/        # UI Cards for individual API source tracking
+│   │   ├── App.tsx
+│   │   └── main.tsx
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── tailwind.config.js
+├── docker-compose.yml
+└── .env.example               # API keys template for Docker Compose
 ```
