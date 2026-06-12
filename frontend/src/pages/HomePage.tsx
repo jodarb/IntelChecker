@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/select'
 import Layout from '@/components/Layout'
 import CustomLogo from '@/components/CustomLogo'
+import EngineStatusPanel from '@/components/EngineStatusPanel'
 
 const IOC_TYPES = [
   { value: 'ip', label: 'IP Address' },
@@ -75,6 +76,8 @@ export default function HomePage() {
             Analyze
           </Button>
         </form>
+
+        <EngineStatusPanel selectedType={iocType} />
       </main>
     </Layout>
   )

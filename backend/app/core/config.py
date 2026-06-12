@@ -1,10 +1,16 @@
+import os
 from pathlib import Path
-from dotenv import dotenv_values
+from dotenv import load_dotenv
 
-_env = dotenv_values(Path(__file__).parent.parent.parent / ".env")
+load_dotenv(Path(__file__).parent.parent.parent / ".env", override=True)
 
-ABUSEIPDB_API_KEY: str = _env.get("ABUSEIPDB_API_KEY", "")
-VIRUSTOTAL_API_KEY: str = _env.get("VIRUSTOTAL_API_KEY", "")
-ABUSECH_API_KEY: str = _env.get("ABUSECH_API_KEY", "")
-ALIENVAULT_API_KEY: str = _env.get("ALIENVAULT_API_KEY", "")
-IPINFO_API_KEY: str = _env.get("IPINFO_API_KEY", "")
+
+def get(key: str) -> str:
+    return os.environ.get(key, "")
+
+
+ABUSEIPDB_API_KEY: str = get("ABUSEIPDB_API_KEY")
+VIRUSTOTAL_API_KEY: str = get("VIRUSTOTAL_API_KEY")
+ABUSECH_API_KEY: str = get("ABUSECH_API_KEY")
+ALIENVAULT_API_KEY: str = get("ALIENVAULT_API_KEY")
+IPINFO_API_KEY: str = get("IPINFO_API_KEY")

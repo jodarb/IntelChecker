@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import Layout from '@/components/Layout'
 import SummarySection from '@/components/results/SummarySection'
 import { getEnginesForType, type EngineConfig, type IndicatorType, type QueryResult } from '@/registry'
+import DisconnectedCard from '@/components/results/DisconnectedCard'
 
 const TYPE_LABELS: Record<string, string> = {
   ip: 'IP Address',
@@ -15,7 +16,7 @@ const TYPE_LABELS: Record<string, string> = {
   'threat-actor': 'Threat Actor',
 }
 
-const BACKEND = 'http://localhost:8000'
+const BACKEND = 'http://localhost:8002'
 
 function useAllEngineQueries(
   engines: EngineConfig[],
@@ -50,6 +51,10 @@ function useAllEngineQueries(
 }
 
 function EngineCard({ engine, result }: { engine: EngineConfig; result: QueryResult }) {
+  const apiErrorCode = (result.data as any)?.error?.code
+  if (!result.loading && apiErrorCode === 'MissingApiKey') {
+    return <DisconnectedCard label={engine.label} />
+  }
   const Component = engine.component
   return <Component loading={result.loading} error={result.error} data={result.data} />
 }
