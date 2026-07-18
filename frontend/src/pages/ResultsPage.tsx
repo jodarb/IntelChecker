@@ -6,6 +6,8 @@ import Layout from '@/components/Layout'
 import SummarySection from '@/components/results/SummarySection'
 import { getEnginesForType, type EngineConfig, type IndicatorType, type QueryResult } from '@/registry'
 import DisconnectedCard from '@/components/results/DisconnectedCard'
+import { computeVerdict } from '@/verdictEngine'
+import { useVerdictWeights } from '@/hooks/useVerdictWeights'
 
 const TYPE_LABELS: Record<string, string> = {
   ip: 'IP Address',
@@ -66,9 +68,12 @@ export default function ResultsPage() {
 
   const engines = useMemo(() => getEnginesForType(type), [type])
   const results = useAllEngineQueries(engines, indicator, type)
+  const weights = useVerdictWeights()
 
-  // Random score per search — placeholder until VerdictEngine is implemented
-  const score = useMemo(() => Math.floor(Math.random() * 11), [indicator])
+  const verdict = useMemo(() => {
+    if (!weights) return { score: null, contributions: [] }
+    return computeVerdict(weights, engines, results, type)
+  }, [weights, engines, results, type])
 
   return (
     <Layout>
@@ -91,7 +96,13 @@ export default function ResultsPage() {
         </div>
 
         {/* Summary */}
-        <SummarySection type={type} engines={engines} results={results} score={score} />
+        <SummarySection
+          type={type}
+          engines={engines}
+          results={results}
+          score={verdict.score}
+          contributions={verdict.contributions}
+        />
 
         {/* Engine results */}
         <div className="flex flex-col gap-3">

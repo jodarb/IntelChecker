@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { Info } from 'lucide-react'
 import type { EngineConfig, QueryResult, IndicatorType } from '@/registry'
 import {
   SUMMARY_REGISTRY,
@@ -5,6 +7,8 @@ import {
   SUMMARY_FIELDS,
   type SummaryField,
 } from '@/summaryRegistry'
+import type { VerdictContribution } from '@/verdictEngine'
+import VerdictExplainerModal from './VerdictExplainerModal'
 
 // ── Aggregation ──────────────────────────────────────────────────────────────
 
@@ -78,18 +82,18 @@ function SummaryItem({
 
 // ── Score Gauge ──────────────────────────────────────────────────────────────
 
-function ScoreGauge({ score }: { score: number }) {
+function ScoreGauge({ score }: { score: number | null }) {
   const r = 68
   const cx = 86
   const cy = 78
   const arcLen = Math.PI * r
-  const pct = score / 10
-  const color = score <= 3 ? '#4ade80' : score <= 6 ? '#fbbf24' : '#f87171'
+  const pct = (score ?? 0) / 10
+  const color = score == null ? 'currentColor' : score <= 3 ? '#4ade80' : score <= 6 ? '#fbbf24' : '#f87171'
 
   return (
     <div className="flex flex-col items-center">
       <span className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Threat Score</span>
-      <svg viewBox="0 0 172 92" className="w-44">
+      <svg viewBox="0 0 172 100" className="w-44">
         <path
           d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
           fill="none"
@@ -98,20 +102,32 @@ function ScoreGauge({ score }: { score: number }) {
           strokeWidth="13"
           strokeLinecap="round"
         />
-        <path
-          d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
-          fill="none"
-          stroke={color}
-          strokeWidth="13"
-          strokeLinecap="round"
-          strokeDasharray={`${pct * arcLen} ${arcLen}`}
-        />
-        <text x={cx} y={cy - 10} textAnchor="middle" fontSize="30" fontWeight="700" fill={color}>
-          {score}
+        {score != null && (
+          <path
+            d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
+            fill="none"
+            stroke={color}
+            strokeWidth="13"
+            strokeLinecap="round"
+            strokeDasharray={`${pct * arcLen} ${arcLen}`}
+          />
+        )}
+        <text
+          x={cx}
+          y={cy - 10}
+          textAnchor="middle"
+          fontSize={score == null ? '20' : '30'}
+          fontWeight="700"
+          fill={color}
+          opacity={score == null ? 0.4 : 1}
+        >
+          {score ?? 'N/A'}
         </text>
-        <text x={cx} y={cy + 7} textAnchor="middle" fontSize="11" fill="currentColor" opacity="0.4">
-          / 10
-        </text>
+        {score != null && (
+          <text x={cx} y={cy + 7} textAnchor="middle" fontSize="11" fill="currentColor" opacity="0.4">
+            / 10
+          </text>
+        )}
         <text x={cx - r + 4} y={cy + 15} fontSize="9" fill="currentColor" opacity="0.35">0</text>
         <text x={cx + r - 10} y={cy + 15} fontSize="9" fill="currentColor" opacity="0.35">10</text>
       </svg>
@@ -125,10 +141,13 @@ interface Props {
   type: IndicatorType
   engines: EngineConfig[]
   results: Record<string, QueryResult>
-  score: number
+  score: number | null
+  contributions: VerdictContribution[]
 }
 
-export default function SummarySection({ type, engines, results, score }: Props) {
+export default function SummarySection({ type, engines, results, score, contributions }: Props) {
+  const [explainerOpen, setExplainerOpen] = useState(false)
+
   return (
     <div className="rounded-lg border border-border bg-muted/20 p-5">
       <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-4">Summary</p>
@@ -144,10 +163,23 @@ export default function SummarySection({ type, engines, results, score }: Props)
             />
           ))}
         </div>
-        <div className="flex items-start justify-center sm:justify-end">
+        <div className="flex flex-col items-center sm:items-end gap-2">
           <ScoreGauge score={score} />
+          <button
+            onClick={() => setExplainerOpen(true)}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border text-xs font-medium text-muted-foreground bg-muted/30 hover:bg-muted/70 hover:text-foreground transition-colors"
+          >
+            <Info className="h-3 w-3" />
+            How is this calculated?
+          </button>
         </div>
       </div>
+      <VerdictExplainerModal
+        open={explainerOpen}
+        onClose={() => setExplainerOpen(false)}
+        score={score}
+        contributions={contributions}
+      />
     </div>
   )
 }

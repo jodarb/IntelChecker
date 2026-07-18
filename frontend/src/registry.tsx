@@ -4,6 +4,7 @@ import VirusTotalCard from '@/components/results/VirusTotalCard'
 import AbuseCHCard from '@/components/results/AbuseCHCard'
 import AlienVaultCard from '@/components/results/AlienVaultCard'
 import IPInfoCard from '@/components/results/IPInfoCard'
+import ShodanCard from '@/components/results/ShodanCard'
 
 export type IndicatorType = 'ip' | 'domain' | 'url' | 'hash' | 'asn' | 'threat-actor'
 
@@ -56,6 +57,12 @@ export const ENGINES: EngineConfig[] = [
     label: 'IPinfo',
     supports: ['ip'],
     component: IPInfoCard as React.ComponentType<CardProps>,
+  },
+  {
+    id: 'shodan',
+    label: 'Shodan',
+    supports: ['ip', 'asn'],
+    component: ShodanCard as React.ComponentType<CardProps>,
   },
 ]
 

@@ -40,8 +40,9 @@
 | [ThreatFox · abuse.ch](https://threatfox.abuse.ch) | ✅ | | | ✅ | |
 | [AlienVault OTX](https://otx.alienvault.com) | ✅ | ✅ | ✅ | ✅ | |
 | [IPinfo](https://ipinfo.io) | ✅ | | | | |
+| [Shodan](https://www.shodan.io) | ✅ | | | | ✅ |
 
-> **Roadmap:** Shodan · Criminal IP · Recorded Future · Any.run · OpenCTI
+> **Roadmap:** Criminal IP · Recorded Future · Any.run · OpenCTI
 
 ---
 
@@ -117,6 +118,7 @@ backend/.env.example  ← empty template  (committed)
 | `ABUSECH_API_KEY` | [ThreatFox · abuse.ch](https://auth.abuse.ch/register) | ✅ |
 | `ALIENVAULT_API_KEY` | [AlienVault OTX](https://otx.alienvault.com) | ✅ |
 | `IPINFO_API_KEY` | [IPinfo](https://ipinfo.io/signup) | ✅ |
+| `SHODAN_API_KEY` | [Shodan](https://account.shodan.io/register) | ✅ |
 
 > Sources with an empty key render an error card in the UI; all other sources continue working normally.
 
@@ -138,7 +140,8 @@ IntelChecker/
 │   │       ├── virustotal.py
 │   │       ├── abusech.py
 │   │       ├── alienvault.py
-│   │       └── ipinfo.py
+│   │       ├── ipinfo.py
+│   │       └── shodan.py
 │   ├── .env                     # Your keys — gitignored
 │   ├── .env.example             # Empty template
 │   └── requirements.txt

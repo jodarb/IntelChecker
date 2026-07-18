@@ -4,4 +4,5 @@ ENGINES: dict[str, dict] = {
     "abusech":    {"supports": ["ip", "hash"],                  "key": "ABUSECH_API_KEY"},
     "alienvault": {"supports": ["ip", "domain", "url", "hash"], "key": "ALIENVAULT_API_KEY"},
     "ipinfo":     {"supports": ["ip"],                          "key": "IPINFO_API_KEY"},
+    "shodan":     {"supports": ["ip", "asn"],                   "key": "SHODAN_API_KEY"},
 }

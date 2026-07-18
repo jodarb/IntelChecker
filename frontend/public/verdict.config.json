@@ -1,0 +1,8 @@
+{
+  "weights": {
+    "virustotal": 30,
+    "abuseipdb": 25,
+    "alienvault": 20,
+    "abusech": 25
+  }
+}

@@ -1,6 +1,6 @@
 import type { IndicatorType } from '@/registry'
 
-export type SummaryField = 'country' | 'asn'
+export type SummaryField = 'country' | 'asn' | 'openPorts'
 
 export interface SummaryExtractorDef {
   field: SummaryField
@@ -22,10 +22,14 @@ export const SUMMARY_FIELD_META: Record<SummaryField, { label: string; format: (
     label: 'ASN',
     format: (v) => v,
   },
+  openPorts: {
+    label: 'Open Ports',
+    format: (v) => v,
+  },
 }
 
 // Display order of summary fields
-export const SUMMARY_FIELDS: SummaryField[] = ['country', 'asn']
+export const SUMMARY_FIELDS: SummaryField[] = ['country', 'asn', 'openPorts']
 
 // Registry: engineId → indicatorType → extractors
 // Add new fields here when new summary data points are needed.
@@ -59,6 +63,20 @@ export const SUMMARY_REGISTRY: Record<string, Partial<Record<IndicatorType, Summ
       { field: 'country', extract: (d) => ((d as any)?.country) || null },
       // IPinfo returns "AS15169 Google LLC" — normalize to "AS15169"
       { field: 'asn', extract: (d) => ((d as any)?.org as string)?.split(' ')[0] || null },
+    ],
+  },
+  shodan: {
+    ip: [
+      { field: 'country', extract: (d) => ((d as any)?.country_code) || null },
+      { field: 'asn', extract: (d) => ((d as any)?.asn) || null },
+      {
+        field: 'openPorts',
+        extract: (d) => {
+          const ports = (d as any)?.ports as number[] | undefined
+          if (!ports || ports.length === 0) return null
+          return [...ports].sort((a, b) => a - b).join(', ')
+        },
+      },
     ],
   },
 }

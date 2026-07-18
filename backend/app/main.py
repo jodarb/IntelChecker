@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from app.core.registry import ENGINES
-from app.services import abuseipdb, virustotal, abusech, alienvault, ipinfo
+from app.services import abuseipdb, virustotal, abusech, alienvault, ipinfo, shodan
 
 _ENV_PATH = Path(__file__).parent.parent / ".env"
 
@@ -24,6 +24,7 @@ _SERVICES = {
     "abusech": abusech,
     "alienvault": alienvault,
     "ipinfo": ipinfo,
+    "shodan": shodan,
 }
 
 
