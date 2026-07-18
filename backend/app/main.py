@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from app.core.registry import ENGINES
-from app.services import abuseipdb, virustotal, abusech, alienvault, ipinfo, shodan
+from app.services import abuseipdb, virustotal, abusech, alienvault, ipinfo, shodan, torexitlist, urlhaus, mitreattack
 
 _ENV_PATH = Path(__file__).parent.parent / ".env"
 
@@ -25,6 +25,9 @@ _SERVICES = {
     "alienvault": alienvault,
     "ipinfo": ipinfo,
     "shodan": shodan,
+    "torexitlist": torexitlist,
+    "urlhaus": urlhaus,
+    "mitreattack": mitreattack,
 }
 
 
@@ -38,7 +41,7 @@ def engines_status():
     live = dotenv_values(_ENV_PATH)
     return {
         name: {
-            "connected": bool(live.get(meta["key"], "")),
+            "connected": True if meta["key"] is None else bool(live.get(meta["key"], "")),
             "supports": meta["supports"],
         }
         for name, meta in ENGINES.items()

@@ -1,12 +1,14 @@
 import { useState } from 'react'
-import { ChevronDown, Unplug } from 'lucide-react'
+import { ChevronDown, Unplug, PowerOff } from 'lucide-react'
 
 interface Props {
   label: string
+  reason?: 'missing-key' | 'disabled'
 }
 
-export default function DisconnectedCard({ label }: Props) {
+export default function DisconnectedCard({ label, reason = 'missing-key' }: Props) {
   const [open, setOpen] = useState(false)
+  const isDisabled = reason === 'disabled'
 
   return (
     <div className="rounded-lg border border-border overflow-hidden opacity-60">
@@ -17,8 +19,8 @@ export default function DisconnectedCard({ label }: Props) {
         <span className="font-semibold text-sm text-muted-foreground">{label}</span>
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-border text-xs font-medium text-muted-foreground bg-muted/30">
-            <Unplug className="h-3 w-3" />
-            Disconnected
+            {isDisabled ? <PowerOff className="h-3 w-3" /> : <Unplug className="h-3 w-3" />}
+            {isDisabled ? 'Disabled' : 'Disconnected'}
           </span>
           <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
         </div>
@@ -27,7 +29,11 @@ export default function DisconnectedCard({ label }: Props) {
       {open && (
         <div className="px-4 py-4">
           <p className="text-sm text-muted-foreground">
-            No API key configured for this source. Add it to <code className="text-xs bg-muted px-1 py-0.5 rounded">backend/.env</code> to enable it.
+            {isDisabled ? (
+              'This source was turned off before the search. Re-enable it from the home page and search again to include it.'
+            ) : (
+              <>No API key configured for this source. Add it to <code className="text-xs bg-muted px-1 py-0.5 rounded">backend/.env</code> to enable it.</>
+            )}
           </p>
         </div>
       )}

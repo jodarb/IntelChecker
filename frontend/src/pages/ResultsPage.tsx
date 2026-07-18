@@ -8,6 +8,7 @@ import { getEnginesForType, type EngineConfig, type IndicatorType, type QueryRes
 import DisconnectedCard from '@/components/results/DisconnectedCard'
 import { computeVerdict } from '@/verdictEngine'
 import { useVerdictWeights } from '@/hooks/useVerdictWeights'
+import { useEngineToggles } from '@/hooks/useEngineToggles'
 
 const TYPE_LABELS: Record<string, string> = {
   ip: 'IP Address',
@@ -52,12 +53,15 @@ function useAllEngineQueries(
   return results
 }
 
-function EngineCard({ engine, result }: { engine: EngineConfig; result: QueryResult }) {
+function EngineCard({ engine, result }: { engine: EngineConfig; result: QueryResult | undefined }) {
+  const Component = engine.component
+  if (!result) {
+    return <Component loading data={null} error={null} />
+  }
   const apiErrorCode = (result.data as any)?.error?.code
   if (!result.loading && apiErrorCode === 'MissingApiKey') {
     return <DisconnectedCard label={engine.label} />
   }
-  const Component = engine.component
   return <Component loading={result.loading} error={result.error} data={result.data} />
 }
 
@@ -67,13 +71,18 @@ export default function ResultsPage() {
   const type = (searchParams.get('type') ?? 'auto') as IndicatorType
 
   const engines = useMemo(() => getEnginesForType(type), [type])
-  const results = useAllEngineQueries(engines, indicator, type)
+  const { disabled } = useEngineToggles()
+  const activeEngines = useMemo(
+    () => engines.filter(e => !disabled.has(e.id)),
+    [engines, disabled],
+  )
+  const results = useAllEngineQueries(activeEngines, indicator, type)
   const weights = useVerdictWeights()
 
   const verdict = useMemo(() => {
     if (!weights) return { score: null, contributions: [] }
-    return computeVerdict(weights, engines, results, type)
-  }, [weights, engines, results, type])
+    return computeVerdict(weights, activeEngines, results, type)
+  }, [weights, activeEngines, results, type])
 
   return (
     <Layout>
@@ -98,7 +107,7 @@ export default function ResultsPage() {
         {/* Summary */}
         <SummarySection
           type={type}
-          engines={engines}
+          engines={activeEngines}
           results={results}
           score={verdict.score}
           contributions={verdict.contributions}
@@ -109,7 +118,9 @@ export default function ResultsPage() {
           <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Results by engine</p>
           <div className="grid grid-cols-1 gap-4">
             {engines.map(engine => (
-              <EngineCard key={engine.id} engine={engine} result={results[engine.id]} />
+              disabled.has(engine.id)
+                ? <DisconnectedCard key={engine.id} label={engine.label} reason="disabled" />
+                : <EngineCard key={engine.id} engine={engine} result={results[engine.id]} />
             ))}
           </div>
         </div>

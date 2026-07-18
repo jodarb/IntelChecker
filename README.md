@@ -33,14 +33,20 @@
 
 ## 🔎 CTI Engine Coverage
 
-| Engine | IP | Domain | URL | Hash | ASN |
-|---|:---:|:---:|:---:|:---:|:---:|
-| [AbuseIPDB](https://www.abuseipdb.com) | ✅ | | | | |
-| [VirusTotal](https://www.virustotal.com) | ✅ | ✅ | ✅ | ✅ | |
-| [ThreatFox · abuse.ch](https://threatfox.abuse.ch) | ✅ | | | ✅ | |
-| [AlienVault OTX](https://otx.alienvault.com) | ✅ | ✅ | ✅ | ✅ | |
-| [IPinfo](https://ipinfo.io) | ✅ | | | | |
-| [Shodan](https://www.shodan.io) | ✅ | | | | ✅ |
+| Engine | IP | Domain | URL | Hash | ASN | Threat Actor |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| [AbuseIPDB](https://www.abuseipdb.com) | ✅ | | | | | |
+| [VirusTotal](https://www.virustotal.com) | ✅ | ✅ | ✅ | ✅ | | |
+| [ThreatFox · abuse.ch](https://threatfox.abuse.ch) | ✅ | | | ✅ | | |
+| [AlienVault OTX](https://otx.alienvault.com) | ✅ | ✅ | ✅ | ✅ | | |
+| [IPinfo](https://ipinfo.io) | ✅ | | | | | |
+| [Shodan](https://www.shodan.io) | ✅ | | | | ✅ | |
+| [Tor Exit Nodes (dan.me.uk)](https://www.dan.me.uk/tornodes) | ✅ | | | | | |
+| [URLhaus · abuse.ch](https://urlhaus.abuse.ch) | ✅ | ✅ | ✅ | ✅ | | |
+| [MITRE ATT&CK](https://attack.mitre.org) | | | | | | ✅ |
+
+> No API key required for Tor Exit Nodes or MITRE ATT&CK — both are public datasets, always on, toggleable like any other source. MITRE ATT&CK caches its ~50 MB STIX dataset in memory for 24h (the first lookup after a cold start takes a few seconds).
+> URLhaus shares its credential with ThreatFox (`ABUSECH_AUTH_KEY`) — both are abuse.ch platforms under the same unified auth key, but are independent, individually toggleable sources.
 
 > **Roadmap:** Criminal IP · Recorded Future · Any.run · OpenCTI
 
@@ -115,7 +121,7 @@ backend/.env.example  ← empty template  (committed)
 |---|---|:---:|
 | `ABUSEIPDB_API_KEY` | [AbuseIPDB](https://www.abuseipdb.com/api) | ✅ |
 | `VIRUSTOTAL_API_KEY` | [VirusTotal](https://www.virustotal.com/gui/join-us) | ✅ |
-| `ABUSECH_API_KEY` | [ThreatFox · abuse.ch](https://auth.abuse.ch/register) | ✅ |
+| `ABUSECH_AUTH_KEY` | [ThreatFox & URLhaus · abuse.ch](https://auth.abuse.ch/register) | ✅ |
 | `ALIENVAULT_API_KEY` | [AlienVault OTX](https://otx.alienvault.com) | ✅ |
 | `IPINFO_API_KEY` | [IPinfo](https://ipinfo.io/signup) | ✅ |
 | `SHODAN_API_KEY` | [Shodan](https://account.shodan.io/register) | ✅ |
@@ -141,7 +147,10 @@ IntelChecker/
 │   │       ├── abusech.py
 │   │       ├── alienvault.py
 │   │       ├── ipinfo.py
-│   │       └── shodan.py
+│   │       ├── shodan.py
+│   │       ├── torexitlist.py
+│   │       ├── urlhaus.py
+│   │       └── mitreattack.py
 │   ├── .env                     # Your keys — gitignored
 │   ├── .env.example             # Empty template
 │   └── requirements.txt

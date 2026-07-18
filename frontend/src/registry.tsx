@@ -5,6 +5,9 @@ import AbuseCHCard from '@/components/results/AbuseCHCard'
 import AlienVaultCard from '@/components/results/AlienVaultCard'
 import IPInfoCard from '@/components/results/IPInfoCard'
 import ShodanCard from '@/components/results/ShodanCard'
+import TorExitNodeCard from '@/components/results/TorExitNodeCard'
+import URLHausCard from '@/components/results/URLHausCard'
+import MitreAttackCard from '@/components/results/MitreAttackCard'
 
 export type IndicatorType = 'ip' | 'domain' | 'url' | 'hash' | 'asn' | 'threat-actor'
 
@@ -63,6 +66,24 @@ export const ENGINES: EngineConfig[] = [
     label: 'Shodan',
     supports: ['ip', 'asn'],
     component: ShodanCard as React.ComponentType<CardProps>,
+  },
+  {
+    id: 'torexitlist',
+    label: 'Tor Exit Nodes (dan.me.uk)',
+    supports: ['ip'],
+    component: TorExitNodeCard as React.ComponentType<CardProps>,
+  },
+  {
+    id: 'urlhaus',
+    label: 'URLhaus · abuse.ch',
+    supports: ['ip', 'domain', 'url', 'hash'],
+    component: URLHausCard as React.ComponentType<CardProps>,
+  },
+  {
+    id: 'mitreattack',
+    label: 'MITRE ATT&CK',
+    supports: ['threat-actor'],
+    component: MitreAttackCard as React.ComponentType<CardProps>,
   },
 ]
 

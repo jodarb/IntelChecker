@@ -11,7 +11,7 @@ def get(key: str) -> str:
 
 ABUSEIPDB_API_KEY: str = get("ABUSEIPDB_API_KEY")
 VIRUSTOTAL_API_KEY: str = get("VIRUSTOTAL_API_KEY")
-ABUSECH_API_KEY: str = get("ABUSECH_API_KEY")
+ABUSECH_AUTH_KEY: str = get("ABUSECH_AUTH_KEY")  # unified auth.abuse.ch key, shared by ThreatFox and URLhaus
 ALIENVAULT_API_KEY: str = get("ALIENVAULT_API_KEY")
 IPINFO_API_KEY: str = get("IPINFO_API_KEY")
 SHODAN_API_KEY: str = get("SHODAN_API_KEY")

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Loader2, AlertCircle, ChevronDown, FileCode2, ShieldAlert } from 'lucide-react'
+import { Loader2, AlertCircle, SearchX, ChevronDown, FileCode2, ShieldAlert } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
 
 interface ShodanFacetEntry {
@@ -72,6 +72,8 @@ export default function ShodanCard({ loading, error, data }: Props) {
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.error ?? null
+  const isNotFound = apiError?.code === 'NotFound'
+  const isRealError = !!error || (!!apiError && !isNotFound)
 
   const isHost = !apiError && !!data?.ip_str
   const isAsnSummary = !apiError && !isHost && data?.total !== undefined
@@ -88,7 +90,13 @@ export default function ShodanCard({ loading, error, data }: Props) {
         <span className="font-semibold text-sm text-foreground">Shodan</span>
         <div className="flex items-center gap-2">
           {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-          {!loading && (error || apiError) && <AlertCircle className="h-4 w-4 text-red-400" />}
+          {!loading && isRealError && <AlertCircle className="h-4 w-4 text-red-400" />}
+          {!loading && isNotFound && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-medium text-muted-foreground bg-muted/40 border-border">
+              <SearchX className="h-3 w-3" />
+              Not Found
+            </span>
+          )}
           {!loading && isHost && vulnCount > 0 && <VulnBadge count={vulnCount} />}
           {!loading && isHost && portCount > 0 && (
             <CountBadge label={`${portCount} open port${portCount === 1 ? '' : 's'}`} />
@@ -114,8 +122,12 @@ export default function ShodanCard({ loading, error, data }: Props) {
             <p className="text-sm text-muted-foreground">Querying Shodan...</p>
           )}
 
-          {!loading && (error || apiError) && (
+          {!loading && isRealError && (
             <p className="text-sm text-red-400">{error ?? apiError?.message}</p>
+          )}
+
+          {!loading && isNotFound && (
+            <p className="text-sm text-muted-foreground">{apiError?.message}</p>
           )}
 
           {!loading && isHost && (

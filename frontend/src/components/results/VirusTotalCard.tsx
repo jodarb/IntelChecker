@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Loader2, AlertCircle, CheckCircle2, ShieldX, ShieldAlert, ChevronDown, FileCode2 } from 'lucide-react'
+import { Loader2, AlertCircle, CheckCircle2, ShieldX, ShieldAlert, SearchX, ChevronDown, FileCode2 } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
 
 interface AnalysisStats {
@@ -78,6 +78,8 @@ export default function VirusTotalCard({ loading, error, data }: Props) {
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.error ?? null
+  const isNotFound = apiError?.code === 'NotFound'
+  const isRealError = !!error || (!!apiError && !isNotFound)
   const attrs = data?.data?.attributes ?? null
 
   return (
@@ -89,7 +91,13 @@ export default function VirusTotalCard({ loading, error, data }: Props) {
         <span className="font-semibold text-sm text-foreground">VirusTotal</span>
         <div className="flex items-center gap-2">
           {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-          {!loading && (error || apiError) && <AlertCircle className="h-4 w-4 text-red-400" />}
+          {!loading && isRealError && <AlertCircle className="h-4 w-4 text-red-400" />}
+          {!loading && isNotFound && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-medium text-muted-foreground bg-muted/40 border-border">
+              <SearchX className="h-3 w-3" />
+              Not Found
+            </span>
+          )}
           {!loading && attrs && <DetectionBadge stats={attrs.last_analysis_stats} />}
           {!loading && data && (
             <button
@@ -111,8 +119,12 @@ export default function VirusTotalCard({ loading, error, data }: Props) {
             <p className="text-sm text-muted-foreground">Querying VirusTotal...</p>
           )}
 
-          {!loading && (error || apiError) && (
+          {!loading && isRealError && (
             <p className="text-sm text-red-400">{error ?? apiError?.message}</p>
+          )}
+
+          {!loading && isNotFound && (
+            <p className="text-sm text-muted-foreground">{apiError?.message}</p>
           )}
 
           {!loading && attrs && (
