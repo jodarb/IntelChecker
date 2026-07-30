@@ -19,7 +19,7 @@ const TYPE_LABELS: Record<string, string> = {
   'threat-actor': 'Threat Actor',
 }
 
-const BACKEND = 'http://localhost:8002'
+const BACKEND = '/api'
 
 function useAllEngineQueries(
   engines: EngineConfig[],

@@ -63,7 +63,7 @@
 
 ## 🚀 Quick Start
 
-### With Docker *(recommended)*
+Three steps: set your keys, drop in your logo (optional), run one command.
 
 ```bash
 git clone <repo-url>
@@ -72,20 +72,26 @@ cd IntelChecker
 cp backend/.env.example backend/.env
 # Edit backend/.env and fill in your API keys
 
-docker compose up
+# Optional: replace frontend/public/logo.svg with your own
+
+docker compose up --build -d
 ```
 
 | Service | URL |
 |---|---|
-| Frontend | http://localhost:5173 |
-| Backend API | http://localhost:8000 |
+| App | http://localhost:8080 |
+
+The frontend container serves the built SPA via nginx and reverse-proxies `/api/*` to the backend container — there's nothing else to configure, and no ports to expose beyond `8080`.
 
 ```bash
 # Stop
 docker compose down
 ```
 
-### Without Docker *(development)*
+> Re-run `docker compose up --build -d` any time you change `.env`, the logo, or the code — it rebuilds only what changed.
+
+<details>
+<summary>Development (without Docker)</summary>
 
 **Backend**
 
@@ -105,6 +111,15 @@ cd frontend
 npm install
 npm run dev
 ```
+
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:5173 |
+| Backend API | http://localhost:8000 |
+
+The Vite dev server proxies `/api/*` to `http://localhost:8000` (see `frontend/vite.config.ts`); override the target with the `BACKEND_URL` env var if your backend runs elsewhere.
+
+</details>
 
 ---
 
@@ -153,15 +168,18 @@ IntelChecker/
 │   │       └── mitreattack.py
 │   ├── .env                     # Your keys — gitignored
 │   ├── .env.example             # Empty template
+│   ├── Dockerfile
 │   └── requirements.txt
 ├── frontend/
 │   ├── public/
 │   │   └── logo.svg             # Replace with your own logo
-│   └── src/
-│       ├── components/results/  # Per-engine cards + RawJsonModal
-│       ├── pages/               # HomePage · ResultsPage
-│       ├── registry.tsx         # Frontend engine registry
-│       └── summaryRegistry.ts   # Summary field extractors per engine+type
+│   ├── src/
+│   │   ├── components/results/  # Per-engine cards + RawJsonModal
+│   │   ├── pages/               # HomePage · ResultsPage
+│   │   ├── registry.tsx         # Frontend engine registry
+│   │   └── summaryRegistry.ts   # Summary field extractors per engine+type
+│   ├── Dockerfile               # Multi-stage build → nginx serving the SPA
+│   └── nginx.conf                # Serves the SPA + proxies /api/* to the backend
 ├── docker-compose.yml
 └── README.md
 ```

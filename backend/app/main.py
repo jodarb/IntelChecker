@@ -1,19 +1,15 @@
 import os
-from pathlib import Path
-from dotenv import dotenv_values
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from app.core.registry import ENGINES
 from app.services import abuseipdb, virustotal, abusech, alienvault, ipinfo, shodan, torexitlist, urlhaus, mitreattack
 
-_ENV_PATH = Path(__file__).parent.parent / ".env"
-
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["*"],
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
@@ -38,10 +34,9 @@ class AnalyzeRequest(BaseModel):
 
 @app.get("/engines/status")
 def engines_status():
-    live = dotenv_values(_ENV_PATH)
     return {
         name: {
-            "connected": True if meta["key"] is None else bool(live.get(meta["key"], "")),
+            "connected": True if meta["key"] is None else bool(os.environ.get(meta["key"], "")),
             "supports": meta["supports"],
         }
         for name, meta in ENGINES.items()

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { ENGINES } from '@/registry'
 import { useEngineToggles } from '@/hooks/useEngineToggles'
 
-const BACKEND = 'http://localhost:8002'
+const BACKEND = '/api'
 
 const TYPE_CHIP: Record<string, string> = {
   ip: 'IP',
