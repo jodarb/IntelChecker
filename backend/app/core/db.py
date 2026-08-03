@@ -64,3 +64,26 @@ def get_entry(entry_id: int) -> dict | None:
         entry["results"] = json.loads(entry.pop("results_json"))
         entry["contributions"] = json.loads(entry.pop("contributions_json"))
         return entry
+
+
+def get_frequency(indicator: str) -> dict:
+    """How many times this exact indicator has been queried in the last 24h/72h/30d —
+    timestamps are stored via SQLite's datetime('now'), i.e. UTC, so the comparison
+    windows below use the same clock."""
+    with _connect() as conn:
+        row = conn.execute(
+            """
+            SELECT
+                SUM(CASE WHEN timestamp >= datetime('now', '-1 day')  THEN 1 ELSE 0 END),
+                SUM(CASE WHEN timestamp >= datetime('now', '-3 day')  THEN 1 ELSE 0 END),
+                SUM(CASE WHEN timestamp >= datetime('now', '-30 day') THEN 1 ELSE 0 END)
+            FROM history
+            WHERE indicator = ? COLLATE NOCASE
+            """,
+            (indicator,),
+        ).fetchone()
+        return {
+            "last_24h": row[0] or 0,
+            "last_72h": row[1] or 0,
+            "last_30d": row[2] or 0,
+        }

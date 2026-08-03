@@ -23,8 +23,14 @@
 |---|---|
 | ⚡ **Parallel queries** | All CTI sources are queried simultaneously — no waiting in line |
 | 🎴 **Per-engine cards** | Each source renders its result independently as soon as it responds |
-| 📊 **Summary section** | GeoIP and ASN aggregated across all engines with consensus count |
+| 📊 **Summary section** | GeoIP, ASN, ISP and Tor-exit status aggregated across all engines with consensus count |
 | 🎯 **Threat score gauge** | Visual semicircle gauge (0 – 10) driven by the VerdictEngine |
+| 🧮 **Weighted verdict** | Configurable per-engine weights (`weights.json`, plus per-instance for MISP) drive the score, with a full contribution breakdown |
+| 🏷️ **Per-engine score badges** | Every card shows its own 0–10 score, keeping "checked & clean" visually distinct from "no signal" and from "error" |
+| ⬆️ **Weight-sorted results** | Both the home page's source list and the results page sort engines by weight, highest first |
+| 🕓 **Query history** | Every lookup is logged to a local database — browse past queries and reopen the exact result they returned at the time |
+| 🌡️ **Search frequency** | Flags indicators that keep coming back, color-scaled from grey (new) to red (hot) across 24h/72h/30d windows |
+| 🔗 **Deep links** | Every card links straight to the indicator's page on the original tool |
 | 🔍 **Raw JSON viewer** | Per-card `{ RAW }` button opens a syntax-highlighted modal with copy & download |
 | 🛠️ **Actionable errors** | Failed sources show the exact reason (invalid key, rate limit, timeout…) |
 | 🌗 **Dark / Light mode** | Full theme support — syntax highlighter adapts automatically |
@@ -66,6 +72,41 @@ Every other source above is one fixed integration. MISP is different: you can po
 Each instance searches by indicator value only (not MISP's `ip-src`/`ip-dst`/etc. attribute-type distinctions), so it works the same way across IP, domain, URL, and hash lookups regardless of how a given MISP community tags its attributes.
 
 **Mutual TLS**: some MISP instances (common on government/CERT deployments) reject every request with a TLS-layer "certificate required" alert unless the client presents its own certificate — the API key alone isn't enough. If yours does this, drop the cert (and key, if it's a separate file) into `backend/certs/` (gitignored, mounted into the backend container at `/app/certs`) and point `MISP_<N>_CLIENT_CERT` / `MISP_<N>_CLIENT_KEY` at the filenames. A combined cert+key PEM only needs `CLIENT_CERT`.
+
+---
+
+## 🧮 Verdict Scoring & Weights
+
+The Threat Score gauge is a weighted average of every engine's own 0–10 subscore. Weights live in `weights.json` (repo root) — a flat `{ "engineId": weight }` map, same optional-file pattern as `logo.png`: edit the numbers to retune the verdict, no code changes, no rebuild logic to touch. **Every** engine has an entry, including ones that don't affect the score — a weight of `0` is how you explicitly say "show this source, but don't let it move the needle" (that's the default for purely contextual sources like Shodan, IPinfo, RIPEstat and MITRE ATT&CK, none of which carry a maliciousness signal to score).
+
+Each engine's own card shows its individual score too, using a badge deliberately styled to avoid two different kinds of ambiguity:
+
+- **Solid, high-contrast pill** (green → red) — an actual 0–10 score. `0` is a real "checked and found clean" result (e.g. VirusTotal scanned it with dozens of engines and none flagged it) — that's a meaningfully different, stronger claim than "no data."
+- **Soft pill, yellow** — `No results`: the engine has no record of this indicator at all (not the same as clean — absence of evidence isn't evidence of absence), or `No score`: the engine returned real data but has nothing to score (a Shodan host profile, an IPinfo geolocation).
+- **Soft pill, red** — `Error`: the lookup itself failed (timeout, rate limit, bad credentials…).
+
+Both the home page's Connected Sources list and the results page's per-engine cards sort by weight, highest first (ties keep their original order) — on the home page, sources matching the currently-selected indicator type float to the top of that ordering first. A small weight badge next to each result shows the exact number in play.
+
+MISP is the one exception to `weights.json`: since instances are only known at deploy time (see above), their weight is set alongside their name — `MISP_<N>_WEIGHT` in `backend/.env`, defaulting to `0` if omitted — and merged into the same scoring pipeline at runtime. A MISP instance contributes its high-confidence score whenever it returns a matching attribute; no match is treated as "no results," same as everywhere else.
+
+---
+
+## 🕓 Query History & Search Frequency
+
+Every completed lookup is logged to a small local database (`backend/data/history.db`, SQLite — gitignored, and mounted as a Docker volume so it survives container rebuilds) — one entry per indicator+type per visit to the results page, not per engine toggle. The **History** button in the header opens a chronological list (indicator, type, timestamp, score); opening an entry reconstructs the results page exactly as it looked at that moment — the score, the per-engine weight contributions, and every engine's raw response are all frozen at save time, so a later change to `weights.json` or a MISP instance's config won't rewrite history.
+
+Each result also shows a **Search Frequency** card — how many times that exact indicator has been looked up in the last 24h, 72h, and 30d — color-scaled so a spike is obvious at a glance without reading the numbers:
+
+| Level | 24h | 72h | 30d |
+|---|:---:|:---:|:---:|
+| ⬜ Grey — never seen | 0 | 0 | 0 |
+| 🟩 Green | 1 | 1–2 | 1–3 |
+| 🟨 Yellow | 2 | 3–4 | 4–8 |
+| 🟧 Orange | 3–4 | 5–7 | 9–15 |
+| 🟥 Red | 5+ | 8+ | 16+ |
+
+Each window has its own thresholds because the same raw count means different things at different timescales — 5 hits in the last 24h is a hot indicator worth flagging; 5 hits spread across a month is background noise. The card's color is whichever window reads most severe, so a recent burst always wins even if the 30-day total looks unremarkable.
+
 ---
 
 ## 🖥️ Screenshot
@@ -108,6 +149,7 @@ docker compose down
 > Re-run `docker compose up --build -d` any time you change `.env`, the logo, `weights.json`, or the code — it rebuilds only what changed.
 > `logo.png` lives at the repo root so it's the first thing a deployer sees — `frontend/public/logo.png` is just a symlink to it, kept for local (non-Docker) dev. No logo file? The build doesn't fail and the UI silently renders without one.
 > `weights.json` (repo root) sets each engine's contribution to the unified verdict score — edit the numbers to tune it, no code changes needed. Same symlink/optional-copy pattern as the logo: missing file just means no verdict score is computed.
+> Query history needs no setup — `docker compose up` creates `backend/data/history.db` on first run and it persists across restarts/rebuilds via the volume mount in `docker-compose.yml`.
 
 <details>
 <summary>Development (without Docker)</summary>
@@ -162,7 +204,7 @@ backend/.env.example  ← empty template  (committed)
 | `URLSCAN_API_KEY` | [urlscan.io](https://urlscan.io/user/signup) | ✅ |
 | `PHISHTANK_API_KEY` *(optional)* | [PhishTank](https://phishtank.org/api_register.php) | ✅ |
 | `RECORDED_FUTURE_API_KEY` | [Recorded Future](https://www.recordedfuture.com) — API token from your org's admin panel | ❌ (commercial) |
-| `MISP_<N>_NAME` / `_URL` / `_KEY` / `_VERIFY_SSL` | [MISP](https://www.misp-project.org) — as many instances as you want, see below | n/a |
+| `MISP_<N>_NAME` / `_URL` / `_KEY` / `_VERIFY_SSL` / `_WEIGHT` | [MISP](https://www.misp-project.org) — as many instances as you want, see below | n/a |
 
 > Sources with an empty key render an error card in the UI; all other sources continue working normally.
 
@@ -177,7 +219,8 @@ IntelChecker/
 │   │   ├── main.py              # FastAPI entrypoint & routes
 │   │   ├── core/
 │   │   │   ├── config.py        # API key loader (.env)
-│   │   │   └── registry.py      # Engine capabilities (which types each supports)
+│   │   │   ├── registry.py      # Engine capabilities (which types each supports)
+│   │   │   └── db.py            # SQLite query-history store (save/list/get/frequency)
 │   │   └── services/            # Async CTI client modules
 │   │       ├── abuseipdb.py
 │   │       ├── virustotal.py
@@ -197,6 +240,7 @@ IntelChecker/
 │   ├── .env                     # Your keys — gitignored
 │   ├── .env.example             # Empty template
 │   ├── certs/                    # MISP mTLS client certs — gitignored, mounted into the container
+│   ├── data/                      # SQLite history.db lives here — gitignored, mounted into the container
 │   ├── Dockerfile
 │   └── requirements.txt
 ├── frontend/
@@ -204,9 +248,10 @@ IntelChecker/
 │   │   ├── logo.png              # Symlink → ../../logo.png (for local `npm run dev`)
 │   │   └── weights.json          # Symlink → ../../weights.json (for local `npm run dev`)
 │   ├── src/
-│   │   ├── components/results/  # Per-engine cards + RawJsonModal + shared MISPCard
-│   │   ├── pages/                # HomePage · ResultsPage
+│   │   ├── components/results/  # Per-engine cards, ScoreBadge, WeightBadge, SearchFrequencyCard, RawJsonModal, shared MISPCard
+│   │   ├── pages/                # HomePage · ResultsPage · HistoryPage · HistoryDetailPage
 │   │   ├── registry.tsx          # Static (build-time) engine registry
+│   │   ├── verdictEngine.ts      # Per-engine + aggregate 0-10 scoring logic
 │   │   ├── EnginesContext.tsx    # Merges static engines with backend-discovered MISP instances
 │   │   └── summaryRegistry.ts    # Summary field extractors per engine+type
 │   ├── Dockerfile               # Multi-stage build → nginx serving the SPA
@@ -241,6 +286,13 @@ Analyst input
        │  React frontend             │
        │  Per-engine cards           │
        │  Summary + Verdict gauge    │
+       └──────────────┬──────────────┘
+                       │ once every engine settles
+                       ▼
+       ┌─────────────────────────────┐
+       │  POST /history               │
+       │  → SQLite (backend/data/)    │
+       │  score + per-engine snapshot │
        └─────────────────────────────┘
 ```
 

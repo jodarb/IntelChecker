@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Layout from '@/components/Layout'
 import SummarySection from '@/components/results/SummarySection'
+import SearchFrequencyCard from '@/components/results/SearchFrequencyCard'
 import { getEnginesForType, type EngineConfig, type IndicatorType, type QueryResult } from '@/registry'
 import DisconnectedCard from '@/components/results/DisconnectedCard'
 import { computeVerdict, getEngineSubscore } from '@/verdictEngine'
@@ -170,6 +171,8 @@ export default function ResultsPage() {
             </span>
           </div>
         </div>
+
+        <SearchFrequencyCard indicator={indicator} />
 
         {/* Summary */}
         <SummarySection

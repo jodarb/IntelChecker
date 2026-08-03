@@ -4,6 +4,7 @@ import { ArrowLeft, History } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Layout from '@/components/Layout'
 import SummarySection from '@/components/results/SummarySection'
+import SearchFrequencyCard from '@/components/results/SearchFrequencyCard'
 import RawJsonModal from '@/components/results/RawJsonModal'
 import { useEngines } from '@/EnginesContext'
 import { getEngineSubscore, type VerdictContribution } from '@/verdictEngine'
@@ -129,6 +130,8 @@ export default function HistoryDetailPage() {
           <History className="h-3.5 w-3.5 shrink-0" />
           Archived result from {formatTimestamp(entry.timestamp)} — showing what each source returned at that time, not a live lookup.
         </div>
+
+        <SearchFrequencyCard indicator={entry.indicator} />
 
         <SummarySection
           type={entry.type}

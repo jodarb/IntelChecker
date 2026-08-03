@@ -102,6 +102,13 @@ def list_history_entries():
     return history_db.list_history()
 
 
+# Must be registered before /history/{entry_id} — otherwise "frequency" would be
+# swallowed by that route and rejected as an invalid int id.
+@app.get("/history/frequency")
+def get_history_frequency(indicator: str):
+    return history_db.get_frequency(indicator)
+
+
 @app.get("/history/{entry_id}")
 def get_history_entry(entry_id: int):
     entry = history_db.get_entry(entry_id)
