@@ -100,12 +100,12 @@ Each result also shows a **Search Frequency** card — how many times that exact
 | Level | 24h | 72h | 30d |
 |---|:---:|:---:|:---:|
 | ⬜ Grey — never seen | 0 | 0 | 0 |
-| 🟩 Green | 1 | 1–2 | 1–3 |
-| 🟨 Yellow | 2 | 3–4 | 4–8 |
+| 🟩 Green — stale only | 0 | 0 | 1–3 |
+| 🟨 Yellow | 1–2 | 1–4 | 4–8 |
 | 🟧 Orange | 3–4 | 5–7 | 9–15 |
 | 🟥 Red | 5+ | 8+ | 16+ |
 
-Each window has its own thresholds because the same raw count means different things at different timescales — 5 hits in the last 24h is a hot indicator worth flagging; 5 hits spread across a month is background noise. The card's color is whichever window reads most severe, so a recent burst always wins even if the 30-day total looks unremarkable.
+Grey is reserved for genuinely zero activity everywhere, and green only shows up for stale hits — something seen in the last 30 days but nothing in the last 72h. The moment there's *any* hit within 72h (which includes any hit within 24h), the card is at least yellow — recent activity is never shown "cooler" than that, no matter how small the count. From that yellow floor, higher counts in the tighter windows escalate to orange/red, since a burst in the last 24h is far more significant than the same count spread across 30 days. The card's color is whichever window reads most severe.
 
 ---
 

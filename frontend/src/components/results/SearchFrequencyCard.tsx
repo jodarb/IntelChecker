@@ -24,14 +24,16 @@ function useSearchFrequency(indicator: string): Frequency | null {
   return freq
 }
 
-// 0 = never seen, 1 = green, 2 = yellow, 3 = orange, 4 = red. Each window has its
-// own breakpoints since the same raw count means very different things depending
-// on the timeframe it happened in — 5 hits in the last 24h is a hot indicator,
-// but 5 hits spread across 30 days is unremarkable background noise. The overall
-// level is whichever window reads most severe, so a recent burst always wins.
+// 0 = never seen, 1 = green, 2 = yellow, 3 = orange, 4 = red. Gray is reserved for
+// truly zero activity everywhere. Green only shows up for stale hits — something
+// seen in the 30d window but nothing in the last 72h. The moment there's any hit
+// within 72h (which includes any hit within 24h), it's at least yellow — recent
+// activity is never "cooler" than that, no matter how small the count. From that
+// yellow floor, higher counts in the tighter windows escalate to orange/red, since
+// a burst in the last 24h is far more significant than the same count over 30 days.
 const THRESHOLDS: Record<keyof Frequency, { yellow: number; orange: number; red: number }> = {
-  last_24h: { yellow: 2, orange: 3, red: 5 },
-  last_72h: { yellow: 3, orange: 5, red: 8 },
+  last_24h: { yellow: 1, orange: 3, red: 5 },
+  last_72h: { yellow: 1, orange: 5, red: 8 },
   last_30d: { yellow: 4, orange: 9, red: 16 },
 }
 
