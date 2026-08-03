@@ -10,6 +10,7 @@ interface Pulse {
   created: string
   author_name: string
   references: string[]
+  adversary?: string | null
 }
 
 interface PulseInfo {
@@ -24,6 +25,9 @@ interface OTXResponse {
   city?: string | null
   asn?: string | null
   pulse_info?: PulseInfo
+  // threat-actor lookup: pulse search shape
+  count?: number
+  results?: Pulse[]
   error?: { code: string; message: string }
 }
 
@@ -75,6 +79,11 @@ function PulseRow({ pulse }: { pulse: Pulse }) {
         <span className="text-muted-foreground">
           by <span className="text-foreground">{pulse.author_name}</span>
         </span>
+        {pulse.adversary && (
+          <span className="text-muted-foreground">
+            adversary: <span className="text-foreground">{pulse.adversary}</span>
+          </span>
+        )}
         {pulse.tags && pulse.tags.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {pulse.tags.slice(0, 6).map(tag => (
@@ -100,6 +109,9 @@ export default function AlienVaultCard({ loading, error, data }: Props) {
   const isRealError = !!error || (!!apiError && !isNotFound)
   const pulseInfo = data?.pulse_info ?? null
   const pulseCount = pulseInfo?.count ?? 0
+  const searchResults = data?.results ?? null
+  const isPulseSearch = !apiError && Array.isArray(searchResults)
+  const searchCount = data?.count ?? searchResults?.length ?? 0
 
   return (
     <div className="rounded-lg border border-border overflow-hidden">
@@ -118,6 +130,7 @@ export default function AlienVaultCard({ loading, error, data }: Props) {
             </span>
           )}
           {!loading && pulseInfo && <PulseBadge count={pulseCount} />}
+          {!loading && isPulseSearch && <PulseBadge count={searchCount} />}
           {!loading && data && (
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}
@@ -146,7 +159,23 @@ export default function AlienVaultCard({ loading, error, data }: Props) {
             <p className="text-sm text-muted-foreground">{apiError?.message}</p>
           )}
 
-          {!loading && data && !apiError && (
+          {!loading && isPulseSearch && (
+            <div className="flex flex-col gap-2">
+              {searchCount === 0 && (
+                <p className="text-sm text-muted-foreground">No pulses reference this threat actor.</p>
+              )}
+              {searchResults!.length > 0 && (
+                <span className="text-xs text-muted-foreground uppercase tracking-wide">
+                  Threat Pulses ({searchCount.toLocaleString()}{searchResults!.length < searchCount ? `, showing ${searchResults!.length}` : ''})
+                </span>
+              )}
+              {searchResults!.map(pulse => (
+                <PulseRow key={pulse.id} pulse={pulse} />
+              ))}
+            </div>
+          )}
+
+          {!loading && !isPulseSearch && data && !apiError && (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
                 <Field label="Pulses" value={pulseInfo ? <PulseBadge count={pulseCount} /> : '—'} />

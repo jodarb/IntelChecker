@@ -73,7 +73,7 @@ export default function EngineStatusPanel({ selectedType }: Props) {
           return (
             <div
               key={engine.id}
-              className={`flex items-center justify-between gap-3 px-3 py-2 rounded-lg border transition-all duration-200 ${
+              className={`flex flex-col gap-1.5 px-3 py-2 rounded-lg border transition-all duration-200 ${
                 relevant
                   ? connected
                     ? enabled
@@ -83,39 +83,44 @@ export default function EngineStatusPanel({ selectedType }: Props) {
                   : 'border-border/30 bg-muted/5 opacity-25'
               }`}
             >
-              {/* Left: status dot + name */}
-              <div className="flex items-center gap-2 min-w-0">
-                <span
-                  className={`shrink-0 h-2 w-2 rounded-full ${
-                    connected ? (enabled ? 'bg-green-500' : 'bg-amber-500') : 'bg-muted-foreground'
-                  }`}
-                />
-                <span className={`text-sm font-medium truncate ${
-                  relevant ? 'text-foreground' : 'text-muted-foreground'
-                }`}>
-                  {engine.label}
-                </span>
-              </div>
-
-              {/* Right: type chips + on/off */}
-              <div className="flex items-center gap-2 shrink-0">
-                <div className="flex items-center gap-1">
-                  {(s?.supports ?? engine.supports).map(type => (
-                    <span
-                      key={type}
-                      className={`px-1.5 py-0.5 rounded text-xs border transition-colors ${
-                        type === selectedType
-                          ? 'bg-primary/15 border-primary/40 text-primary font-medium'
-                          : 'bg-muted border-border text-muted-foreground'
-                      }`}
-                    >
-                      {TYPE_CHIP[type] ?? type}
+              {/* Top row: logo (with status dot badge) + name + on/off */}
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="relative shrink-0 inline-flex">
+                    <span className="h-6 w-6 rounded-md bg-white border border-border/50 flex items-center justify-center overflow-hidden">
+                      <img src={engine.logo} alt="" className="h-4 w-4 object-contain" />
                     </span>
-                  ))}
+                    <span
+                      className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full ring-2 ring-background ${
+                        connected ? (enabled ? 'bg-green-500' : 'bg-amber-500') : 'bg-muted-foreground'
+                      }`}
+                    />
+                  </span>
+                  <span className={`text-sm font-medium truncate ${
+                    relevant ? 'text-foreground' : 'text-muted-foreground'
+                  }`}>
+                    {engine.label}
+                  </span>
                 </div>
                 {connected && (
                   <ToggleSwitch enabled={enabled} onToggle={() => toggle(engine.id)} />
                 )}
+              </div>
+
+              {/* Bottom row: type chips */}
+              <div className="flex flex-wrap items-center gap-1 pl-4">
+                {(s?.supports ?? engine.supports).map(type => (
+                  <span
+                    key={type}
+                    className={`px-1.5 py-0.5 rounded text-xs border transition-colors ${
+                      type === selectedType
+                        ? 'bg-primary/15 border-primary/40 text-primary font-medium'
+                        : 'bg-muted border-border text-muted-foreground'
+                    }`}
+                  >
+                    {TYPE_CHIP[type] ?? type}
+                  </span>
+                ))}
               </div>
             </div>
           )

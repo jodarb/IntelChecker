@@ -3,7 +3,10 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from app.core.registry import ENGINES
-from app.services import abuseipdb, virustotal, abusech, alienvault, ipinfo, shodan, torexitlist, urlhaus, mitreattack
+from app.services import (
+    abuseipdb, virustotal, abusech, alienvault, ipinfo, shodan,
+    torexitlist, urlhaus, mitreattack, ripestat, urlscan, malwarebazaar, phishtank,
+)
 
 app = FastAPI()
 
@@ -24,6 +27,10 @@ _SERVICES = {
     "torexitlist": torexitlist,
     "urlhaus": urlhaus,
     "mitreattack": mitreattack,
+    "ripestat": ripestat,
+    "urlscan": urlscan,
+    "malwarebazaar": malwarebazaar,
+    "phishtank": phishtank,
 }
 
 

@@ -15,3 +15,5 @@ ABUSECH_AUTH_KEY: str = get("ABUSECH_AUTH_KEY")  # unified auth.abuse.ch key, sh
 ALIENVAULT_API_KEY: str = get("ALIENVAULT_API_KEY")
 IPINFO_API_KEY: str = get("IPINFO_API_KEY")
 SHODAN_API_KEY: str = get("SHODAN_API_KEY")
+URLSCAN_API_KEY: str = get("URLSCAN_API_KEY")
+PHISHTANK_API_KEY: str = get("PHISHTANK_API_KEY")  # optional — checkurl works without a key, just at lower priority

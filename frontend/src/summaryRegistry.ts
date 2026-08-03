@@ -79,4 +79,15 @@ export const SUMMARY_REGISTRY: Record<string, Partial<Record<IndicatorType, Summ
       },
     ],
   },
+  ripestat: {
+    ip: [
+      {
+        field: 'asn',
+        extract: (d) => {
+          const asns = (d as any)?.network_info?.asns as string[] | undefined
+          return asns && asns.length > 0 ? `AS${asns[0]}` : null
+        },
+      },
+    ],
+  },
 }

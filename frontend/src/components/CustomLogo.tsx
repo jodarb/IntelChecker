@@ -15,7 +15,7 @@ export default function CustomLogo() {
 
   return (
     <img
-      src="/logo.svg"
+      src="/logo.png"
       alt="Organization logo"
       className="h-12 mx-auto object-contain"
       onError={() => setVisible(false)}
