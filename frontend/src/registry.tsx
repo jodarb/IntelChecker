@@ -21,6 +21,10 @@ export interface CardProps {
   error: string | null
   data: unknown
   label?: string
+  score?: number | null
+  weight?: number | null
+  indicator?: string
+  type?: IndicatorType
 }
 
 export interface QueryResult {

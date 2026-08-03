@@ -1,7 +1,10 @@
 import os
+import asyncio
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from app.core import db as history_db
 from app.core.config import MISP_INSTANCES
 from app.core.registry import ENGINES
 from app.services import (
@@ -10,7 +13,16 @@ from app.services import (
     recordedfuture, misp,
 )
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    history_db.init_db()
+    task = asyncio.create_task(torexitlist.start_background_refresh())
+    yield
+    task.cancel()
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -43,6 +55,14 @@ class AnalyzeRequest(BaseModel):
     type: str
 
 
+class HistoryEntryRequest(BaseModel):
+    indicator: str
+    type: str
+    score: int | None = None
+    results: dict
+    contributions: list = []
+
+
 @app.get("/engines/status")
 def engines_status():
     result = {}
@@ -54,6 +74,8 @@ def engines_status():
         entry = {"connected": connected, "supports": meta["supports"]}
         if "name" in meta:
             entry["label"] = meta["name"]
+        if "weight" in meta:
+            entry["weight"] = meta["weight"]
         result[name] = entry
     return result
 
@@ -65,3 +87,24 @@ async def analyze(engine: str, req: AnalyzeRequest):
             status_code=404, detail=f"Unknown engine: {engine}"
         )
     return await _SERVICES[engine].dispatch(req.indicator, req.type)
+
+
+@app.post("/history")
+def create_history_entry(entry: HistoryEntryRequest):
+    entry_id = history_db.save_query(
+        entry.indicator, entry.type, entry.score, entry.results, entry.contributions
+    )
+    return {"id": entry_id}
+
+
+@app.get("/history")
+def list_history_entries():
+    return history_db.list_history()
+
+
+@app.get("/history/{entry_id}")
+def get_history_entry(entry_id: int):
+    entry = history_db.get_entry(entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="History entry not found")
+    return entry

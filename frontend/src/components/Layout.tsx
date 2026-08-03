@@ -1,4 +1,4 @@
-import { Sun, Moon, ShieldAlert } from 'lucide-react'
+import { Sun, Moon, ShieldAlert, History } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { useTheme } from '@/hooks/useTheme'
@@ -17,9 +17,17 @@ export default function Layout({ children }: LayoutProps) {
           <ShieldAlert className="h-5 w-5" />
           <span>IntelChecker</span>
         </Link>
-        <Button variant="ghost" size="icon" onClick={toggle} aria-label="Toggle theme">
-          {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" asChild className="gap-1.5">
+            <Link to="/history">
+              <History className="h-4 w-4" />
+              History
+            </Link>
+          </Button>
+          <Button variant="ghost" size="icon" onClick={toggle} aria-label="Toggle theme">
+            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </Button>
+        </div>
       </header>
       {children}
     </div>

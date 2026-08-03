@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { Loader2, AlertCircle, ShieldCheck, ShieldAlert, ShieldQuestion, ChevronDown, FileCode2, ExternalLink } from 'lucide-react'
+import { Loader2, ShieldCheck, ShieldAlert, ShieldQuestion, ChevronDown, FileCode2, ExternalLink } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
+import ScoreBadge from './ScoreBadge'
+import WeightBadge from './WeightBadge'
 
 interface PhishTankResponse {
   url?: string
@@ -17,6 +19,8 @@ interface Props {
   loading: boolean
   error: string | null
   data: PhishTankResponse | null
+  score?: number | null
+  weight?: number | null
 }
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
@@ -53,7 +57,7 @@ function VerdictBadge({ data }: { data: PhishTankResponse }) {
   )
 }
 
-export default function PhishTankCard({ loading, error, data }: Props) {
+export default function PhishTankCard({ loading, error, data, score = null, weight = null }: Props) {
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.error ?? null
@@ -69,8 +73,8 @@ export default function PhishTankCard({ loading, error, data }: Props) {
         <span className="font-semibold text-sm text-foreground">PhishTank</span>
         <div className="flex items-center gap-2">
           {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-          {!loading && isRealError && <AlertCircle className="h-4 w-4 text-red-400" />}
-          {!loading && isKnown && <VerdictBadge data={data!} />}
+          <WeightBadge weight={weight} />
+          {!loading && <ScoreBadge score={score} isError={isRealError} />}
           {!loading && data && (
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}

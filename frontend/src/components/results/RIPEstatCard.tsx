@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { Loader2, AlertCircle, SearchX, ChevronDown, FileCode2, Mail } from 'lucide-react'
+import { Loader2, ChevronDown, FileCode2, ExternalLink } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
+import ScoreBadge from './ScoreBadge'
+import WeightBadge from './WeightBadge'
 
 interface RIPEstatResponse {
   // type=ip
@@ -15,6 +17,9 @@ interface Props {
   loading: boolean
   error: string | null
   data: RIPEstatResponse | null
+  score?: number | null
+  weight?: number | null
+  indicator?: string
 }
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
@@ -26,16 +31,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   )
 }
 
-function AbuseBadge({ contacts }: { contacts: string[] }) {
-  return (
-    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-semibold text-blue-400 bg-blue-500/10 border-blue-500/30">
-      <Mail className="h-3 w-3" />
-      {contacts.length} abuse contact{contacts.length === 1 ? '' : 's'}
-    </span>
-  )
-}
-
-export default function RIPEstatCard({ loading, error, data }: Props) {
+export default function RIPEstatCard({ loading, error, data, score = null, weight = null, indicator }: Props) {
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.error ?? null
@@ -56,14 +52,10 @@ export default function RIPEstatCard({ loading, error, data }: Props) {
         <span className="font-semibold text-sm text-foreground">RIPEstat</span>
         <div className="flex items-center gap-2">
           {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-          {!loading && isRealError && <AlertCircle className="h-4 w-4 text-red-400" />}
-          {!loading && isIp && !hasRoute && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-medium text-muted-foreground bg-muted/40 border-border">
-              <SearchX className="h-3 w-3" />
-              No route
-            </span>
+          <WeightBadge weight={weight} />
+          {!loading && (
+            <ScoreBadge score={score} isError={isRealError} hasResult={isIp ? hasRoute : isAsn} />
           )}
-          {!loading && abuseContacts.length > 0 && <AbuseBadge contacts={abuseContacts} />}
           {!loading && data && (
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}
@@ -101,6 +93,16 @@ export default function RIPEstatCard({ loading, error, data }: Props) {
               {abuseContacts.length > 0 && (
                 <Field label="Abuse Contacts" value={abuseContacts.join(', ')} />
               )}
+              {indicator && (
+                <a
+                  href={`https://stat.ripe.net/${indicator}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit"
+                >
+                  <ExternalLink className="h-3 w-3" /> View on RIPEstat
+                </a>
+              )}
             </div>
           )}
 
@@ -113,6 +115,16 @@ export default function RIPEstatCard({ loading, error, data }: Props) {
               </div>
               {abuseContacts.length > 0 && (
                 <Field label="Abuse Contacts" value={abuseContacts.join(', ')} />
+              )}
+              {indicator && (
+                <a
+                  href={`https://stat.ripe.net/${indicator}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit"
+                >
+                  <ExternalLink className="h-3 w-3" /> View on RIPEstat
+                </a>
               )}
             </div>
           )}

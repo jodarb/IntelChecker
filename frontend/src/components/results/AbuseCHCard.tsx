@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { Loader2, AlertCircle, CheckCircle2, ShieldX, ChevronDown, FileCode2 } from 'lucide-react'
+import { Loader2, ChevronDown, FileCode2, ExternalLink } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
+import ScoreBadge from './ScoreBadge'
+import WeightBadge from './WeightBadge'
 
 interface ThreatFoxIOC {
   id: string
@@ -28,23 +30,8 @@ interface Props {
   loading: boolean
   error: string | null
   data: ThreatFoxResponse | null
-}
-
-function CountBadge({ count }: { count: number }) {
-  if (count === 0) {
-    return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-semibold text-green-400 bg-green-500/10 border-green-500/30">
-        <CheckCircle2 className="h-3 w-3" />
-        Clean
-      </span>
-    )
-  }
-  return (
-    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-semibold text-red-400 bg-red-500/10 border-red-500/30">
-      <ShieldX className="h-3 w-3" />
-      {count} IOC{count > 1 ? 's' : ''} Found
-    </span>
-  )
+  score?: number | null
+  weight?: number | null
 }
 
 function ConfidenceBadge({ level }: { level: number }) {
@@ -109,11 +96,19 @@ function IOCRow({ ioc }: { ioc: ThreatFoxIOC }) {
           </div>
         )}
       </div>
+      <a
+        href={`https://threatfox.abuse.ch/ioc/${ioc.id}/`}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit"
+      >
+        <ExternalLink className="h-3 w-3" /> View on ThreatFox
+      </a>
     </div>
   )
 }
 
-export default function AbuseCHCard({ loading, error, data }: Props) {
+export default function AbuseCHCard({ loading, error, data, score = null, weight = null }: Props) {
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.error ?? null
@@ -129,8 +124,8 @@ export default function AbuseCHCard({ loading, error, data }: Props) {
         <span className="font-semibold text-sm text-foreground">ThreatFox · abuse.ch</span>
         <div className="flex items-center gap-2">
           {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-          {!loading && (error || apiError) && <AlertCircle className="h-4 w-4 text-red-400" />}
-          {!loading && hasData && <CountBadge count={iocs.length} />}
+          <WeightBadge weight={weight} />
+          {!loading && <ScoreBadge score={score} isError={!!(error || apiError)} />}
           {!loading && data && (
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}

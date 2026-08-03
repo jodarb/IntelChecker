@@ -1,0 +1,16 @@
+{
+  "virustotal": 8,
+  "abuseipdb": 7,
+  "alienvault": 6,
+  "abusech": 7,
+  "recordedfuture": 25,
+  "torexitlist": 5,
+  "urlhaus": 7,
+  "urlscan": 5,
+  "malwarebazaar": 8,
+  "phishtank": 7,
+  "ipinfo": 0,
+  "shodan": 0,
+  "ripestat": 0,
+  "mitreattack": 0
+}

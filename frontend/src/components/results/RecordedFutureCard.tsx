@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { Loader2, AlertCircle, SearchX, ChevronDown, FileCode2, ExternalLink } from 'lucide-react'
+import { Loader2, ChevronDown, FileCode2, ExternalLink } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
+import ScoreBadge from './ScoreBadge'
+import WeightBadge from './WeightBadge'
 
 interface EvidenceDetail {
   rule?: string
@@ -31,6 +33,8 @@ interface Props {
   loading: boolean
   error: string | null
   data: RecordedFutureResponse | null
+  score?: number | null
+  weight?: number | null
 }
 
 const CRITICALITY_STYLES: Record<string, string> = {
@@ -76,7 +80,7 @@ function EvidenceRow({ evidence }: { evidence: EvidenceDetail }) {
   )
 }
 
-export default function RecordedFutureCard({ loading, error, data }: Props) {
+export default function RecordedFutureCard({ loading, error, data, score = null, weight = null }: Props) {
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.error ?? null
@@ -94,14 +98,8 @@ export default function RecordedFutureCard({ loading, error, data }: Props) {
         <span className="font-semibold text-sm text-foreground">Recorded Future</span>
         <div className="flex items-center gap-2">
           {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-          {!loading && isRealError && <AlertCircle className="h-4 w-4 text-red-400" />}
-          {!loading && isNotFound && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-medium text-muted-foreground bg-muted/40 border-border">
-              <SearchX className="h-3 w-3" />
-              Not Found
-            </span>
-          )}
-          {!loading && risk && <RiskBadge risk={risk} />}
+          <WeightBadge weight={weight} />
+          {!loading && <ScoreBadge score={score} isError={isRealError} />}
           {!loading && data && (
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}

@@ -26,4 +26,5 @@ for _inst in MISP_INSTANCES:
         "key": None,
         "name": _inst["name"],
         "connected": bool(_inst["url"]) and bool(_inst["key"]),
+        "weight": _inst["weight"],
     }

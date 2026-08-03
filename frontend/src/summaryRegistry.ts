@@ -1,6 +1,6 @@
 import type { IndicatorType } from '@/registry'
 
-export type SummaryField = 'country' | 'asn' | 'openPorts'
+export type SummaryField = 'country' | 'asn' | 'isp' | 'torExit' | 'openPorts'
 
 export interface SummaryExtractorDef {
   field: SummaryField
@@ -22,6 +22,14 @@ export const SUMMARY_FIELD_META: Record<SummaryField, { label: string; format: (
     label: 'ASN',
     format: (v) => v,
   },
+  isp: {
+    label: 'ISP',
+    format: (v) => v,
+  },
+  torExit: {
+    label: 'Tor Exit Node',
+    format: (v) => v,
+  },
   openPorts: {
     label: 'Open Ports',
     format: (v) => v,
@@ -29,7 +37,7 @@ export const SUMMARY_FIELD_META: Record<SummaryField, { label: string; format: (
 }
 
 // Display order of summary fields
-export const SUMMARY_FIELDS: SummaryField[] = ['country', 'asn', 'openPorts']
+export const SUMMARY_FIELDS: SummaryField[] = ['country', 'asn', 'isp', 'torExit', 'openPorts']
 
 // Registry: engineId → indicatorType → extractors
 // Add new fields here when new summary data points are needed.
@@ -37,6 +45,8 @@ export const SUMMARY_REGISTRY: Record<string, Partial<Record<IndicatorType, Summ
   abuseipdb: {
     ip: [
       { field: 'country', extract: (d) => ((d as any)?.data?.countryCode) || null },
+      { field: 'isp', extract: (d) => ((d as any)?.data?.isp) || null },
+      { field: 'torExit', extract: (d) => ((d as any)?.data?.isTor ? 'Yes' : null) },
     ],
   },
   virustotal: {
@@ -49,6 +59,7 @@ export const SUMMARY_REGISTRY: Record<string, Partial<Record<IndicatorType, Summ
           return n != null ? `AS${n}` : null
         },
       },
+      { field: 'isp', extract: (d) => ((d as any)?.data?.attributes?.as_owner) || null },
     ],
   },
   alienvault: {
@@ -63,12 +74,23 @@ export const SUMMARY_REGISTRY: Record<string, Partial<Record<IndicatorType, Summ
       { field: 'country', extract: (d) => ((d as any)?.country) || null },
       // IPinfo returns "AS15169 Google LLC" — normalize to "AS15169"
       { field: 'asn', extract: (d) => ((d as any)?.org as string)?.split(' ')[0] || null },
+      // ...and the ISP/org name is everything after that leading ASN token.
+      {
+        field: 'isp',
+        extract: (d) => {
+          const org = (d as any)?.org as string | undefined
+          if (!org) return null
+          const rest = org.split(' ').slice(1).join(' ')
+          return rest || null
+        },
+      },
     ],
   },
   shodan: {
     ip: [
       { field: 'country', extract: (d) => ((d as any)?.country_code) || null },
       { field: 'asn', extract: (d) => ((d as any)?.asn) || null },
+      { field: 'isp', extract: (d) => ((d as any)?.isp) || null },
       {
         field: 'openPorts',
         extract: (d) => {
@@ -88,6 +110,11 @@ export const SUMMARY_REGISTRY: Record<string, Partial<Record<IndicatorType, Summ
           return asns && asns.length > 0 ? `AS${asns[0]}` : null
         },
       },
+    ],
+  },
+  torexitlist: {
+    ip: [
+      { field: 'torExit', extract: (d) => ((d as any)?.is_tor_exit ? 'Yes' : null) },
     ],
   },
 }

@@ -46,6 +46,11 @@ def _load_misp_instances() -> list[dict]:
         if not name:
             continue
         verify_raw = os.environ.get(f"MISP_{idx}_VERIFY_SSL", "true").strip().lower()
+        weight_raw = os.environ.get(f"MISP_{idx}_WEIGHT", "0").strip()
+        try:
+            weight = int(weight_raw) if weight_raw else 0
+        except ValueError:
+            weight = 0
         instances.append({
             "id": f"misp_{idx}",
             "name": name,
@@ -54,6 +59,7 @@ def _load_misp_instances() -> list[dict]:
             "verify_ssl": verify_raw not in ("false", "0", "no"),
             "client_cert": _resolve_cert(idx, "CLIENT_CERT"),
             "client_key": _resolve_cert(idx, "CLIENT_KEY"),
+            "weight": weight,
         })
     return instances
 

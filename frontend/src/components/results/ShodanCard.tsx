@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { Loader2, AlertCircle, SearchX, ChevronDown, FileCode2, ShieldAlert } from 'lucide-react'
+import { Loader2, ChevronDown, FileCode2, ExternalLink } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
+import ScoreBadge from './ScoreBadge'
+import WeightBadge from './WeightBadge'
 
 interface ShodanFacetEntry {
   value: string
@@ -35,6 +37,8 @@ interface Props {
   loading: boolean
   error: string | null
   data: ShodanResponse | null
+  score?: number | null
+  weight?: number | null
 }
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
@@ -46,29 +50,12 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   )
 }
 
-function VulnBadge({ count }: { count: number }) {
-  return (
-    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-semibold text-red-400 bg-red-500/10 border-red-500/30">
-      <ShieldAlert className="h-3 w-3" />
-      {count} vuln{count === 1 ? '' : 's'}
-    </span>
-  )
-}
-
-function CountBadge({ label }: { label: string }) {
-  return (
-    <span className="inline-flex px-2.5 py-0.5 rounded-full border text-xs font-semibold text-blue-400 bg-blue-500/10 border-blue-500/30">
-      {label}
-    </span>
-  )
-}
-
 function formatFacets(entries?: ShodanFacetEntry[]) {
   if (!entries || entries.length === 0) return null
   return entries.map(f => `${f.value} (${f.count})`).join(', ')
 }
 
-export default function ShodanCard({ loading, error, data }: Props) {
+export default function ShodanCard({ loading, error, data, score = null, weight = null }: Props) {
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.error ?? null
@@ -90,18 +77,8 @@ export default function ShodanCard({ loading, error, data }: Props) {
         <span className="font-semibold text-sm text-foreground">Shodan</span>
         <div className="flex items-center gap-2">
           {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-          {!loading && isRealError && <AlertCircle className="h-4 w-4 text-red-400" />}
-          {!loading && isNotFound && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-medium text-muted-foreground bg-muted/40 border-border">
-              <SearchX className="h-3 w-3" />
-              Not Found
-            </span>
-          )}
-          {!loading && isHost && vulnCount > 0 && <VulnBadge count={vulnCount} />}
-          {!loading && isHost && portCount > 0 && (
-            <CountBadge label={`${portCount} open port${portCount === 1 ? '' : 's'}`} />
-          )}
-          {!loading && isAsnSummary && <CountBadge label={`${data!.total} hosts`} />}
+          <WeightBadge weight={weight} />
+          {!loading && <ScoreBadge score={score} isError={isRealError} hasResult={isHost || isAsnSummary} />}
           {!loading && data && (
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}
@@ -148,6 +125,16 @@ export default function ShodanCard({ loading, error, data }: Props) {
               {vulnCount > 0 && <Field label="Vulnerabilities (CVEs)" value={data!.vulns!.join(', ')} />}
               {(data?.hostnames?.length ?? 0) > 0 && (
                 <Field label="Hostnames" value={data!.hostnames!.join(', ')} />
+              )}
+              {data?.ip_str && (
+                <a
+                  href={`https://www.shodan.io/host/${data.ip_str}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit"
+                >
+                  <ExternalLink className="h-3 w-3" /> View on Shodan
+                </a>
               )}
             </div>
           )}

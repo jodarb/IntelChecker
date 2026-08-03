@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { Loader2, AlertCircle, CheckCircle2, ShieldX, ChevronDown, FileCode2, ExternalLink } from 'lucide-react'
+import { Loader2, ChevronDown, FileCode2, ExternalLink } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
+import ScoreBadge from './ScoreBadge'
+import WeightBadge from './WeightBadge'
 
 interface MispTag {
   name: string
@@ -35,23 +37,8 @@ interface Props {
   error: string | null
   data: MispResponse | null
   label?: string
-}
-
-function StatusBadge({ count }: { count: number }) {
-  if (count === 0) {
-    return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-semibold text-green-400 bg-green-500/10 border-green-500/30">
-        <CheckCircle2 className="h-3 w-3" />
-        No Matches
-      </span>
-    )
-  }
-  return (
-    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-semibold text-red-400 bg-red-500/10 border-red-500/30">
-      <ShieldX className="h-3 w-3" />
-      {count} Match{count > 1 ? 'es' : ''}
-    </span>
-  )
+  score?: number | null
+  weight?: number | null
 }
 
 function AttributeRow({ attr }: { attr: MispAttribute }) {
@@ -103,7 +90,7 @@ function AttributeRow({ attr }: { attr: MispAttribute }) {
   )
 }
 
-export default function MISPCard({ loading, error, data, label }: Props) {
+export default function MISPCard({ loading, error, data, label, score = null, weight = null }: Props) {
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.error ?? null
@@ -121,8 +108,10 @@ export default function MISPCard({ loading, error, data, label }: Props) {
         <span className="font-semibold text-sm text-foreground">{title}</span>
         <div className="flex items-center gap-2">
           {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-          {!loading && isRealError && <AlertCircle className="h-4 w-4 text-red-400" />}
-          {!loading && hasResolved && <StatusBadge count={attributes.length} />}
+          <WeightBadge weight={weight} />
+          {!loading && (
+            <ScoreBadge score={score} isError={isRealError} hasResult={attributes.length > 0} />
+          )}
           {!loading && data && (
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}

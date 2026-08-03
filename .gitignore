@@ -3,6 +3,8 @@ pocs/keys.env
 backend/.env
 backend/certs/*
 !backend/certs/.gitkeep
+backend/data/*
+!backend/data/.gitkeep
 
 # Virtual environments
 .venv/

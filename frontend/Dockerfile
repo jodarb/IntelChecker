@@ -12,6 +12,10 @@ COPY frontend/ .
 # file matches nothing and the COPY is a no-op instead of failing the build.
 RUN rm -f ./public/logo.png
 COPY logo.pn[g] ./public/
+# Same optional-copy trick for weights.json: glob matches the file if present at
+# the repo root, matches nothing (no build failure) if the deployer left it untouched.
+RUN rm -f ./public/weights.json
+COPY weights.jso[n] ./public/
 RUN npm run build
 
 FROM nginx:alpine

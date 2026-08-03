@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { Loader2, AlertCircle, SearchX, ChevronDown, FileCode2 } from 'lucide-react'
+import { Loader2, ChevronDown, FileCode2, ExternalLink } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
+import ScoreBadge from './ScoreBadge'
+import WeightBadge from './WeightBadge'
 
 interface IPInfoResponse {
   ip?: string
@@ -20,6 +22,8 @@ interface Props {
   loading: boolean
   error: string | null
   data: IPInfoResponse | null
+  score?: number | null
+  weight?: number | null
 }
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
@@ -31,15 +35,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   )
 }
 
-function OrgBadge({ org }: { org: string }) {
-  return (
-    <span className="inline-flex px-2.5 py-0.5 rounded-full border text-xs font-semibold text-blue-400 bg-blue-500/10 border-blue-500/30">
-      {org}
-    </span>
-  )
-}
-
-export default function IPInfoCard({ loading, error, data }: Props) {
+export default function IPInfoCard({ loading, error, data, score = null, weight = null }: Props) {
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.error ?? null
@@ -56,14 +52,8 @@ export default function IPInfoCard({ loading, error, data }: Props) {
         <span className="font-semibold text-sm text-foreground">IPinfo</span>
         <div className="flex items-center gap-2">
           {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-          {!loading && isRealError && <AlertCircle className="h-4 w-4 text-red-400" />}
-          {!loading && isNotFound && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-medium text-muted-foreground bg-muted/40 border-border">
-              <SearchX className="h-3 w-3" />
-              Not Found
-            </span>
-          )}
-          {!loading && info?.org && <OrgBadge org={info.org} />}
+          <WeightBadge weight={weight} />
+          {!loading && <ScoreBadge score={score} isError={isRealError} hasResult={!!info} />}
           {!loading && data && (
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}
@@ -103,6 +93,17 @@ export default function IPInfoCard({ loading, error, data }: Props) {
               <Field label="Hostname" value={info.hostname} />
               <Field label="Coordinates" value={info.loc} />
             </div>
+          )}
+
+          {!loading && info?.ip && (
+            <a
+              href={`https://ipinfo.io/${info.ip}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit mt-3"
+            >
+              <ExternalLink className="h-3 w-3" /> View on IPinfo
+            </a>
           )}
         </div>
       )}

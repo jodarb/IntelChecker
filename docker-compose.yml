@@ -4,6 +4,7 @@ services:
     env_file: ./backend/.env
     volumes:
       - ./backend/certs:/app/certs:ro
+      - ./backend/data:/app/data
     restart: unless-stopped
 
   frontend:

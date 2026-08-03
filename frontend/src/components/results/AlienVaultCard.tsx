@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { Loader2, AlertCircle, CheckCircle2, ShieldX, SearchX, ChevronDown, FileCode2 } from 'lucide-react'
+import { Loader2, CheckCircle2, ShieldX, ChevronDown, FileCode2, ExternalLink } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
+import ScoreBadge from './ScoreBadge'
+import WeightBadge from './WeightBadge'
 
 interface Pulse {
   id: string
@@ -35,7 +37,13 @@ interface Props {
   loading: boolean
   error: string | null
   data: OTXResponse | null
+  score?: number | null
+  weight?: number | null
+  indicator?: string
+  type?: string
 }
+
+const OTX_TYPE_SLUG: Record<string, string> = { ip: 'ip', domain: 'domain', url: 'url', hash: 'file' }
 
 function PulseBadge({ count }: { count: number }) {
   if (count === 0) {
@@ -97,11 +105,19 @@ function PulseRow({ pulse }: { pulse: Pulse }) {
           </div>
         )}
       </div>
+      <a
+        href={`https://otx.alienvault.com/pulse/${pulse.id}`}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit"
+      >
+        <ExternalLink className="h-3 w-3" /> View on OTX
+      </a>
     </div>
   )
 }
 
-export default function AlienVaultCard({ loading, error, data }: Props) {
+export default function AlienVaultCard({ loading, error, data, score = null, weight = null, indicator, type }: Props) {
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.error ?? null
@@ -112,6 +128,9 @@ export default function AlienVaultCard({ loading, error, data }: Props) {
   const searchResults = data?.results ?? null
   const isPulseSearch = !apiError && Array.isArray(searchResults)
   const searchCount = data?.count ?? searchResults?.length ?? 0
+  const otxUrl = indicator && type && OTX_TYPE_SLUG[type]
+    ? `https://otx.alienvault.com/indicator/${OTX_TYPE_SLUG[type]}/${encodeURIComponent(indicator)}`
+    : null
 
   return (
     <div className="rounded-lg border border-border overflow-hidden">
@@ -122,15 +141,8 @@ export default function AlienVaultCard({ loading, error, data }: Props) {
         <span className="font-semibold text-sm text-foreground">AlienVault OTX</span>
         <div className="flex items-center gap-2">
           {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-          {!loading && isRealError && <AlertCircle className="h-4 w-4 text-red-400" />}
-          {!loading && isNotFound && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-medium text-muted-foreground bg-muted/40 border-border">
-              <SearchX className="h-3 w-3" />
-              Not Found
-            </span>
-          )}
-          {!loading && pulseInfo && <PulseBadge count={pulseCount} />}
-          {!loading && isPulseSearch && <PulseBadge count={searchCount} />}
+          <WeightBadge weight={weight} />
+          {!loading && <ScoreBadge score={score} isError={isRealError} />}
           {!loading && data && (
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}
@@ -194,6 +206,17 @@ export default function AlienVaultCard({ loading, error, data }: Props) {
                     <PulseRow key={pulse.id} pulse={pulse} />
                   ))}
                 </div>
+              )}
+
+              {otxUrl && (
+                <a
+                  href={otxUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit"
+                >
+                  <ExternalLink className="h-3 w-3" /> View on OTX
+                </a>
               )}
             </>
           )}

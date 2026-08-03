@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { Loader2, AlertCircle, CheckCircle2, ShieldX, ChevronDown, FileCode2 } from 'lucide-react'
+import { Loader2, AlertCircle, CheckCircle2, ShieldX, ChevronDown, FileCode2, ExternalLink } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
+import EngineScoreBadge from './ScoreBadge'
+import WeightBadge from './WeightBadge'
 
 interface AbuseData {
   ipAddress: string
@@ -28,6 +30,8 @@ interface Props {
   loading: boolean
   error: string | null
   data: AbuseIPDBResponse | null
+  score?: number | null
+  weight?: number | null
 }
 
 function ScoreBadge({ score }: { score: number }) {
@@ -64,7 +68,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   )
 }
 
-export default function AbuseIPDBCard({ loading, error, data }: Props) {
+export default function AbuseIPDBCard({ loading, error, data, score = null, weight = null }: Props) {
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.errors?.[0]?.detail ?? null
@@ -78,8 +82,8 @@ export default function AbuseIPDBCard({ loading, error, data }: Props) {
         <span className="font-semibold text-sm text-foreground">AbuseIPDB</span>
         <div className="flex items-center gap-2">
           {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-          {!loading && (error || apiError) && <AlertCircle className="h-4 w-4 text-red-400" />}
-          {!loading && data?.data && <ScoreBadge score={data.data.abuseConfidenceScore} />}
+          <WeightBadge weight={weight} />
+          {!loading && <EngineScoreBadge score={score} isError={!!(error || apiError)} />}
           {!loading && data && (
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}
@@ -128,6 +132,17 @@ export default function AbuseIPDBCard({ loading, error, data }: Props) {
                 </div>
               )}
             </div>
+          )}
+
+          {!loading && data?.data?.ipAddress && (
+            <a
+              href={`https://www.abuseipdb.com/check/${data.data.ipAddress}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit mt-3"
+            >
+              <ExternalLink className="h-3 w-3" /> View on AbuseIPDB
+            </a>
           )}
         </div>
       )}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -6,7 +6,7 @@ import Layout from '@/components/Layout'
 import SummarySection from '@/components/results/SummarySection'
 import { getEnginesForType, type EngineConfig, type IndicatorType, type QueryResult } from '@/registry'
 import DisconnectedCard from '@/components/results/DisconnectedCard'
-import { computeVerdict } from '@/verdictEngine'
+import { computeVerdict, getEngineSubscore } from '@/verdictEngine'
 import { useVerdictWeights } from '@/hooks/useVerdictWeights'
 import { useEngineToggles } from '@/hooks/useEngineToggles'
 import { useEngines } from '@/EnginesContext'
@@ -55,16 +55,41 @@ function useAllEngineQueries(
   return results
 }
 
-function EngineCard({ engine, result }: { engine: EngineConfig; result: QueryResult | undefined }) {
+function EngineCard({
+  engine, result, type, weight, indicator,
+}: {
+  engine: EngineConfig
+  result: QueryResult | undefined
+  type: IndicatorType
+  weight: number | null
+  indicator: string
+}) {
   const Component = engine.component
   if (!result) {
-    return <Component loading data={null} error={null} label={engine.label} />
+    return (
+      <Component
+        loading data={null} error={null} label={engine.label} score={null} weight={weight}
+        indicator={indicator} type={type}
+      />
+    )
   }
   const apiErrorCode = (result.data as any)?.error?.code
   if (!result.loading && apiErrorCode === 'MissingApiKey') {
     return <DisconnectedCard label={engine.label} />
   }
-  return <Component loading={result.loading} error={result.error} data={result.data} label={engine.label} />
+  const score = result.loading ? null : getEngineSubscore(engine.id, type, result.data)
+  return (
+    <Component
+      loading={result.loading}
+      error={result.error}
+      data={result.data}
+      label={engine.label}
+      score={score}
+      weight={weight}
+      indicator={indicator}
+      type={type}
+    />
+  )
 }
 
 export default function ResultsPage() {
@@ -86,6 +111,45 @@ export default function ResultsPage() {
     if (!weights) return { score: null, contributions: [] }
     return computeVerdict(weights, activeEngines, results, type)
   }, [weights, activeEngines, results, type])
+
+  // Highest-weighted engines float to the top — Array#sort is stable, so engines
+  // sharing a weight (including ones absent from weights.json, treated as 0) keep
+  // their original relative order.
+  const sortedEngines = useMemo(() => {
+    if (!weights) return engines
+    return [...engines].sort((a, b) => (weights[b.id] ?? 0) - (weights[a.id] ?? 0))
+  }, [engines, weights])
+
+  // Once every active engine has settled, log this query to the history DB —
+  // once per indicator+type, not on every re-render (e.g. toggling an engine
+  // shouldn't spawn a new history entry for the same search).
+  const savedKeyRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!indicator || !weights || activeEngines.length === 0) return
+    const allSettled = activeEngines.every(e => results[e.id] && !results[e.id].loading)
+    if (!allSettled) return
+
+    const key = `${indicator}|${type}`
+    if (savedKeyRef.current === key) return
+    savedKeyRef.current = key
+
+    const snapshot = Object.fromEntries(
+      activeEngines.map(e => [
+        e.id,
+        { label: e.label, data: results[e.id]?.data ?? null, error: results[e.id]?.error ?? null },
+      ]),
+    )
+
+    fetch(`${BACKEND}/history`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        indicator, type, score: verdict.score, results: snapshot, contributions: verdict.contributions,
+      }),
+    }).catch(() => {
+      // History logging is best-effort — a failure here shouldn't disrupt the lookup itself.
+    })
+  }, [indicator, type, weights, activeEngines, results, verdict])
 
   return (
     <Layout>
@@ -120,10 +184,19 @@ export default function ResultsPage() {
         <div className="flex flex-col gap-3">
           <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Results by engine</p>
           <div className="grid grid-cols-1 gap-4">
-            {engines.map(engine => (
+            {sortedEngines.map(engine => (
               disabled.has(engine.id)
                 ? <DisconnectedCard key={engine.id} label={engine.label} reason="disabled" />
-                : <EngineCard key={engine.id} engine={engine} result={results[engine.id]} />
+                : (
+                  <EngineCard
+                    key={engine.id}
+                    engine={engine}
+                    result={results[engine.id]}
+                    type={type}
+                    weight={weights?.[engine.id] ?? null}
+                    indicator={indicator}
+                  />
+                )
             ))}
           </div>
         </div>

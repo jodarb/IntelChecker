@@ -105,8 +105,9 @@ The frontend container serves the built SPA via nginx and reverse-proxies `/api/
 docker compose down
 ```
 
-> Re-run `docker compose up --build -d` any time you change `.env`, the logo, or the code — it rebuilds only what changed.
+> Re-run `docker compose up --build -d` any time you change `.env`, the logo, `weights.json`, or the code — it rebuilds only what changed.
 > `logo.png` lives at the repo root so it's the first thing a deployer sees — `frontend/public/logo.png` is just a symlink to it, kept for local (non-Docker) dev. No logo file? The build doesn't fail and the UI silently renders without one.
+> `weights.json` (repo root) sets each engine's contribution to the unified verdict score — edit the numbers to tune it, no code changes needed. Same symlink/optional-copy pattern as the logo: missing file just means no verdict score is computed.
 
 <details>
 <summary>Development (without Docker)</summary>
@@ -200,7 +201,8 @@ IntelChecker/
 │   └── requirements.txt
 ├── frontend/
 │   ├── public/
-│   │   └── logo.png              # Symlink → ../../logo.png (for local `npm run dev`)
+│   │   ├── logo.png              # Symlink → ../../logo.png (for local `npm run dev`)
+│   │   └── weights.json          # Symlink → ../../weights.json (for local `npm run dev`)
 │   ├── src/
 │   │   ├── components/results/  # Per-engine cards + RawJsonModal + shared MISPCard
 │   │   ├── pages/                # HomePage · ResultsPage
@@ -210,6 +212,7 @@ IntelChecker/
 │   ├── Dockerfile               # Multi-stage build → nginx serving the SPA
 │   └── nginx.conf                # Serves the SPA + proxies /api/* to the backend
 ├── logo.png                      # ← Replace with your org's logo (optional, PNG)
+├── weights.json                  # ← Per-engine weights for the verdict score (optional)
 ├── docker-compose.yml
 └── README.md
 ```
