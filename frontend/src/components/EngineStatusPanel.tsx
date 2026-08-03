@@ -1,8 +1,5 @@
-import { useEffect, useState } from 'react'
-import { ENGINES } from '@/registry'
+import { useEngines } from '@/EnginesContext'
 import { useEngineToggles } from '@/hooks/useEngineToggles'
-
-const BACKEND = '/api'
 
 const TYPE_CHIP: Record<string, string> = {
   ip: 'IP',
@@ -12,13 +9,6 @@ const TYPE_CHIP: Record<string, string> = {
   asn: 'ASN',
   'threat-actor': 'Actor',
 }
-
-interface EngineStatus {
-  connected: boolean
-  supports: string[]
-}
-
-type StatusMap = Record<string, EngineStatus>
 
 interface Props {
   selectedType: string
@@ -46,15 +36,8 @@ function ToggleSwitch({ enabled, onToggle }: { enabled: boolean; onToggle: () =>
 }
 
 export default function EngineStatusPanel({ selectedType }: Props) {
-  const [status, setStatus] = useState<StatusMap | null>(null)
+  const { engines, status } = useEngines()
   const { disabled, toggle } = useEngineToggles()
-
-  useEffect(() => {
-    fetch(`${BACKEND}/engines/status`)
-      .then(r => r.json())
-      .then(setStatus)
-      .catch(() => setStatus(null))
-  }, [])
 
   if (!status) return null
 
@@ -64,10 +47,11 @@ export default function EngineStatusPanel({ selectedType }: Props) {
         Connected sources
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        {ENGINES.map(engine => {
+        {engines.map(engine => {
           const s = status[engine.id]
           const connected = s?.connected ?? false
-          const relevant = (s?.supports ?? engine.supports).includes(selectedType)
+          const supports: string[] = s?.supports ?? engine.supports
+          const relevant = supports.includes(selectedType)
           const enabled = !disabled.has(engine.id)
 
           return (
@@ -109,7 +93,7 @@ export default function EngineStatusPanel({ selectedType }: Props) {
 
               {/* Bottom row: type chips */}
               <div className="flex flex-wrap items-center gap-1 pl-4">
-                {(s?.supports ?? engine.supports).map(type => (
+                {supports.map(type => (
                   <span
                     key={type}
                     className={`px-1.5 py-0.5 rounded text-xs border transition-colors ${

@@ -9,6 +9,7 @@ import DisconnectedCard from '@/components/results/DisconnectedCard'
 import { computeVerdict } from '@/verdictEngine'
 import { useVerdictWeights } from '@/hooks/useVerdictWeights'
 import { useEngineToggles } from '@/hooks/useEngineToggles'
+import { useEngines } from '@/EnginesContext'
 
 const TYPE_LABELS: Record<string, string> = {
   ip: 'IP Address',
@@ -25,13 +26,14 @@ function useAllEngineQueries(
   engines: EngineConfig[],
   indicator: string,
   type: string,
+  ready: boolean,
 ): Record<string, QueryResult> {
   const [results, setResults] = useState<Record<string, QueryResult>>(() =>
     Object.fromEntries(engines.map(e => [e.id, { loading: true, data: null, error: null }])),
   )
 
   useEffect(() => {
-    if (!indicator) return
+    if (!indicator || !ready) return
     setResults(Object.fromEntries(engines.map(e => [e.id, { loading: true, data: null, error: null }])))
 
     engines.forEach(engine => {
@@ -48,7 +50,7 @@ function useAllEngineQueries(
         })))
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [indicator, type])
+  }, [indicator, type, ready, engines])
 
   return results
 }
@@ -56,13 +58,13 @@ function useAllEngineQueries(
 function EngineCard({ engine, result }: { engine: EngineConfig; result: QueryResult | undefined }) {
   const Component = engine.component
   if (!result) {
-    return <Component loading data={null} error={null} />
+    return <Component loading data={null} error={null} label={engine.label} />
   }
   const apiErrorCode = (result.data as any)?.error?.code
   if (!result.loading && apiErrorCode === 'MissingApiKey') {
     return <DisconnectedCard label={engine.label} />
   }
-  return <Component loading={result.loading} error={result.error} data={result.data} />
+  return <Component loading={result.loading} error={result.error} data={result.data} label={engine.label} />
 }
 
 export default function ResultsPage() {
@@ -70,13 +72,14 @@ export default function ResultsPage() {
   const indicator = searchParams.get('indicator') ?? ''
   const type = (searchParams.get('type') ?? 'auto') as IndicatorType
 
-  const engines = useMemo(() => getEnginesForType(type), [type])
+  const { engines: allEngines, loading: enginesLoading } = useEngines()
+  const engines = useMemo(() => getEnginesForType(allEngines, type), [allEngines, type])
   const { disabled } = useEngineToggles()
   const activeEngines = useMemo(
     () => engines.filter(e => !disabled.has(e.id)),
     [engines, disabled],
   )
-  const results = useAllEngineQueries(activeEngines, indicator, type)
+  const results = useAllEngineQueries(activeEngines, indicator, type, !enginesLoading)
   const weights = useVerdictWeights()
 
   const verdict = useMemo(() => {

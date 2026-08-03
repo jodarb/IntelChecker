@@ -53,6 +53,13 @@ function abusechSubscore(d: unknown): number | null {
   return Math.min(10, 7 + (topConfidence / 100) * 3)
 }
 
+function recordedFutureSubscore(d: unknown): number | null {
+  const score = (d as any)?.risk?.score
+  if (score == null) return null
+  // Recorded Future's score is already 0-99, pre-normalized by their own rules engine.
+  return Math.min(10, score / 9.9)
+}
+
 // Registry: engineId → indicatorType → normalizer.
 // Engines absent here (Shodan, IPinfo) are not maliciousness signals and never
 // participate in the threat score, regardless of configured weight.
@@ -61,6 +68,7 @@ const VERDICT_NORMALIZERS: Record<string, Partial<Record<IndicatorType, (data: u
   abuseipdb: { ip: abuseipdbSubscore },
   alienvault: { ip: alienvaultSubscore, domain: alienvaultSubscore, url: alienvaultSubscore, hash: alienvaultSubscore },
   abusech: { ip: abusechSubscore, hash: abusechSubscore },
+  recordedfuture: { ip: recordedFutureSubscore, domain: recordedFutureSubscore, url: recordedFutureSubscore, hash: recordedFutureSubscore },
 }
 
 export function computeVerdict(

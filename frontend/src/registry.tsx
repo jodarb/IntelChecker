@@ -12,6 +12,7 @@ import RIPEstatCard from '@/components/results/RIPEstatCard'
 import URLScanCard from '@/components/results/URLScanCard'
 import MalwareBazaarCard from '@/components/results/MalwareBazaarCard'
 import PhishTankCard from '@/components/results/PhishTankCard'
+import RecordedFutureCard from '@/components/results/RecordedFutureCard'
 
 export type IndicatorType = 'ip' | 'domain' | 'url' | 'hash' | 'asn' | 'threat-actor'
 
@@ -19,6 +20,7 @@ export interface CardProps {
   loading: boolean
   error: string | null
   data: unknown
+  label?: string
 }
 
 export interface QueryResult {
@@ -35,7 +37,10 @@ export interface EngineConfig {
   logo: string
 }
 
-export const ENGINES: EngineConfig[] = [
+// Static engines, known at build time. MISP instances are discovered at runtime
+// from the backend (any number of them, user-named) — see EnginesContext.tsx,
+// which merges these with the dynamic ones into the list the rest of the app uses.
+export const STATIC_ENGINES: EngineConfig[] = [
   {
     id: 'abuseipdb',
     label: 'AbuseIPDB',
@@ -127,8 +132,15 @@ export const ENGINES: EngineConfig[] = [
     component: PhishTankCard as React.ComponentType<CardProps>,
     logo: '/logos/phishtank.ico',
   },
+  {
+    id: 'recordedfuture',
+    label: 'Recorded Future',
+    supports: ['ip', 'domain', 'url', 'hash'],
+    component: RecordedFutureCard as React.ComponentType<CardProps>,
+    logo: '/logos/recordedfuture.ico',
+  },
 ]
 
-export function getEnginesForType(type: IndicatorType): EngineConfig[] {
-  return ENGINES.filter(e => e.supports.includes(type))
+export function getEnginesForType(engines: EngineConfig[], type: IndicatorType): EngineConfig[] {
+  return engines.filter(e => e.supports.includes(type))
 }

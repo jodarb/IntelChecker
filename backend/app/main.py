@@ -2,10 +2,12 @@ import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from app.core.config import MISP_INSTANCES
 from app.core.registry import ENGINES
 from app.services import (
     abuseipdb, virustotal, abusech, alienvault, ipinfo, shodan,
     torexitlist, urlhaus, mitreattack, ripestat, urlscan, malwarebazaar, phishtank,
+    recordedfuture, misp,
 )
 
 app = FastAPI()
@@ -31,6 +33,8 @@ _SERVICES = {
     "urlscan": urlscan,
     "malwarebazaar": malwarebazaar,
     "phishtank": phishtank,
+    "recordedfuture": recordedfuture,
+    **misp.build_engines(MISP_INSTANCES),
 }
 
 
@@ -41,13 +45,17 @@ class AnalyzeRequest(BaseModel):
 
 @app.get("/engines/status")
 def engines_status():
-    return {
-        name: {
-            "connected": True if meta["key"] is None else bool(os.environ.get(meta["key"], "")),
-            "supports": meta["supports"],
-        }
-        for name, meta in ENGINES.items()
-    }
+    result = {}
+    for name, meta in ENGINES.items():
+        if "connected" in meta:
+            connected = meta["connected"]
+        else:
+            connected = True if meta["key"] is None else bool(os.environ.get(meta["key"], ""))
+        entry = {"connected": connected, "supports": meta["supports"]}
+        if "name" in meta:
+            entry["label"] = meta["name"]
+        result[name] = entry
+    return result
 
 
 @app.post("/analyze/{engine}")

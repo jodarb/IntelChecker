@@ -1,3 +1,5 @@
+from app.core.config import MISP_INSTANCES
+
 ENGINES: dict[str, dict] = {
     "abuseipdb":  {"supports": ["ip"],                          "key": "ABUSEIPDB_API_KEY"},
     "virustotal": {"supports": ["ip", "domain", "url", "hash"], "key": "VIRUSTOTAL_API_KEY"},
@@ -12,4 +14,16 @@ ENGINES: dict[str, dict] = {
     "urlscan":     {"supports": ["url", "domain"],                "key": "URLSCAN_API_KEY"},
     "malwarebazaar": {"supports": ["hash"],                       "key": "ABUSECH_AUTH_KEY"},
     "phishtank":   {"supports": ["url"],                          "key": None},
+    "recordedfuture": {"supports": ["ip", "domain", "url", "hash"], "key": "RECORDED_FUTURE_API_KEY"},
 }
+
+# MISP is multi-instance: any number of servers can be defined via MISP_<N>_*
+# env vars (see config.py), each becoming its own entry here at startup, with
+# its own display name and its own connected status.
+for _inst in MISP_INSTANCES:
+    ENGINES[_inst["id"]] = {
+        "supports": ["ip", "domain", "url", "hash"],
+        "key": None,
+        "name": _inst["name"],
+        "connected": bool(_inst["url"]) and bool(_inst["key"]),
+    }

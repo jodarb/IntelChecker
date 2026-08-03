@@ -48,6 +48,8 @@
 | [urlscan.io](https://urlscan.io) | | ✅ | ✅ | | | |
 | [MalwareBazaar · abuse.ch](https://bazaar.abuse.ch) | | | | ✅ | | |
 | [PhishTank](https://phishtank.org) | | | ✅ | | | |
+| [MISP](https://www.misp-project.org) *(any number of instances)* | ✅ | ✅ | ✅ | ✅ | | |
+| [Recorded Future](https://www.recordedfuture.com) | ✅ | ✅ | ✅ | ✅ | | |
 
 > No API key required for Tor Exit Nodes, MITRE ATT&CK, RIPEstat, or PhishTank — all four are free public datasets/APIs, always on, toggleable like any other source. MITRE ATT&CK caches its ~50 MB STIX dataset in memory for 24h (the first lookup after a cold start takes a few seconds). RIPEstat returns routing (ASN/prefix) and abuse-contact data from the RIPE NCC registry. PhishTank's `checkurl` API works anonymously — an optional `PHISHTANK_API_KEY` gets you higher request priority but isn't required.
 > urlscan.io queries the public search index of scans already submitted by others (passive lookup) — it does not submit your indicator for an active scan, so nothing you look up becomes visible to third parties.
@@ -55,8 +57,15 @@
 > AlienVault OTX's Threat Actor support queries the [pulse search API](https://otx.alienvault.com/api/v1/search/pulses) (same `ALIENVAULT_API_KEY` as its other lookups) — it's a full-text search over community threat reports, not a curated actor database, so results can take up to ~20s and MITRE ATT&CK remains the more authoritative source for actor profiles.
 > URLhaus shares its credential with ThreatFox (`ABUSECH_AUTH_KEY`) — both are abuse.ch platforms under the same unified auth key, but are independent, individually toggleable sources.
 
-> **Roadmap:** Criminal IP · Recorded Future · Any.run · OpenCTI
+> **Roadmap:** Criminal IP · Any.run · OpenCTI
 
+### MISP is multi-instance
+
+Every other source above is one fixed integration. MISP is different: you can point IntelChecker at **any number of MISP servers** — your own instance, a partner's, an ISAC feed — and each one shows up as its own named source in Connected Sources, with its own connect/disconnect status and its own toggle. There's no MISP-specific frontend code to write per instance; the backend discovers them from `.env` at startup (see the `MISP_<N>_*` block in `backend/.env.example`) and reports their names to the UI, which renders each with a shared generic card. Add a fourth instance by adding four more env lines and restarting — no code changes.
+
+Each instance searches by indicator value only (not MISP's `ip-src`/`ip-dst`/etc. attribute-type distinctions), so it works the same way across IP, domain, URL, and hash lookups regardless of how a given MISP community tags its attributes.
+
+**Mutual TLS**: some MISP instances (common on government/CERT deployments) reject every request with a TLS-layer "certificate required" alert unless the client presents its own certificate — the API key alone isn't enough. If yours does this, drop the cert (and key, if it's a separate file) into `backend/certs/` (gitignored, mounted into the backend container at `/app/certs`) and point `MISP_<N>_CLIENT_CERT` / `MISP_<N>_CLIENT_KEY` at the filenames. A combined cert+key PEM only needs `CLIENT_CERT`.
 ---
 
 ## 🖥️ Screenshot
@@ -151,6 +160,8 @@ backend/.env.example  ← empty template  (committed)
 | `SHODAN_API_KEY` | [Shodan](https://account.shodan.io/register) | ✅ |
 | `URLSCAN_API_KEY` | [urlscan.io](https://urlscan.io/user/signup) | ✅ |
 | `PHISHTANK_API_KEY` *(optional)* | [PhishTank](https://phishtank.org/api_register.php) | ✅ |
+| `RECORDED_FUTURE_API_KEY` | [Recorded Future](https://www.recordedfuture.com) — API token from your org's admin panel | ❌ (commercial) |
+| `MISP_<N>_NAME` / `_URL` / `_KEY` / `_VERIFY_SSL` | [MISP](https://www.misp-project.org) — as many instances as you want, see below | n/a |
 
 > Sources with an empty key render an error card in the UI; all other sources continue working normally.
 
@@ -167,7 +178,6 @@ IntelChecker/
 │   │   │   ├── config.py        # API key loader (.env)
 │   │   │   └── registry.py      # Engine capabilities (which types each supports)
 │   │   └── services/            # Async CTI client modules
-│   │       ├── base.py
 │   │       ├── abuseipdb.py
 │   │       ├── virustotal.py
 │   │       ├── abusech.py
@@ -180,19 +190,23 @@ IntelChecker/
 │   │       ├── ripestat.py
 │   │       ├── urlscan.py
 │   │       ├── malwarebazaar.py
-│   │       └── phishtank.py
+│   │       ├── phishtank.py
+│   │       ├── recordedfuture.py
+│   │       └── misp.py          # One class, N instances — see registry.py's MISP_INSTANCES loop
 │   ├── .env                     # Your keys — gitignored
 │   ├── .env.example             # Empty template
+│   ├── certs/                    # MISP mTLS client certs — gitignored, mounted into the container
 │   ├── Dockerfile
 │   └── requirements.txt
 ├── frontend/
 │   ├── public/
 │   │   └── logo.png              # Symlink → ../../logo.png (for local `npm run dev`)
 │   ├── src/
-│   │   ├── components/results/  # Per-engine cards + RawJsonModal
-│   │   ├── pages/               # HomePage · ResultsPage
-│   │   ├── registry.tsx         # Frontend engine registry
-│   │   └── summaryRegistry.ts   # Summary field extractors per engine+type
+│   │   ├── components/results/  # Per-engine cards + RawJsonModal + shared MISPCard
+│   │   ├── pages/                # HomePage · ResultsPage
+│   │   ├── registry.tsx          # Static (build-time) engine registry
+│   │   ├── EnginesContext.tsx    # Merges static engines with backend-discovered MISP instances
+│   │   └── summaryRegistry.ts    # Summary field extractors per engine+type
 │   ├── Dockerfile               # Multi-stage build → nginx serving the SPA
 │   └── nginx.conf                # Serves the SPA + proxies /api/* to the backend
 ├── logo.png                      # ← Replace with your org's logo (optional, PNG)
