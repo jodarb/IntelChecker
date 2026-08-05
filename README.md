@@ -17,6 +17,57 @@
 
 ---
 
+## 🚀 Deployment
+
+How to get IntelChecker running in your own environment.
+
+### Prerequisites
+
+- Docker + Docker Compose
+- API keys for the CTI sources you want to use (see [🔑 API Keys](#-api-keys)) — none are required to run the app, sources without a key just render as "not configured" in the UI and everything else keeps working
+
+### Steps
+
+1. Clone the repo onto the host that will run it:
+   ```bash
+   git clone <repo-url>
+   cd IntelChecker
+   ```
+2. Configure your credentials:
+   ```bash
+   cp backend/.env.example backend/.env
+   ```
+   Uncomment and fill in the keys for the sources you have access to. Anything left commented out just shows as "not configured" in the UI — it doesn't break the rest of the app.
+3. *(Optional)* Drop your organization's logo at `logo.png` (repo root) and tune `weights.json` (repo root) to adjust how much each engine contributes to the verdict score. Both are optional — the app works fine without either.
+4. Build and start the stack:
+   ```bash
+   docker compose up --build -d
+   ```
+5. Open `http://<host>:8080`.
+
+That's the whole stack — one container for the backend, one for the frontend/nginx reverse proxy. `backend/data/` (query history) and `backend/certs/` (MISP mTLS client certs, if you need them) are Docker volumes, so they persist across restarts and rebuilds.
+
+### Updating to a new version
+
+When a new version is released:
+
+```bash
+git pull
+docker compose up --build -d
+```
+
+This rebuilds only the layers that changed and recreates the containers — your `backend/.env`, `weights.json`, `logo.png`, and the `backend/data/history.db` volume are all untouched by an update.
+
+If you ever suspect a container is still serving stale code after an update (rare, but Docker's build cache can occasionally miss a change), force a clean rebuild instead:
+
+```bash
+docker compose down
+docker compose build --no-cache
+docker compose up -d
+```
+
+---
+
 ## ✨ Features
 
 | | |
