@@ -1,5 +1,4 @@
 # API Keys - never sync
-pocs/keys.env
 backend/.env
 backend/certs/*
 !backend/certs/.gitkeep
