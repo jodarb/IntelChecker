@@ -38,7 +38,7 @@ How to get IntelChecker running in your own environment.
    cp backend/.env.example backend/.env
    ```
    Uncomment and fill in the keys for the sources you have access to. Anything left commented out just shows as "not configured" in the UI — it doesn't break the rest of the app.
-3. *(Optional)* Drop your organization's logo at `logo.png` (repo root) and tune `weights.json` (repo root) to adjust how much each engine contributes to the verdict score. Both are optional — the app works fine without either.
+3. *(Optional)* Drop your organization's logos at `logo/light.png` and `logo/dark.png` (repo root — one per theme, shown/hidden automatically as the analyst switches theme) and tune `weights.json` (repo root) to adjust how much each engine contributes to the verdict score. Both are optional — the app works fine without either.
 4. Build and start the stack:
    ```bash
    docker compose up --build -d
@@ -57,7 +57,7 @@ git pull
 docker compose up --build -d
 ```
 
-Stop the running containers first, then pull, then rebuild and relaunch — this avoids updating source files out from under a container that's still running against them. `docker compose down` doesn't touch anything outside the containers themselves, so your `backend/.env`, `weights.json`, `logo.png`, and the `backend/data/history.db` volume are all untouched by an update.
+Stop the running containers first, then pull, then rebuild and relaunch — this avoids updating source files out from under a container that's still running against them. `docker compose down` doesn't touch anything outside the containers themselves, so your `backend/.env`, `weights.json`, `logo/`, and the `backend/data/history.db` volume are all untouched by an update.
 
 If you ever suspect a container is still serving stale code after an update (rare, but Docker's build cache can occasionally miss a change), force a clean rebuild instead:
 
@@ -129,7 +129,7 @@ Each instance searches by indicator value only (not MISP's `ip-src`/`ip-dst`/etc
 
 ## 🧮 Verdict Scoring & Weights
 
-The Threat Score gauge is a weighted average of every engine's own 0–10 subscore. Weights live in `weights.json` (repo root) — a flat `{ "engineId": weight }` map, same optional-file pattern as `logo.png`: edit the numbers to retune the verdict, no code changes, no rebuild logic to touch. **Every** engine has an entry, including ones that don't affect the score — a weight of `0` is how you explicitly say "show this source, but don't let it move the needle" (that's the default for purely contextual sources like Shodan, IPinfo, RIPEstat and MITRE ATT&CK, none of which carry a maliciousness signal to score).
+The Threat Score gauge is a weighted average of every engine's own 0–10 subscore. Weights live in `weights.json` (repo root) — a flat `{ "engineId": weight }` map, same optional-file pattern as the `logo/` folder: edit the numbers to retune the verdict, no code changes, no rebuild logic to touch. **Every** engine has an entry, including ones that don't affect the score — a weight of `0` is how you explicitly say "show this source, but don't let it move the needle" (that's the default for purely contextual sources like Shodan, IPinfo, RIPEstat and MITRE ATT&CK, none of which carry a maliciousness signal to score).
 
 Each engine's own card shows its individual score too, using a badge deliberately styled to avoid two different kinds of ambiguity:
 
@@ -178,8 +178,9 @@ cd IntelChecker
 cp backend/.env.example backend/.env
 # Edit backend/.env and fill in your API keys
 
-# Optional: replace logo.png (repo root) with your own — if you leave it out
-# or delete it, the UI just renders without a logo, no broken image.
+# Optional: replace logo/light.png and logo/dark.png (repo root) with your own —
+# if you leave them out or delete them, the UI just renders without a logo, no
+# broken image. The right one is shown automatically based on the active theme.
 
 docker compose up --build -d
 ```
@@ -196,8 +197,8 @@ docker compose down
 ```
 
 > Re-run `docker compose up --build -d` any time you change `.env`, the logo, `weights.json`, or the code — it rebuilds only what changed.
-> `logo.png` lives at the repo root so it's the first thing a deployer sees — `frontend/public/logo.png` is just a symlink to it, kept for local (non-Docker) dev. No logo file? The build doesn't fail and the UI silently renders without one.
-> `weights.json` (repo root) sets each engine's contribution to the unified verdict score — edit the numbers to tune it, no code changes needed. Same symlink/optional-copy pattern as the logo: missing file just means no verdict score is computed.
+> `logo/light.png` and `logo/dark.png` live at the repo root so they're the first thing a deployer sees — `frontend/public/logo` is just a symlink to that folder, kept for local (non-Docker) dev. Missing either file? The build doesn't fail and the UI silently renders without it, per theme.
+> `weights.json` (repo root) sets each engine's contribution to the unified verdict score — edit the numbers to tune it, no code changes needed. Same symlink/optional-copy pattern as the logo folder: missing file just means no verdict score is computed.
 > Query history needs no setup — `docker compose up` creates `backend/data/history.db` on first run and it persists across restarts/rebuilds via the volume mount in `docker-compose.yml`.
 
 <details>
@@ -294,7 +295,7 @@ IntelChecker/
 │   └── requirements.txt
 ├── frontend/
 │   ├── public/
-│   │   ├── logo.png              # Symlink → ../../logo.png (for local `npm run dev`)
+│   │   ├── logo/                 # Symlink → ../../logo/ (for local `npm run dev`)
 │   │   └── weights.json          # Symlink → ../../weights.json (for local `npm run dev`)
 │   ├── src/
 │   │   ├── components/results/  # Per-engine cards, ScoreBadge, WeightBadge, SearchFrequencyCard, RawJsonModal, shared MISPCard
@@ -305,7 +306,9 @@ IntelChecker/
 │   │   └── summaryRegistry.ts    # Summary field extractors per engine+type
 │   ├── Dockerfile               # Multi-stage build → nginx serving the SPA
 │   └── nginx.conf                # Serves the SPA + proxies /api/* to the backend
-├── logo.png                      # ← Replace with your org's logo (optional, PNG)
+├── logo/
+│   ├── light.png                 # ← Replace with your org's logo, light theme (optional, PNG)
+│   └── dark.png                  # ← Replace with your org's logo, dark theme (optional, PNG)
 ├── weights.json                  # ← Per-engine weights for the verdict score (optional)
 ├── docker-compose.yml
 └── README.md

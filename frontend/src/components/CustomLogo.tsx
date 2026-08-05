@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 
 export default function CustomLogo() {
-  const [visible, setVisible] = useState(true)
   const [enabled, setEnabled] = useState<boolean | null>(null)
+  const [lightVisible, setLightVisible] = useState(true)
+  const [darkVisible, setDarkVisible] = useState(true)
 
   useEffect(() => {
     fetch('/config.json')
@@ -11,14 +12,29 @@ export default function CustomLogo() {
       .catch(() => setEnabled(true))
   }, [])
 
-  if (enabled === null || !enabled || !visible) return null
+  if (enabled === null || !enabled || (!lightVisible && !darkVisible)) return null
 
+  // Two logos, swapped purely via the same `dark` class the theme toggle applies
+  // to <html> — no need to duplicate theme state here, it just tracks Tailwind's
+  // existing dark-mode variant.
   return (
-    <img
-      src="/logo.png"
-      alt="Organization logo"
-      className="h-12 mx-auto object-contain"
-      onError={() => setVisible(false)}
-    />
+    <>
+      {lightVisible && (
+        <img
+          src="/logo/light.png"
+          alt="Organization logo"
+          className="h-12 mx-auto object-contain dark:hidden"
+          onError={() => setLightVisible(false)}
+        />
+      )}
+      {darkVisible && (
+        <img
+          src="/logo/dark.png"
+          alt="Organization logo"
+          className="h-12 mx-auto object-contain hidden dark:block"
+          onError={() => setDarkVisible(false)}
+        />
+      )}
+    </>
   )
 }
