@@ -52,11 +52,12 @@ That's the whole stack — one container for the backend, one for the frontend/n
 When a new version is released:
 
 ```bash
+docker compose down
 git pull
 docker compose up --build -d
 ```
 
-This rebuilds only the layers that changed and recreates the containers — your `backend/.env`, `weights.json`, `logo.png`, and the `backend/data/history.db` volume are all untouched by an update.
+Stop the running containers first, then pull, then rebuild and relaunch — this avoids updating source files out from under a container that's still running against them. `docker compose down` doesn't touch anything outside the containers themselves, so your `backend/.env`, `weights.json`, `logo.png`, and the `backend/data/history.db` volume are all untouched by an update.
 
 If you ever suspect a container is still serving stale code after an update (rare, but Docker's build cache can occasionally miss a change), force a clean rebuild instead:
 
