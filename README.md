@@ -111,10 +111,7 @@ Grey is reserved for genuinely zero activity everywhere, and green only shows up
 
 ## 🖥️ Screenshot
 
-<!-- Add a screenshot: commit an image to docs/screenshot.png and uncomment the line below -->
-<!-- <img src="docs/screenshot.png" alt="IntelChecker results view" width="100%" /> -->
-
-> *Add `docs/screenshot.png` to the repo and uncomment the line above.*
+<img src="docs/screenshot.png" alt="IntelChecker results view" width="100%" />
 
 ---
 
