@@ -12,5 +12,9 @@
   "ipinfo": 0,
   "shodan": 0,
   "ripestat": 0,
-  "mitreattack": 0
+  "mitreattack": 0,
+  "anyrun": 0,
+  "greynoise": 0,
+  "hybridanalysis": 0,
+  "safebrowsing": 0
 }

@@ -1,3 +1,4 @@
+import asyncio
 import os
 import ssl
 import httpx
@@ -36,6 +37,48 @@ class MispEngine:
                 return {"error": {"code": "MissingCertificate", "message": f"{name}'s {label} file was not found at {path}. Drop it in backend/certs/ and point MISP_<N>_CLIENT_CERT/_CLIENT_KEY at its filename."}}
 
         return (client_cert, client_key) if client_key else client_cert
+
+    async def _fetch_event(self, client: httpx.AsyncClient, base_url: str, key: str, event_id: str) -> dict | None:
+        """Fetches the full event an attribute belongs to, so we can show its
+        own info and tags (e.g. TLP, threat-actor galaxy clusters) — data the
+        lightweight `Event` object nested in an attributes/restSearch hit doesn't
+        carry. Returns None on any failure (missing read access to the event's
+        sharing group, deleted event, etc.) so a single bad event doesn't fail
+        the whole lookup — the attribute-level info is still shown either way.
+        """
+        try:
+            r = await client.get(
+                f"{base_url}/events/view/{event_id}",
+                headers={"Authorization": key, "Accept": "application/json"},
+            )
+        except httpx.RequestError:
+            return None
+        if not r.is_success:
+            return None
+        try:
+            event = r.json().get("Event")
+        except ValueError:
+            return None
+        if not isinstance(event, dict):
+            return None
+
+        tags = event.get("Tag", [])
+        if not isinstance(tags, list):
+            tags = []
+
+        return {
+            "id": event.get("id"),
+            "info": event.get("info"),
+            "date": event.get("date"),
+            "threat_level_id": event.get("threat_level_id"),
+            "analysis": event.get("analysis"),
+            "published": event.get("published"),
+            "org": (event.get("Orgc") or {}).get("name"),
+            "Tag": [
+                {"name": t.get("name"), "colour": t.get("colour")}
+                for t in tags if isinstance(t, dict) and t.get("name")
+            ],
+        }
 
     async def dispatch(self, indicator: str, type: str) -> dict:
         name = self._instance["name"]
@@ -99,7 +142,19 @@ class MispEngine:
             if event_id:
                 attr["event_url"] = f"{url}/events/view/{event_id}"
 
-        return {"Attribute": attributes}
+        # Fetch each distinct parent event once (several attributes commonly share
+        # the same event) to surface its own info and tags — e.g. TLP marking or
+        # threat-actor galaxy clusters — not just the attribute-level ones.
+        event_ids = sorted({a.get("event_id") for a in attributes if a.get("event_id")})
+        events: dict[str, dict] = {}
+        if event_ids:
+            async with httpx.AsyncClient(timeout=20, verify=self._instance["verify_ssl"], cert=cert) as client:
+                fetched = await asyncio.gather(
+                    *(self._fetch_event(client, url, key, eid) for eid in event_ids)
+                )
+            events = {eid: ev for eid, ev in zip(event_ids, fetched) if ev is not None}
+
+        return {"Attribute": attributes, "Events": events}
 
 
 def build_engines(instances: list[dict]) -> dict[str, MispEngine]:

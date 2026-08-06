@@ -44,13 +44,20 @@ def save_query(indicator: str, type: str, score: int | None, results: dict, cont
         return cur.lastrowid
 
 
-def list_history(limit: int = 200) -> list[dict]:
+def list_history(limit: int = 200, indicator: str | None = None) -> list[dict]:
     with _connect() as conn:
         conn.row_factory = sqlite3.Row
-        rows = conn.execute(
-            "SELECT id, indicator, type, timestamp, score FROM history ORDER BY id DESC LIMIT ?",
-            (limit,),
-        ).fetchall()
+        if indicator:
+            rows = conn.execute(
+                "SELECT id, indicator, type, timestamp, score FROM history "
+                "WHERE indicator = ? COLLATE NOCASE ORDER BY id DESC LIMIT ?",
+                (indicator, limit),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT id, indicator, type, timestamp, score FROM history ORDER BY id DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
         return [dict(r) for r in rows]
 
 

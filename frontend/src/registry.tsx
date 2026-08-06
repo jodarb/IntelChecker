@@ -13,6 +13,10 @@ import URLScanCard from '@/components/results/URLScanCard'
 import MalwareBazaarCard from '@/components/results/MalwareBazaarCard'
 import PhishTankCard from '@/components/results/PhishTankCard'
 import RecordedFutureCard from '@/components/results/RecordedFutureCard'
+import AnyRunCard from '@/components/results/AnyRunCard'
+import GreyNoiseCard from '@/components/results/GreyNoiseCard'
+import HybridAnalysisCard from '@/components/results/HybridAnalysisCard'
+import SafeBrowsingCard from '@/components/results/SafeBrowsingCard'
 
 export type IndicatorType = 'ip' | 'domain' | 'url' | 'hash' | 'asn' | 'threat-actor'
 
@@ -142,6 +146,34 @@ export const STATIC_ENGINES: EngineConfig[] = [
     supports: ['ip', 'domain', 'url', 'hash'],
     component: RecordedFutureCard as React.ComponentType<CardProps>,
     logo: '/logos/recordedfuture.ico',
+  },
+  {
+    id: 'anyrun',
+    label: 'ANY.RUN',
+    supports: ['ip', 'domain', 'url', 'hash'],
+    component: AnyRunCard as React.ComponentType<CardProps>,
+    logo: '/logos/anyrun.png',
+  },
+  {
+    id: 'greynoise',
+    label: 'GreyNoise',
+    supports: ['ip'],
+    component: GreyNoiseCard as React.ComponentType<CardProps>,
+    logo: '/logos/greynoise.png',
+  },
+  {
+    id: 'hybridanalysis',
+    label: 'Hybrid Analysis',
+    supports: ['ip', 'domain', 'url', 'hash'],
+    component: HybridAnalysisCard as React.ComponentType<CardProps>,
+    logo: '/logos/hybridanalysis.ico',
+  },
+  {
+    id: 'safebrowsing',
+    label: 'Google Safe Browsing',
+    supports: ['url'],
+    component: SafeBrowsingCard as React.ComponentType<CardProps>,
+    logo: '/logos/safebrowsing.ico',
   },
 ]
 

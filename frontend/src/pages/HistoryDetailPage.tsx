@@ -131,7 +131,7 @@ export default function HistoryDetailPage() {
           Archived result from {formatTimestamp(entry.timestamp)} — showing what each source returned at that time, not a live lookup.
         </div>
 
-        <SearchFrequencyCard indicator={entry.indicator} />
+        <SearchFrequencyCard indicator={entry.indicator} excludeSelf />
 
         <SummarySection
           type={entry.type}

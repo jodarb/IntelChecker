@@ -15,6 +15,10 @@ ENGINES: dict[str, dict] = {
     "malwarebazaar": {"supports": ["hash"],                       "key": "ABUSECH_AUTH_KEY"},
     "phishtank":   {"supports": ["url"],                          "key": None},
     "recordedfuture": {"supports": ["ip", "domain", "url", "hash"], "key": "RECORDED_FUTURE_API_KEY"},
+    "anyrun":      {"supports": ["ip", "domain", "url", "hash"],   "key": "ANYRUN_API_KEY"},
+    "greynoise":   {"supports": ["ip"],                            "key": "GREYNOISE_API_KEY"},
+    "hybridanalysis": {"supports": ["ip", "domain", "url", "hash"], "key": "HYBRID_ANALYSIS_API_KEY"},
+    "safebrowsing": {"supports": ["url"],                          "key": "GOOGLE_SAFE_BROWSING_API_KEY"},
 }
 
 # MISP is multi-instance: any number of servers can be defined via MISP_<N>_*

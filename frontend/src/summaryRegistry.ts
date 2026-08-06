@@ -117,4 +117,10 @@ export const SUMMARY_REGISTRY: Record<string, Partial<Record<IndicatorType, Summ
       { field: 'torExit', extract: (d) => ((d as any)?.is_tor_exit ? 'Yes' : null) },
     ],
   },
+  anyrun: {
+    ip: [
+      { field: 'country', extract: (d) => ((d as any)?.destinationIPgeo?.[0]) || null },
+      { field: 'asn', extract: (d) => ((d as any)?.destinationIpAsn?.[0]?.asn) || null },
+    ],
+  },
 }

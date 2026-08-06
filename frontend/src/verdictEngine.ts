@@ -119,6 +119,50 @@ function phishtankSubscore(d: unknown): number | null {
   return 10
 }
 
+function anyrunSubscore(d: unknown): number | null {
+  const threatLevel = (d as any)?.summary?.threatLevel
+  // null means no sandbox intelligence record at all — not the same as "checked,
+  // found clean" (threatLevel 0, ANY.RUN's own "No info" verdict).
+  if (threatLevel == null) return null
+  if (threatLevel === 0) return 0
+  if (threatLevel === 1) return 5
+  return 9
+}
+
+function greynoiseSubscore(d: unknown): number | null {
+  const payload = d as any
+  // Neither an internet-scanner hit nor a known-good RIOT match means GreyNoise
+  // has no observation for this IP at all — not a "clean" verdict, just no data.
+  if (!payload?.noise && !payload?.riot) return null
+  if (payload.classification === 'malicious') return 9
+  // RIOT = a verified known-good business service (search engine, CDN...); an
+  // explicit "benign" classification is the same kind of confident clean result.
+  if (payload.riot || payload.classification === 'benign') return 0
+  // Seen actively scanning the internet but not yet classified — a real, if
+  // mild, elevated-risk signal (comparable to being a Tor exit node).
+  return 4
+}
+
+function hybridAnalysisSubscore(d: unknown): number | null {
+  const results = (d as any)?.result
+  if (!Array.isArray(results) || results.length === 0) return null
+  const verdicts = results.map((r: any) => String(r?.verdict ?? '').toLowerCase())
+  if (verdicts.includes('malicious')) return 9
+  if (verdicts.includes('suspicious')) return 5
+  if (verdicts.some((v: string) => v === 'whitelisted' || v === 'no specific threat')) return 0
+  // Only "no verdict" entries — sandboxed but never classified, no usable signal.
+  return null
+}
+
+function safeBrowsingSubscore(d: unknown): number | null {
+  // Safe Browsing is a real-time authoritative check, not a community feed — an
+  // empty match list is a genuine "checked, not on any threat list" clean result,
+  // not an absence of data. So unlike most normalizers here, this never returns
+  // null once we have a response at all.
+  const matches = (d as any)?.matches
+  return Array.isArray(matches) && matches.length > 0 ? 9 : 0
+}
+
 function mispSubscore(d: unknown): number | null {
   const attrs = (d as any)?.Attribute
   if (!Array.isArray(attrs)) return null
@@ -143,6 +187,10 @@ const VERDICT_NORMALIZERS: Record<string, Partial<Record<IndicatorType, (data: u
   urlscan: { url: urlscanSubscore, domain: urlscanSubscore },
   malwarebazaar: { hash: malwareBazaarSubscore },
   phishtank: { url: phishtankSubscore },
+  anyrun: { ip: anyrunSubscore, domain: anyrunSubscore, url: anyrunSubscore, hash: anyrunSubscore },
+  greynoise: { ip: greynoiseSubscore },
+  hybridanalysis: { ip: hybridAnalysisSubscore, domain: hybridAnalysisSubscore, url: hybridAnalysisSubscore, hash: hybridAnalysisSubscore },
+  safebrowsing: { url: safeBrowsingSubscore },
 }
 
 // Per-engine 0-10 score for a single result, independent of weight — this is what

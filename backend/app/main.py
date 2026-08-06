@@ -10,7 +10,7 @@ from app.core.registry import ENGINES
 from app.services import (
     abuseipdb, virustotal, abusech, alienvault, ipinfo, shodan,
     torexitlist, urlhaus, mitreattack, ripestat, urlscan, malwarebazaar, phishtank,
-    recordedfuture, misp,
+    recordedfuture, anyrun, greynoise, hybridanalysis, safebrowsing, misp,
 )
 
 
@@ -46,6 +46,10 @@ _SERVICES = {
     "malwarebazaar": malwarebazaar,
     "phishtank": phishtank,
     "recordedfuture": recordedfuture,
+    "anyrun": anyrun,
+    "greynoise": greynoise,
+    "hybridanalysis": hybridanalysis,
+    "safebrowsing": safebrowsing,
     **misp.build_engines(MISP_INSTANCES),
 }
 
@@ -98,8 +102,10 @@ def create_history_entry(entry: HistoryEntryRequest):
 
 
 @app.get("/history")
-def list_history_entries():
-    return history_db.list_history()
+def list_history_entries(indicator: str | None = None):
+    # No cap when filtering to one indicator — the point is an accurate global
+    # count, not just what fits in the default recent-activity page size.
+    return history_db.list_history(limit=100000 if indicator else 200, indicator=indicator)
 
 
 # Must be registered before /history/{entry_id} — otherwise "frequency" would be

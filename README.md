@@ -39,11 +39,16 @@ How to get IntelChecker running in your own environment.
    ```
    Uncomment and fill in the keys for the sources you have access to. Anything left commented out just shows as "not configured" in the UI — it doesn't break the rest of the app.
 3. *(Optional)* Drop your organization's logos at `logo/light.png` and `logo/dark.png` (repo root — one per theme, shown/hidden automatically as the analyst switches theme) and tune `weights.json` (repo root) to adjust how much each engine contributes to the verdict score. Both are optional — the app works fine without either.
-4. Build and start the stack:
+4. *(Optional)* If `8080` and/or `8000` are already taken by something else on this host:
+   ```bash
+   cp .env.example .env
+   ```
+   and change `FRONTEND_PORT` / `BACKEND_PORT` in the new root `.env` — don't confuse it with `backend/.env` (API keys), it only controls ports and Docker Compose reads it directly, nothing else needs editing.
+5. Build and start the stack:
    ```bash
    docker compose up --build -d
    ```
-5. Open `http://<host>:8080`.
+6. Open `http://<host>:<FRONTEND_PORT>` (`8080` unless you changed it in step 4).
 
 That's the whole stack — one container for the backend, one for the frontend/nginx reverse proxy. `backend/data/` (query history) and `backend/certs/` (MISP mTLS client certs, if you need them) are Docker volumes, so they persist across restarts and rebuilds.
 
@@ -108,14 +113,22 @@ docker compose up -d
 | [PhishTank](https://phishtank.org) | | | ✅ | | | |
 | [MISP](https://www.misp-project.org) *(any number of instances)* | ✅ | ✅ | ✅ | ✅ | | |
 | [Recorded Future](https://www.recordedfuture.com) | ✅ | ✅ | ✅ | ✅ | | |
+| [ANY.RUN](https://any.run) *(TI Lookup)* | ✅ | ✅ | ✅ | ✅ | | |
+| [GreyNoise](https://greynoise.io) *(Community)* | ✅ | | | | | |
+| [Hybrid Analysis](https://hybrid-analysis.com) *(Falcon Sandbox)* | ✅ | ✅ | ✅ | ✅ | | |
+| [Google Safe Browsing](https://safebrowsing.google.com) | | | ✅ | | | |
 
 > No API key required for Tor Exit Nodes, MITRE ATT&CK, RIPEstat, or PhishTank — all four are free public datasets/APIs, always on, toggleable like any other source. MITRE ATT&CK caches its ~50 MB STIX dataset in memory for 24h (the first lookup after a cold start takes a few seconds). RIPEstat returns routing (ASN/prefix) and abuse-contact data from the RIPE NCC registry. PhishTank's `checkurl` API works anonymously — an optional `PHISHTANK_API_KEY` gets you higher request priority but isn't required.
 > urlscan.io queries the public search index of scans already submitted by others (passive lookup) — it does not submit your indicator for an active scan, so nothing you look up becomes visible to third parties.
 > MalwareBazaar shares its credential with ThreatFox and URLhaus (`ABUSECH_AUTH_KEY`) — same unified abuse.ch key, no new registration needed if you already have one configured.
 > AlienVault OTX's Threat Actor support queries the [pulse search API](https://otx.alienvault.com/api/v1/search/pulses) (same `ALIENVAULT_API_KEY` as its other lookups) — it's a full-text search over community threat reports, not a curated actor database, so results can take up to ~20s and MITRE ATT&CK remains the more authoritative source for actor profiles.
 > URLhaus shares its credential with ThreatFox (`ABUSECH_AUTH_KEY`) — both are abuse.ch platforms under the same unified auth key, but are independent, individually toggleable sources.
+> ANY.RUN integrates via its **TI Lookup** API — a passive search over ANY.RUN's existing sandbox intelligence database (~180-day window). Like urlscan.io, it does not submit your indicator for a live detonation; it only returns what's already on record from prior analyses.
+> GreyNoise's free **Community API** classifies an IP as an internet-wide scanner (noise) and/or a known-good business service (RIOT — search engines, CDNs, etc.); it's capped at 50 lookups/week per key.
+> Hybrid Analysis integrates via `/search/terms` and `/search/hash` — also a passive search over existing Falcon Sandbox detonation reports, not a live submission.
+> Google Safe Browsing only supports URL lookups (it's a real-time check against Google's threat lists, not a database of domains/IPs) — unlike most sources here, a clean result is a genuine active verdict, not just "no data".
 
-> **Roadmap:** Criminal IP · Any.run · OpenCTI
+> **Roadmap:** Criminal IP · OpenCTI
 
 ### MISP is multi-instance
 
@@ -145,19 +158,19 @@ MISP is the one exception to `weights.json`: since instances are only known at d
 
 ## 🕓 Query History & Search Frequency
 
-Every completed lookup is logged to a small local database (`backend/data/history.db`, SQLite — gitignored, and mounted as a Docker volume so it survives container rebuilds) — one entry per indicator+type per visit to the results page, not per engine toggle. The **History** button in the header opens a chronological list (indicator, type, timestamp, score); opening an entry reconstructs the results page exactly as it looked at that moment — the score, the per-engine weight contributions, and every engine's raw response are all frozen at save time, so a later change to `weights.json` or a MISP instance's config won't rewrite history.
+Every completed lookup is logged to a small local database (`backend/data/history.db`, SQLite — gitignored, and mounted as a Docker volume so it survives container rebuilds) — one entry per indicator+type per visit to the results page, not per engine toggle. The **History** button in the header opens a chronological list (indicator, type, timestamp, score), optionally filtered to one indicator via `?indicator=` (that's what the Search Frequency card's **View all** link uses — an unlimited, all-time count, not just the 24h/72h/30d windows). Opening an entry reconstructs the results page exactly as it looked at that moment — the score, the per-engine weight contributions, and every engine's raw response are all frozen at save time, so a later change to `weights.json` or a MISP instance's config won't rewrite history.
 
-Each result also shows a **Search Frequency** card — how many times that exact indicator has been looked up in the last 24h, 72h, and 30d — color-scaled so a spike is obvious at a glance without reading the numbers:
+Each result also shows a **Search Frequency** card — how many *other* times that exact indicator has been looked up in the last 24h, 72h, and 30d — color-scaled so a spike is obvious at a glance without reading the numbers, with a **View all** link that jumps to the History page pre-filtered to that indicator (see below):
 
 | Level | 24h | 72h | 30d |
 |---|:---:|:---:|:---:|
-| ⬜ Grey — never seen | 0 | 0 | 0 |
-| 🟩 Green — stale only | 0 | 0 | 1–3 |
-| 🟨 Yellow | 1–2 | 1–4 | 4–8 |
-| 🟧 Orange | 3–4 | 5–7 | 9–15 |
+| ⬜ Grey — no other activity | 0 | 0 | 0 |
+| 🟩 Green — stale only | — | — | 1–3 |
+| 🟨 Yellow | 1 | 1–4 | 4–8 |
+| 🟧 Orange | 2–4 | 5–7 | 9–15 |
 | 🟥 Red | 5+ | 8+ | 16+ |
 
-Grey is reserved for genuinely zero activity everywhere, and green only shows up for stale hits — something seen in the last 30 days but nothing in the last 72h. The moment there's *any* hit within 72h (which includes any hit within 24h), the card is at least yellow — recent activity is never shown "cooler" than that, no matter how small the count. From that yellow floor, higher counts in the tighter windows escalate to orange/red, since a burst in the last 24h is far more significant than the same count spread across 30 days. The card's color is whichever window reads most severe.
+The lookup currently on screen never counts itself — on a live results page it hasn't been saved yet at the moment this card fetches its numbers, so the raw count from the backend already excludes it; when reopening an *already-saved* entry from History, that entry is subtracted back out for the same reason, so both views mean the same thing: "how many other times has this been searched." Grey means genuinely no other activity at all. Green only shows up for stale hits — nothing in the last 72h besides older activity within 30 days. The moment there's any hit within 72h (which includes any hit within 24h), it's at least yellow — recent activity is never shown "cooler" than that, no matter how small the count. From that yellow floor, higher counts in the tighter windows escalate to orange/red, since a burst in the last 24h is far more significant than the same count spread across 30 days. The card's color is whichever window reads most severe.
 
 ---
 
@@ -182,14 +195,17 @@ cp backend/.env.example backend/.env
 # if you leave them out or delete them, the UI just renders without a logo, no
 # broken image. The right one is shown automatically based on the active theme.
 
+# Optional: 8080 or 8000 already taken by something else? cp .env.example .env
+# and change FRONTEND_PORT / BACKEND_PORT there — nothing else to edit.
+
 docker compose up --build -d
 ```
 
 | Service | URL |
 |---|---|
-| App | http://localhost:8080 |
+| App | http://localhost:8080 *(or your `FRONTEND_PORT`)* |
 
-The frontend container serves the built SPA via nginx and reverse-proxies `/api/*` to the backend container — there's nothing else to configure, and no ports to expose beyond `8080`.
+The frontend container serves the built SPA via nginx and reverse-proxies `/api/*` to the backend container, so `FRONTEND_PORT` alone is enough for normal use. `BACKEND_PORT` (also in the root `.env`, `8000` by default) additionally exposes the API directly on the host — handy for debugging or hitting it from another tool, not required otherwise.
 
 ```bash
 # Stop
@@ -200,6 +216,7 @@ docker compose down
 > `logo/light.png` and `logo/dark.png` live at the repo root so they're the first thing a deployer sees — `frontend/public/logo` is just a symlink to that folder, kept for local (non-Docker) dev. Missing either file? The build doesn't fail and the UI silently renders without it, per theme.
 > `weights.json` (repo root) sets each engine's contribution to the unified verdict score — edit the numbers to tune it, no code changes needed. Same symlink/optional-copy pattern as the logo folder: missing file just means no verdict score is computed.
 > Query history needs no setup — `docker compose up` creates `backend/data/history.db` on first run and it persists across restarts/rebuilds via the volume mount in `docker-compose.yml`.
+> `.env` (repo root) sets `FRONTEND_PORT` / `BACKEND_PORT` — Docker Compose loads it automatically for variable substitution in `docker-compose.yml`. It's a different file from `backend/.env` (API keys) and doesn't get passed into any container. No file present? Compose falls back to `8080` / `8000`.
 
 <details>
 <summary>Development (without Docker)</summary>
@@ -254,6 +271,10 @@ backend/.env.example  ← empty template  (committed)
 | `URLSCAN_API_KEY` | [urlscan.io](https://urlscan.io/user/signup) | ✅ |
 | `PHISHTANK_API_KEY` *(optional)* | [PhishTank](https://phishtank.org/api_register.php) | ✅ |
 | `RECORDED_FUTURE_API_KEY` | [Recorded Future](https://www.recordedfuture.com) — API token from your org's admin panel | ❌ (commercial) |
+| `ANYRUN_API_KEY` | [ANY.RUN](https://any.run) — TI Lookup, from your account's API tab | ❌ (commercial) |
+| `GREYNOISE_API_KEY` | [GreyNoise](https://viz.greynoise.io/account/) — Community API | ✅ (50/week) |
+| `HYBRID_ANALYSIS_API_KEY` | [Hybrid Analysis](https://hybrid-analysis.com/my-account?tab=%23api-key-tab) | ✅ |
+| `GOOGLE_SAFE_BROWSING_API_KEY` | [Google Safe Browsing](https://developers.google.com/safe-browsing/v4/get-started) — Google Cloud API key with the Safe Browsing API enabled | ✅ |
 | `MISP_<N>_NAME` / `_URL` / `_KEY` / `_VERIFY_SSL` / `_WEIGHT` | [MISP](https://www.misp-project.org) — as many instances as you want, see below | n/a |
 
 > Sources with an empty key render an error card in the UI; all other sources continue working normally.
@@ -286,6 +307,10 @@ IntelChecker/
 │   │       ├── malwarebazaar.py
 │   │       ├── phishtank.py
 │   │       ├── recordedfuture.py
+│   │       ├── anyrun.py
+│   │       ├── greynoise.py
+│   │       ├── hybridanalysis.py
+│   │       ├── safebrowsing.py
 │   │       └── misp.py          # One class, N instances — see registry.py's MISP_INSTANCES loop
 │   ├── .env                     # Your keys — gitignored
 │   ├── .env.example             # Empty template
@@ -310,6 +335,8 @@ IntelChecker/
 │   ├── light.png                 # ← Replace with your org's logo, light theme (optional, PNG)
 │   └── dark.png                  # ← Replace with your org's logo, dark theme (optional, PNG)
 ├── weights.json                  # ← Per-engine weights for the verdict score (optional)
+├── .env                          # ← FRONTEND_PORT / BACKEND_PORT — gitignored, default 8080 / 8000
+├── .env.example                  # Template for the above
 ├── docker-compose.yml
 └── README.md
 ```

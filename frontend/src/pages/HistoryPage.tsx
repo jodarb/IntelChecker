@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ArrowLeft, ChevronRight } from 'lucide-react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, ChevronRight, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Layout from '@/components/Layout'
 import ScoreBadge from '@/components/results/ScoreBadge'
@@ -31,15 +31,20 @@ function formatTimestamp(ts: string): string {
 }
 
 export default function HistoryPage() {
+  const [searchParams] = useSearchParams()
+  const indicator = searchParams.get('indicator') ?? ''
   const [entries, setEntries] = useState<HistoryListEntry[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch(`${BACKEND}/history`)
+    setEntries(null)
+    setError(null)
+    const query = indicator ? `?indicator=${encodeURIComponent(indicator)}` : ''
+    fetch(`${BACKEND}/history${query}`)
       .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json() })
       .then(setEntries)
       .catch(() => setError('Could not reach the backend. Is it running?'))
-  }, [])
+  }, [indicator])
 
   return (
     <Layout>
@@ -54,6 +59,24 @@ export default function HistoryPage() {
           <h2 className="text-xl font-semibold text-foreground">Query History</h2>
         </div>
 
+        {indicator && (
+          <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border bg-muted/20 text-sm">
+            <span className="text-muted-foreground">Filtered to</span>
+            <span className="font-mono text-foreground font-medium break-all">{indicator}</span>
+            {entries && (
+              <span className="text-muted-foreground">
+                — {entries.length} search{entries.length === 1 ? '' : 'es'} total
+              </span>
+            )}
+            <Link
+              to="/history"
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground ml-auto shrink-0"
+            >
+              <X className="h-3 w-3" /> Clear filter
+            </Link>
+          </div>
+        )}
+
         {error && <p className="text-sm text-red-400">{error}</p>}
 
         {!error && entries === null && (
@@ -61,7 +84,9 @@ export default function HistoryPage() {
         )}
 
         {entries && entries.length === 0 && (
-          <p className="text-sm text-muted-foreground">No queries have been logged yet.</p>
+          <p className="text-sm text-muted-foreground">
+            {indicator ? `No queries logged yet for ${indicator}.` : 'No queries have been logged yet.'}
+          </p>
         )}
 
         {entries && entries.length > 0 && (
