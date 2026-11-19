@@ -65,3 +65,23 @@ body {
   font-family: ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+
+/* ── Brand wordmark — matches the logo: noir poster type, ink + steel blue ── */
+.brand-wordmark {
+  font-family: 'Bebas Neue', 'Oswald', 'Arial Narrow', ui-sans-serif, sans-serif;
+  font-weight: 400;
+  line-height: 0.9;
+  letter-spacing: 0.04em;
+  --brand-ink: #232322;    /* the coat's charcoal */
+  --brand-steel: #4a7f9e;  /* the lens blue, deepened for contrast on white */
+}
+.dark .brand-wordmark {
+  --brand-ink: #eef6f8;    /* the lens highlight */
+  --brand-steel: #85b3cf;  /* the lens blue */
+}
+.brand-ink { color: var(--brand-ink); }
+.brand-steel { color: var(--brand-steel); }
+.brand-tagline {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.28em;
+}

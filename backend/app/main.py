@@ -5,12 +5,13 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from app.core import db as history_db
+from app.core import weights as weights_store
 from app.core.config import MISP_INSTANCES
 from app.core.registry import ENGINES
 from app.services import (
     abuseipdb, virustotal, abusech, alienvault, ipinfo, shodan,
     torexitlist, urlhaus, mitreattack, ripestat, urlscan, malwarebazaar, phishtank,
-    recordedfuture, anyrun, greynoise, hybridanalysis, safebrowsing, misp,
+    recordedfuture, anyrun, greynoise, hybridanalysis, safebrowsing, tweetfeed, misp,
 )
 
 
@@ -27,7 +28,7 @@ app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PUT"],
     allow_headers=["*"],
 )
 
@@ -50,6 +51,7 @@ _SERVICES = {
     "greynoise": greynoise,
     "hybridanalysis": hybridanalysis,
     "safebrowsing": safebrowsing,
+    "tweetfeed": tweetfeed,
     **misp.build_engines(MISP_INSTANCES),
 }
 
@@ -62,9 +64,12 @@ class AnalyzeRequest(BaseModel):
 class HistoryEntryRequest(BaseModel):
     indicator: str
     type: str
-    score: int | None = None
+    score: int | None = None              # Risk Score
+    knowledge_score: int | None = None
+    quadrant: str | None = None
     results: dict
-    contributions: list = []
+    # {"risk": [...], "knowledge": [...]} — older clients sent a flat list (risk only).
+    contributions: dict | list = []
 
 
 @app.get("/engines/status")
@@ -78,8 +83,6 @@ def engines_status():
         entry = {"connected": connected, "supports": meta["supports"]}
         if "name" in meta:
             entry["label"] = meta["name"]
-        if "weight" in meta:
-            entry["weight"] = meta["weight"]
         result[name] = entry
     return result
 
@@ -93,10 +96,36 @@ async def analyze(engine: str, req: AnalyzeRequest):
     return await _SERVICES[engine].dispatch(req.indicator, req.type)
 
 
+@app.get("/mitre/aliases")
+async def mitre_aliases():
+    return await mitreattack.alias_lists()
+
+
+@app.get("/weights")
+def get_weights():
+    return weights_store.get_weights()
+
+
+# No authentication by design (internal deployment, see CLAUDE.md) — anyone who can
+# reach the app can change the weights.
+@app.put("/weights")
+def put_weights(payload: dict):
+    try:
+        return weights_store.save_weights(payload)
+    except weights_store.WeightsValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@app.post("/weights/reset")
+def reset_weights():
+    return weights_store.reset_weights()
+
+
 @app.post("/history")
 def create_history_entry(entry: HistoryEntryRequest):
     entry_id = history_db.save_query(
-        entry.indicator, entry.type, entry.score, entry.results, entry.contributions
+        entry.indicator, entry.type, entry.score, entry.knowledge_score, entry.quadrant,
+        entry.results, entry.contributions,
     )
     return {"id": entry_id}
 

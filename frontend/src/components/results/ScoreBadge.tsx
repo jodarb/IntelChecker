@@ -1,4 +1,5 @@
 import { Gauge, CheckCircle2, AlertTriangle, ShieldX, AlertCircle, SearchX } from 'lucide-react'
+import { useI18n } from '@/i18n/useI18n'
 
 interface Props {
   score: number | null
@@ -13,12 +14,16 @@ interface Props {
 // needs to read as categorically more important than a status note, especially
 // since a high score and an error both lean red. `0` is a genuine "checked, found
 // clean" score — distinct from `null`, which means there was nothing to score.
+// Normalizers can yield fractional subscores (e.g. Recorded Future's 0-99 → 0-10).
+const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1))
+
 export default function ScoreBadge({ score, isError = false, hasResult = false }: Props) {
+  const { t } = useI18n()
   if (isError) {
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-semibold text-red-400 bg-red-500/10 border-red-500/30">
         <AlertCircle className="h-3 w-3" />
-        Error
+        {t('badge.error')}
       </span>
     )
   }
@@ -27,14 +32,14 @@ export default function ScoreBadge({ score, isError = false, hasResult = false }
       return (
         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-medium text-yellow-400 bg-yellow-500/10 border-yellow-500/30">
           <Gauge className="h-3 w-3" />
-          No score
+          {t('badge.noScore')}
         </span>
       )
     }
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-medium text-yellow-400 bg-yellow-500/10 border-yellow-500/30">
         <SearchX className="h-3 w-3" />
-        No results
+        {t('badge.noResults')}
       </span>
     )
   }
@@ -42,7 +47,7 @@ export default function ScoreBadge({ score, isError = false, hasResult = false }
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold text-white bg-green-600">
         <CheckCircle2 className="h-3 w-3" />
-        {score}/10
+        {fmt(score)}/10
       </span>
     )
   }
@@ -50,7 +55,7 @@ export default function ScoreBadge({ score, isError = false, hasResult = false }
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold text-white bg-yellow-600">
         <AlertTriangle className="h-3 w-3" />
-        {score}/10
+        {fmt(score)}/10
       </span>
     )
   }
@@ -58,14 +63,14 @@ export default function ScoreBadge({ score, isError = false, hasResult = false }
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold text-white bg-orange-600">
         <AlertTriangle className="h-3 w-3" />
-        {score}/10
+        {fmt(score)}/10
       </span>
     )
   }
   return (
     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold text-white bg-red-600">
       <ShieldX className="h-3 w-3" />
-      {score}/10
+      {fmt(score)}/10
     </span>
   )
 }

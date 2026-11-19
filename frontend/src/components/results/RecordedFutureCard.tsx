@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { Loader2, ChevronDown, FileCode2, ExternalLink } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
 import ScoreBadge from './ScoreBadge'
-import WeightBadge from './WeightBadge'
+import WeightBadge, { type CardWeight } from './WeightBadge'
+import { useI18n } from '@/i18n/useI18n'
+import { apiErrorText } from '@/i18n/errors'
 
 interface EvidenceDetail {
   rule?: string
@@ -34,7 +36,7 @@ interface Props {
   error: string | null
   data: RecordedFutureResponse | null
   score?: number | null
-  weight?: number | null
+  weight?: CardWeight | null
 }
 
 const CRITICALITY_STYLES: Record<string, string> = {
@@ -46,11 +48,12 @@ const CRITICALITY_STYLES: Record<string, string> = {
 }
 
 function RiskBadge({ risk }: { risk: RiskInfo }) {
+  const { t } = useI18n()
   const label = risk.criticalityLabel ?? 'None'
   const style = CRITICALITY_STYLES[label] ?? CRITICALITY_STYLES.None
   return (
     <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-semibold ${style}`}>
-      Risk {risk.score ?? 0}/99 · {label}
+      {t('rf.risk', { score: risk.score ?? 0, label: label in CRITICALITY_STYLES ? t(`rf.crit.${label as 'None' | 'Unusual' | 'Suspicious' | 'Malicious' | 'Critical'}`) : label })}
     </span>
   )
 }
@@ -81,6 +84,8 @@ function EvidenceRow({ evidence }: { evidence: EvidenceDetail }) {
 }
 
 export default function RecordedFutureCard({ loading, error, data, score = null, weight = null }: Props) {
+  const i18n = useI18n()
+  const { t, locale } = i18n
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.error ?? null
@@ -104,7 +109,7 @@ export default function RecordedFutureCard({ loading, error, data, score = null,
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border text-xs font-medium text-muted-foreground bg-muted/30 hover:bg-muted/70 hover:text-foreground transition-colors"
-              title="View raw JSON"
+              title={t('raw.buttonTitle')}
             >
               <FileCode2 className="h-3 w-3" />
               RAW
@@ -117,24 +122,24 @@ export default function RecordedFutureCard({ loading, error, data, score = null,
       {open && (
         <div className="px-4 py-4 flex flex-col gap-4">
           {loading && (
-            <p className="text-sm text-muted-foreground">Querying Recorded Future...</p>
+            <p className="text-sm text-muted-foreground">{t('card.querying', { source: 'Recorded Future' })}</p>
           )}
 
           {!loading && isRealError && (
-            <p className="text-sm text-red-400">{error ?? apiError?.message}</p>
+            <p className="text-sm text-red-400">{error ?? apiErrorText(i18n, apiError, 'Recorded Future')}</p>
           )}
 
           {!loading && isNotFound && (
-            <p className="text-sm text-muted-foreground">{apiError?.message}</p>
+            <p className="text-sm text-muted-foreground">{apiErrorText(i18n, apiError, 'Recorded Future')}</p>
           )}
 
           {!loading && risk && (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
-                <Field label="Risk Score" value={<RiskBadge risk={risk} />} />
-                <Field label="Rules Triggered" value={risk.riskString} />
-                <Field label="First Seen" value={data?.timestamps?.firstSeen ? new Date(data.timestamps.firstSeen).toLocaleString() : undefined} />
-                <Field label="Last Seen" value={data?.timestamps?.lastSeen ? new Date(data.timestamps.lastSeen).toLocaleString() : undefined} />
+                <Field label={t('f.riskScore')} value={<RiskBadge risk={risk} />} />
+                <Field label={t('f.rulesTriggered')} value={risk.riskString} />
+                <Field label={t('f.firstSeen')} value={data?.timestamps?.firstSeen ? new Date(data.timestamps.firstSeen).toLocaleString(locale) : undefined} />
+                <Field label={t('f.lastSeen')} value={data?.timestamps?.lastSeen ? new Date(data.timestamps.lastSeen).toLocaleString(locale) : undefined} />
               </div>
 
               {risk.riskSummary && (
@@ -144,7 +149,7 @@ export default function RecordedFutureCard({ loading, error, data, score = null,
               {evidence.length > 0 && (
                 <div className="flex flex-col gap-2">
                   <span className="text-xs text-muted-foreground uppercase tracking-wide">
-                    Risk Rules ({evidence.length})
+                    {t('rf.rules', { n: evidence.length })}
                   </span>
                   {evidence.map((e, i) => (
                     <EvidenceRow key={e.rule ?? i} evidence={e} />
@@ -159,7 +164,7 @@ export default function RecordedFutureCard({ loading, error, data, score = null,
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit"
                 >
-                  <ExternalLink className="h-3 w-3" /> View Intelligence Card
+                  <ExternalLink className="h-3 w-3" /> {t('rf.intelCard')}
                 </a>
               )}
             </>

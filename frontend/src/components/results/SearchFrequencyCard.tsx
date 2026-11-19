@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useFetchJson } from '@/hooks/useFetchJson'
 import { Link } from 'react-router-dom'
 import { History, ExternalLink } from 'lucide-react'
+import { useI18n } from '@/i18n/useI18n'
 
 interface Frequency {
   last_24h: number
@@ -21,18 +22,10 @@ interface Props {
 const BACKEND = '/api'
 
 function useSearchFrequency(indicator: string): Frequency | null {
-  const [freq, setFreq] = useState<Frequency | null>(null)
-
-  useEffect(() => {
-    setFreq(null)
-    if (!indicator) return
-    fetch(`${BACKEND}/history/frequency?indicator=${encodeURIComponent(indicator)}`)
-      .then(r => r.json())
-      .then(setFreq)
-      .catch(() => setFreq(null))
-  }, [indicator])
-
-  return freq
+  const { data } = useFetchJson<Frequency>(
+    indicator ? `${BACKEND}/history/frequency?indicator=${encodeURIComponent(indicator)}` : null,
+  )
+  return data
 }
 
 // 0 = never seen, 1 = green, 2 = yellow, 3 = orange, 4 = red. Green only shows up
@@ -74,6 +67,7 @@ const LEVEL_STYLES = [
 
 export default function SearchFrequencyCard({ indicator, excludeSelf = false }: Props) {
   const raw = useSearchFrequency(indicator)
+  const { t } = useI18n()
   if (!raw) return null
 
   const freq: Frequency = excludeSelf
@@ -90,7 +84,7 @@ export default function SearchFrequencyCard({ indicator, excludeSelf = false }: 
     <div className={`rounded-lg border p-4 flex items-center gap-4 ${style.border} ${style.bg}`}>
       <History className={`h-4 w-4 shrink-0 ${style.text}`} />
       <span className={`text-xs uppercase tracking-wide font-medium shrink-0 ${style.text}`}>
-        Search Frequency
+        {t('results.frequency')}
       </span>
       <div className="flex items-center gap-4 text-sm ml-auto">
         <span>
@@ -109,7 +103,7 @@ export default function SearchFrequencyCard({ indicator, excludeSelf = false }: 
           to={`/history?indicator=${encodeURIComponent(indicator)}`}
           className={`inline-flex items-center gap-1 text-xs hover:underline ${style.text}`}
         >
-          <ExternalLink className="h-3 w-3" /> View all
+          <ExternalLink className="h-3 w-3" /> {t('results.viewAll')}
         </Link>
       </div>
     </div>

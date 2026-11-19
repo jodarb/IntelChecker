@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { Loader2, ChevronDown, FileCode2, ExternalLink } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
 import ScoreBadge from './ScoreBadge'
-import WeightBadge from './WeightBadge'
+import WeightBadge, { type CardWeight } from './WeightBadge'
+import { useI18n } from '@/i18n/useI18n'
+import { apiErrorText } from '@/i18n/errors'
 
 interface MispTag {
   name: string
@@ -51,16 +53,18 @@ interface Props {
   data: MispResponse | null
   label?: string
   score?: number | null
-  weight?: number | null
+  weight?: CardWeight | null
 }
 
-const THREAT_LEVEL: Record<string, { label: string; style: string }> = {
-  '1': { label: 'High', style: 'text-red-400 bg-red-500/10 border-red-500/30' },
-  '2': { label: 'Medium', style: 'text-amber-400 bg-amber-500/10 border-amber-500/30' },
-  '3': { label: 'Low', style: 'text-blue-400 bg-blue-500/10 border-blue-500/30' },
-  '4': { label: 'Undefined', style: 'text-muted-foreground bg-muted/30 border-border' },
+const THREAT_LEVEL: Record<string, { label: 'misp.level.1' | 'misp.level.2' | 'misp.level.3' | 'misp.level.4'; style: string }> = {
+  '1': { label: 'misp.level.1', style: 'text-red-400 bg-red-500/10 border-red-500/30' },
+  '2': { label: 'misp.level.2', style: 'text-amber-400 bg-amber-500/10 border-amber-500/30' },
+  '3': { label: 'misp.level.3', style: 'text-blue-400 bg-blue-500/10 border-blue-500/30' },
+  '4': { label: 'misp.level.4', style: 'text-muted-foreground bg-muted/30 border-border' },
 }
-const ANALYSIS_LABEL: Record<string, string> = { '0': 'Initial', '1': 'Ongoing', '2': 'Completed' }
+const ANALYSIS_LABEL: Record<string, 'misp.analysis.0' | 'misp.analysis.1' | 'misp.analysis.2'> = {
+  '0': 'misp.analysis.0', '1': 'misp.analysis.1', '2': 'misp.analysis.2',
+}
 
 function TagChip({ tag }: { tag: MispTag }) {
   return (
@@ -72,14 +76,15 @@ function TagChip({ tag }: { tag: MispTag }) {
 }
 
 function AttributeRow({ attr }: { attr: MispAttribute }) {
+  const { t } = useI18n()
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs px-2.5 py-2 rounded bg-background/40">
       {attr.value && <span className="font-mono text-foreground break-all">{attr.value}</span>}
       {attr.category && (
-        <span className="text-muted-foreground">category: <span className="text-foreground">{attr.category}</span></span>
+        <span className="text-muted-foreground">{t('misp.category')} <span className="text-foreground">{attr.category}</span></span>
       )}
       {attr.type && (
-        <span className="text-muted-foreground">type: <span className="text-foreground">{attr.type}</span></span>
+        <span className="text-muted-foreground">{t('misp.type')} <span className="text-foreground">{attr.type}</span></span>
       )}
       {attr.to_ids && (
         <span className="px-1.5 py-0.5 rounded bg-red-500/10 border border-red-500/30 text-red-400 font-medium">
@@ -96,8 +101,9 @@ function AttributeRow({ attr }: { attr: MispAttribute }) {
 }
 
 function EventGroup({ event, attrs }: { event?: MispEventDetail; attrs: MispAttribute[] }) {
+  const { t } = useI18n()
   const fallback = attrs[0]?.Event
-  const title = event?.info ?? fallback?.info ?? 'Untitled event'
+  const title = event?.info ?? fallback?.info ?? t('misp.untitled')
   const date = event?.date ?? fallback?.date
   const eventUrl = attrs.find(a => a.event_url)?.event_url
   const threatLevel = event?.threat_level_id != null ? THREAT_LEVEL[String(event.threat_level_id)] : undefined
@@ -114,17 +120,17 @@ function EventGroup({ event, attrs }: { event?: MispEventDetail; attrs: MispAttr
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
           {threatLevel && (
             <span className={`px-1.5 py-0.5 rounded border font-medium ${threatLevel.style}`}>
-              Threat: {threatLevel.label}
+              {t('misp.threat', { level: t(threatLevel.label) })}
             </span>
           )}
           {analysisLabel && (
-            <span className="text-muted-foreground">Analysis: <span className="text-foreground">{analysisLabel}</span></span>
+            <span className="text-muted-foreground">{t('misp.analysis')} <span className="text-foreground">{t(analysisLabel)}</span></span>
           )}
           {event?.published != null && (
-            <span className="text-muted-foreground">Published: <span className="text-foreground">{event.published ? 'Yes' : 'No'}</span></span>
+            <span className="text-muted-foreground">{t('misp.published')} <span className="text-foreground">{event.published ? t('common.yes') : t('common.no')}</span></span>
           )}
           {event?.org && (
-            <span className="text-muted-foreground">Org: <span className="text-foreground">{event.org}</span></span>
+            <span className="text-muted-foreground">{t('misp.org')} <span className="text-foreground">{event.org}</span></span>
           )}
         </div>
       )}
@@ -146,7 +152,7 @@ function EventGroup({ event, attrs }: { event?: MispEventDetail; attrs: MispAttr
           rel="noreferrer"
           className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit"
         >
-          <ExternalLink className="h-3 w-3" /> View event
+          <ExternalLink className="h-3 w-3" /> {t('misp.viewEvent')}
         </a>
       )}
     </div>
@@ -154,6 +160,8 @@ function EventGroup({ event, attrs }: { event?: MispEventDetail; attrs: MispAttr
 }
 
 export default function MISPCard({ loading, error, data, label, score = null, weight = null }: Props) {
+  const i18n = useI18n()
+  const { t, tn } = i18n
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.error ?? null
@@ -197,7 +205,7 @@ export default function MISPCard({ loading, error, data, label, score = null, we
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border text-xs font-medium text-muted-foreground bg-muted/30 hover:bg-muted/70 hover:text-foreground transition-colors"
-              title="View raw JSON"
+              title={t('raw.buttonTitle')}
             >
               <FileCode2 className="h-3 w-3" />
               RAW
@@ -209,14 +217,14 @@ export default function MISPCard({ loading, error, data, label, score = null, we
 
       {open && (
         <div className="px-4 py-4 flex flex-col gap-3">
-          {loading && <p className="text-sm text-muted-foreground">Querying {title}...</p>}
+          {loading && <p className="text-sm text-muted-foreground">{t('card.querying', { source: title })}</p>}
 
           {!loading && isRealError && (
-            <p className="text-sm text-red-400">{error ?? apiError?.message}</p>
+            <p className="text-sm text-red-400">{error ?? apiErrorText(i18n, apiError, title)}</p>
           )}
 
           {!loading && hasResolved && attributes.length === 0 && (
-            <p className="text-sm text-muted-foreground">No matching attributes found in {title}.</p>
+            <p className="text-sm text-muted-foreground">{t('misp.none', { source: title })}</p>
           )}
 
           {!loading && attributes.length > 0 && (
@@ -230,7 +238,7 @@ export default function MISPCard({ loading, error, data, label, score = null, we
                 </div>
               )}
               {hiddenGroups > 0 && (
-                <p className="text-xs text-muted-foreground">+{hiddenGroups} more event{hiddenGroups === 1 ? '' : 's'}, view raw JSON for the full list.</p>
+                <p className="text-xs text-muted-foreground">{tn('misp.moreEvents', hiddenGroups)}</p>
               )}
             </div>
           )}

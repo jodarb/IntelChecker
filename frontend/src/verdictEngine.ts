@@ -1,19 +1,137 @@
 import type { EngineConfig, IndicatorType, QueryResult } from '@/registry'
 
-export interface VerdictWeights {
-  [engineId: string]: number
+// ═════════════════════════════════════════════════════════════════════════════
+// Two-score verdict model
+//
+//  * Knowledge Score (0-10): how much of the available intel coverage has
+//    information on the indicator, regardless of whether it's good or bad.
+//    Each source adds  knowledgeWeight × depth  (depth ∈ {0, 0.5, 1}) out of the
+//    total knowledge weight of every configured, enabled source for that type.
+//    The ratio saturates: reaching `knowledge_full_at` % of that total already
+//    gives 10, so an indicator doesn't need *every* source to know it. Sources
+//    that fail for a temporary reason (rate limit, timeout, network…) are left
+//    out of the total instead of counting as "doesn't know it"; persistent
+//    failures (bad key, forbidden) and sources still loading stay in it.
+//  * Risk Score (0-10): weighted average of the maliciousness subscores, using
+//    only engines that returned an actual verdict (hit or explicit clean).
+//
+// "No data" is never treated as "benign": a source that doesn't know the
+// indicator adds 0 knowledge and stays out of the risk calculation entirely.
+// ═════════════════════════════════════════════════════════════════════════════
+
+export interface EngineWeight {
+  risk: number
+  knowledge: number
+  knowledge_by_type?: Partial<Record<IndicatorType, number>>
 }
 
-export interface VerdictContribution {
+export interface VerdictThresholds {
+  knowledge: number
+  risk: number
+}
+
+export interface VerdictScoring {
+  /** % (10–100) of the available knowledge weight at which Knowledge reaches 10 */
+  knowledge_full_at: number
+}
+
+export interface VerdictConfig {
+  engines: Record<string, EngineWeight>
+  thresholds: VerdictThresholds
+  /** Optional for older backends; missing → DEFAULT_SCORING */
+  scoring?: VerdictScoring
+}
+
+export const DEFAULT_SCORING: VerdictScoring = { knowledge_full_at: 70 }
+
+/**
+ * Error codes that say nothing about the indicator, only about the moment:
+ * a source failing for one of these reasons is left out of the knowledge total.
+ * `result.error` (the frontend couldn't reach the backend) counts as transient too.
+ */
+export const TRANSIENT_ERROR_CODES = new Set([
+  'RateLimitExceeded', 'Timeout', 'NetworkError', 'ServiceUnavailable', 'HttpError',
+])
+
+/** Knowledge Score from the weighted sum, the counted total and the saturation %. Unrounded. */
+export function knowledgeFromSums(num: number, total: number, fullAtPct: number): number {
+  if (total <= 0) return 0
+  const ratio = num / total
+  return Math.min(10, (10 * ratio) / (fullAtPct / 100))
+}
+
+/**
+ * hit      — returned a maliciousness signal (subscore > 0)
+ * clean    — explicitly evaluated it as benign (subscore = 0)
+ * context  — has a record but no maliciousness verdict (Shodan ports, IPinfo geo…)
+ * no_data  — answered, but has no record of the indicator (incl. NotFound)
+ * excluded — errored, not configured, unsupported or still loading
+ */
+export type EngineOutcome = 'hit' | 'clean' | 'context' | 'no_data' | 'excluded'
+
+export interface EngineAssessment {
+  outcome: EngineOutcome
+  subscore: number | null
+  depth: number | null
+}
+
+export interface RiskContribution {
   engineId: string
   label: string
   weight: number
   subscore: number
 }
+/** @deprecated kept for callers that predate the two-score model */
+export type VerdictContribution = RiskContribution
+
+export interface KnowledgeContribution {
+  engineId: string
+  label: string
+  weight: number
+  depth: number
+  outcome: EngineOutcome
+  /** false = failed for a temporary reason, left out of the knowledge total. Missing = true. */
+  inTotal?: boolean
+}
+
+export type Quadrant =
+  | 'confirmed_malicious'
+  | 'known_benign'
+  | 'known_low_signals'
+  | 'known_no_verdict'
+  | 'isolated_signal'
+  | 'unknown'
+
+export interface VerdictContributions {
+  risk: RiskContribution[]
+  knowledge: KnowledgeContribution[]
+  /** Saturation % in force when the verdict was computed. Missing (older history) = 100, i.e. no saturation. */
+  knowledgeFullAt?: number
+}
 
 export interface VerdictResult {
-  score: number | null
-  contributions: VerdictContribution[]
+  risk: number | null
+  knowledge: number | null
+  quadrant: Quadrant | null
+  contributions: VerdictContributions
+  /** Engines that answered (not excluded) / engines queried */
+  responded: number
+  queried: number
+}
+
+export const EMPTY_VERDICT: VerdictResult = {
+  risk: null, knowledge: null, quadrant: null,
+  contributions: { risk: [], knowledge: [] }, responded: 0, queried: 0,
+}
+
+export function riskWeightOf(config: VerdictConfig | null, engineId: string): number {
+  return config?.engines[engineId]?.risk ?? 0
+}
+
+export function knowledgeWeightOf(config: VerdictConfig | null, engineId: string, type: IndicatorType): number {
+  const w = config?.engines[engineId]
+  if (!w) return 0
+  return w.knowledge_by_type?.[type] ?? w.knowledge
 }
 
 // ── Per-engine normalizers: raw API response → 0-10 subscore, or null if no signal ──
@@ -30,9 +148,27 @@ function vtSubscore(d: unknown): number | null {
   return 10
 }
 
+// For IPs and domains VT keeps a profile for almost anything, and "0 detections"
+// on an otherwise empty profile only means nobody has flagged it — absence of data,
+// not a benign verdict. Only count it as clean when the community has actually
+// weighed in (votes) or VT has classified it (tags). For URLs and files, 0/70
+// engines is a genuine scan result and stays a clean 0.
+function vtHostSubscore(d: unknown): number | null {
+  const score = vtSubscore(d)
+  if (score !== 0) return score
+  const a = (d as any)?.data?.attributes
+  const votes = (a?.total_votes?.harmless ?? 0) + (a?.total_votes?.malicious ?? 0)
+  const tags = Array.isArray(a?.tags) ? a.tags.length : 0
+  return votes > 0 || tags > 0 ? 0 : null
+}
+
 function abuseipdbSubscore(d: unknown): number | null {
-  const score = (d as any)?.data?.abuseConfidenceScore
+  const data = (d as any)?.data
+  const score = data?.abuseConfidenceScore
   if (score == null) return null
+  // Zero reports means nobody has reported this IP — that's absence of data, not an
+  // explicit benign verdict. A whitelisted IP *is* an explicit benign verdict.
+  if (score === 0 && !data.totalReports && !data.isWhitelisted) return null
   return Math.min(10, score / 10)
 }
 
@@ -57,17 +193,23 @@ function abusechSubscore(d: unknown): number | null {
 }
 
 function recordedFutureSubscore(d: unknown): number | null {
-  const score = (d as any)?.risk?.score
+  const risk = (d as any)?.risk
+  const score = risk?.score
   if (score == null) return null
+  // No risk rule triggered means RF simply has nothing on it yet — not that it
+  // assessed the indicator as benign. Same principle as VirusTotal's empty profiles.
+  const evidence = Array.isArray(risk.evidenceDetails) ? risk.evidenceDetails.length : 0
+  if (evidence === 0 && score === 0) return null
   // Recorded Future's score is already 0-99, pre-normalized by their own rules engine.
   return Math.min(10, score / 9.9)
 }
 
 function torExitListSubscore(d: unknown): number | null {
   const isExit = (d as any)?.is_tor_exit
-  if (isExit == null) return null
-  // Being an active exit node isn't malicious per se, just a noteworthy elevated-risk signal.
-  return isExit ? 7 : 0
+  // Not being on the exit list says nothing about the IP being benign — only a match
+  // is a signal. Being an active exit node isn't malicious per se, just elevated risk.
+  if (!isExit) return null
+  return 7
 }
 
 function urlhausSubscore(d: unknown): number | null {
@@ -163,21 +305,48 @@ function safeBrowsingSubscore(d: unknown): number | null {
   return Array.isArray(matches) && matches.length > 0 ? 9 : 0
 }
 
+// TweetFeed: community IOC reports from X/Twitter — unvetted, so capped at 7.
+// Not reported ≠ clean: never returns 0.
+const TWEETFEED_GENERIC_TAGS = new Set(['#phishing', '#malware', '#scam', '#spam', '#opendir', '#ioc', '#iocs', '#threatintel'])
+
+function tweetFeedSignals(d: unknown) {
+  const p = d as any
+  const records: any[] = p?.found && Array.isArray(p?.records) ? p.records : []
+  const users = new Set(records.flatMap(r => (Array.isArray(r?.users) ? r.users : [])))
+  const tweets = new Set(records.flatMap(r => (Array.isArray(r?.tweets) ? r.tweets : [])))
+  const tags: string[] = records.flatMap(r => (Array.isArray(r?.tags) ? r.tags : []))
+  const inCampaign = Array.isArray(p?.campaigns) && p.campaigns.length > 0
+  const hasFamily = inCampaign || !!p?.ai?.family
+    || tags.some(t => !TWEETFEED_GENERIC_TAGS.has(String(t).toLowerCase()))
+  return { found: records.length > 0, users: users.size, tweets: tweets.size, inCampaign, hasFamily }
+}
+
+function tweetFeedSubscore(d: unknown): number | null {
+  const s = tweetFeedSignals(d)
+  if (!s.found) return null
+  if (s.users >= 3 || s.hasFamily) return 7
+  if (s.users === 2) return 6
+  return 5
+}
+
 function mispSubscore(d: unknown): number | null {
   const attrs = (d as any)?.Attribute
   if (!Array.isArray(attrs)) return null
   // No matching attribute in this instance ≠ confirmed clean, just not (yet) shared.
   if (attrs.length === 0) return null
-  // Any match is a real analyst-curated IOC hit — treat as high-confidence.
-  return 9
+  // Only attributes flagged for detection (to_ids) are actionable IOCs — a match
+  // with to_ids off is context (e.g. a resolver or benign infra referenced in an
+  // event), so it feeds Knowledge but issues no risk verdict, and never a clean one.
+  const idsHit = attrs.some((a: any) => a?.to_ids === true || a?.to_ids === 1 || a?.to_ids === '1')
+  return idsHit ? 9 : null
 }
 
 // Registry: engineId → indicatorType → normalizer.
 // Purely contextual engines (Shodan, IPinfo, RIPEstat, MITRE ATT&CK) have no
-// maliciousness signal in their API response, so they're absent here — their
-// weight in weights.json is kept at 0 and has no effect even if raised.
+// maliciousness signal in their API response, so they're absent here — they
+// only feed the Knowledge Score.
 const VERDICT_NORMALIZERS: Record<string, Partial<Record<IndicatorType, (data: unknown) => number | null>>> = {
-  virustotal: { ip: vtSubscore, domain: vtSubscore, url: vtSubscore, hash: vtSubscore },
+  virustotal: { ip: vtHostSubscore, domain: vtHostSubscore, url: vtSubscore, hash: vtSubscore },
   abuseipdb: { ip: abuseipdbSubscore },
   alienvault: { ip: alienvaultSubscore, domain: alienvaultSubscore, url: alienvaultSubscore, hash: alienvaultSubscore },
   abusech: { ip: abusechSubscore, hash: abusechSubscore },
@@ -191,6 +360,7 @@ const VERDICT_NORMALIZERS: Record<string, Partial<Record<IndicatorType, (data: u
   greynoise: { ip: greynoiseSubscore },
   hybridanalysis: { ip: hybridAnalysisSubscore, domain: hybridAnalysisSubscore, url: hybridAnalysisSubscore, hash: hybridAnalysisSubscore },
   safebrowsing: { url: safeBrowsingSubscore },
+  tweetfeed: { ip: tweetFeedSubscore, domain: tweetFeedSubscore, url: tweetFeedSubscore, hash: tweetFeedSubscore },
 }
 
 // Per-engine 0-10 score for a single result, independent of weight — this is what
@@ -207,34 +377,269 @@ export function getEngineSubscore(engineId: string, type: IndicatorType, data: u
   return normalizer(data)
 }
 
+// ── Per-engine depth: raw API response → 0 / 0.5 / 1 ─────────────────────────
+// 0 = no record, 0.5 = basic/generic record, 1 = rich record. Independent of the
+// risk subscore: Safe Browsing "not listed" is a clean verdict with depth 0.
+
+// Raw third-party payloads are untyped by nature; each fn guards every access.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+type Depth = 0 | 0.5 | 1
+
+const arr = (v: unknown): any[] => (Array.isArray(v) ? v : [])
+const byCount = (n: number, basicMax: number): Depth => (n <= 0 ? 0 : n <= basicMax ? 0.5 : 1)
+
+function vtDepth(d: any): Depth {
+  const a = d?.data?.attributes
+  if (!a) return 0
+  const s = a.last_analysis_stats ?? {}
+  const detections = (s.malicious ?? 0) + (s.suspicious ?? 0)
+  const votes = (a.total_votes?.harmless ?? 0) + (a.total_votes?.malicious ?? 0)
+  if (detections > 0 || votes > 0 || arr(a.tags).length > 0) return 1
+  return 0.5
+}
+
+function alienvaultDepth(d: any): Depth {
+  // Indicator lookup → pulse_info.count; threat-actor pulse search → count/results.
+  const count = d?.pulse_info?.count ?? d?.count ?? arr(d?.results).length
+  return byCount(count ?? 0, 2)
+}
+
+function recordedFutureDepth(d: any): Depth {
+  if (!d?.risk && !d?.entity) return 0
+  return arr(d?.risk?.evidenceDetails).length > 0 ? 1 : 0.5
+}
+
+function mispDepth(d: any): Depth {
+  const attrs = arr(d?.Attribute)
+  if (attrs.length === 0) return 0
+  const events = new Set(attrs.map(a => a?.event_id ?? a?.Event?.id).filter(Boolean))
+  return attrs.length >= 3 || events.size >= 2 ? 1 : 0.5
+}
+
+function mitreDepth(d: any): Depth {
+  if (!d?.name) return 0
+  return arr(d.techniques).length > 0 || arr(d.software).length > 0 ? 1 : 0.5
+}
+
+function abuseipdbDepth(d: any): Depth {
+  const data = d?.data
+  if (!data) return 0
+  if (data.isWhitelisted) return 1
+  return byCount(data.totalReports ?? 0, 9)
+}
+
+function listHitDepth(d: any): Depth {
+  // ThreatFox / MalwareBazaar: any match is already a specific, rich record.
+  return arr(d?.data).length > 0 ? 1 : 0
+}
+
+function urlhausDepth(d: any): Depth {
+  if (d?.query_status === 'no_results') return 0
+  if (typeof d?.url_status === 'string') return arr(d.payloads).length > 0 ? 1 : 0.5
+  return byCount(arr(d?.urls).length, 1)
+}
+
+function anyrunDepth(d: any): Depth {
+  const level = d?.summary?.threatLevel
+  if (level == null) return 0
+  return level >= 1 ? 1 : 0.5
+}
+
+function shodanDepth(d: any): Depth {
+  if (d?.ip_str) {
+    if (arr(d.ports).length >= 3 || arr(d.vulns).length > 0 || arr(d.tags).length > 0) return 1
+    return 0.5
+  }
+  if (typeof d?.total === 'number') return d.total > 0 ? 1 : 0
+  return 0
+}
+
+function hybridAnalysisDepth(d: any): Depth {
+  const results = arr(d?.result)
+  if (results.length === 0) return 0
+  const hasVerdict = results.some(r => {
+    const v = String(r?.verdict ?? '').toLowerCase()
+    return v !== '' && v !== 'no verdict'
+  })
+  return hasVerdict ? 1 : 0.5
+}
+
+function urlscanDepth(d: any): Depth {
+  return byCount(d?.total ?? 0, 2)
+}
+
+function greynoiseDepth(d: any): Depth {
+  if (!d?.noise && !d?.riot) return 0
+  if (d.riot || d.classification === 'malicious' || d.classification === 'benign') return 1
+  return 0.5
+}
+
+function phishtankDepth(d: any): Depth {
+  if (!d?.in_database) return 0
+  return d.verified ? 1 : 0.5
+}
+
+function safeBrowsingDepth(d: any): Depth {
+  return arr(d?.matches).length > 0 ? 1 : 0
+}
+
+function torDepth(d: any): Depth {
+  return d?.is_tor_exit ? 1 : 0
+}
+
+function ipinfoDepth(d: any): Depth {
+  if (!d || d.bogon) return 0
+  return 0.5
+}
+
+function ripestatDepth(d: any): Depth {
+  if (d?.as_overview) return d.as_overview.holder ? 1 : 0
+  return arr(d?.network_info?.asns).length > 0 ? 0.5 : 0
+}
+
+function tweetFeedDepth(d: any): Depth {
+  const s = tweetFeedSignals(d)
+  if (!s.found) return 0
+  return s.users >= 2 || s.tweets >= 2 || s.inCampaign ? 1 : 0.5
+}
+
+const DEPTH_FNS: Record<string, (data: any) => Depth> = {
+  tweetfeed: tweetFeedDepth,
+  virustotal: vtDepth,
+  alienvault: alienvaultDepth,
+  recordedfuture: recordedFutureDepth,
+  mitreattack: mitreDepth,
+  abuseipdb: abuseipdbDepth,
+  abusech: listHitDepth,
+  malwarebazaar: listHitDepth,
+  urlhaus: urlhausDepth,
+  anyrun: anyrunDepth,
+  shodan: shodanDepth,
+  hybridanalysis: hybridAnalysisDepth,
+  urlscan: urlscanDepth,
+  greynoise: greynoiseDepth,
+  phishtank: phishtankDepth,
+  safebrowsing: safeBrowsingDepth,
+  torexitlist: torDepth,
+  ipinfo: ipinfoDepth,
+  ripestat: ripestatDepth,
+}
+
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+// ── Assessment & aggregation ─────────────────────────────────────────────────
+
+// "Not found" is the source telling us it has no record — an answer, not a failure.
+const NO_DATA_ERROR_CODES = new Set(['NotFound'])
+
+export function getEngineAssessment(engineId: string, type: IndicatorType, result: QueryResult | undefined): EngineAssessment {
+  const excluded: EngineAssessment = { outcome: 'excluded', subscore: null, depth: null }
+  if (!result || result.loading || result.error || !result.data) return excluded
+
+  const errorCode = (result.data as { error?: { code?: string } })?.error?.code
+  if (errorCode) {
+    return NO_DATA_ERROR_CODES.has(errorCode)
+      ? { outcome: 'no_data', subscore: null, depth: 0 }
+      : excluded
+  }
+
+  const subscore = getEngineSubscore(engineId, type, result.data)
+  const depthFn = engineId.startsWith('misp_') ? mispDepth : DEPTH_FNS[engineId]
+  const depth: number = depthFn ? depthFn(result.data) : 0
+
+  let outcome: EngineOutcome
+  if (subscore != null) outcome = subscore > 0 ? 'hit' : 'clean'
+  else outcome = depth > 0 ? 'context' : 'no_data'
+  return { outcome, subscore, depth }
+}
+
+function classify(
+  knowledge: number, risk: number | null, riskRows: RiskContribution[], t: VerdictThresholds,
+): Quadrant {
+  const knownWell = knowledge >= t.knowledge
+  if (risk != null && risk >= t.risk) return knownWell ? 'confirmed_malicious' : 'isolated_signal'
+  if (!knownWell) return 'unknown'
+  if (risk == null) return 'known_no_verdict'
+  // A low average alone doesn't make an indicator benign: that claim needs at least
+  // one source that explicitly evaluated it as clean, and no source raising a
+  // signal that would on its own reach the risk threshold.
+  const anyClean = riskRows.some(c => c.subscore === 0)
+  const anyRelevantHit = riskRows.some(c => c.subscore >= t.risk)
+  return anyClean && !anyRelevantHit ? 'known_benign' : 'known_low_signals'
+}
+
+function isTransientFailure(result: QueryResult | undefined): boolean {
+  if (!result || result.loading) return false
+  if (result.error) return true
+  const code = (result.data as { error?: { code?: string } } | null)?.error?.code
+  return !!code && TRANSIENT_ERROR_CODES.has(code)
+}
+
 export function computeVerdict(
-  weights: VerdictWeights,
+  config: VerdictConfig,
   engines: EngineConfig[],
   results: Record<string, QueryResult>,
   type: IndicatorType,
 ): VerdictResult {
-  const contributions: VerdictContribution[] = []
+  const risk: RiskContribution[] = []
+  const knowledge: KnowledgeContribution[] = []
+  let responded = 0
+  let knowledgeDenominator = 0
+  let knowledgeNumerator = 0
 
+  let queried = 0
   for (const engine of engines) {
-    const weight = weights[engine.id]
-    if (!weight || weight <= 0) continue
+    // Sources without credentials aren't really part of this deployment.
+    if ((results[engine.id]?.data as { error?: { code?: string } })?.error?.code === 'MissingApiKey') continue
+    queried++
+    const a = getEngineAssessment(engine.id, type, results[engine.id])
 
-    const result = results[engine.id]
-    if (!result || result.loading || !result.data) continue
+    // Knowledge: every configured & enabled source counts in the denominator, even
+    // if it errored or is still loading — it just contributes 0 until it answers.
+    const kw = knowledgeWeightOf(config, engine.id, type)
+    if (kw > 0) {
+      const depth = a.outcome === 'excluded' ? 0 : (a.depth ?? 0)
+      const inTotal = !isTransientFailure(results[engine.id])
+      knowledge.push({ engineId: engine.id, label: engine.label, weight: kw, depth, outcome: a.outcome, ...(inTotal ? {} : { inTotal }) })
+      if (inTotal) {
+        knowledgeDenominator += kw
+        knowledgeNumerator += kw * depth
+      }
+    }
 
-    const subscore = getEngineSubscore(engine.id, type, result.data)
-    if (subscore == null) continue
+    if (a.outcome === 'excluded') continue
+    responded++
 
-    contributions.push({ engineId: engine.id, label: engine.label, weight, subscore })
+    const rw = riskWeightOf(config, engine.id)
+    if (rw > 0 && a.subscore != null) {
+      risk.push({ engineId: engine.id, label: engine.label, weight: rw, subscore: a.subscore })
+    }
   }
 
-  if (contributions.length === 0) {
-    return { score: null, contributions }
+  // Until at least one source answers (e.g. everything still loading) there is no
+  // knowledge reading yet — not a knowledge of 0.
+  const fullAt = config.scoring?.knowledge_full_at ?? DEFAULT_SCORING.knowledge_full_at
+  const knowledgeScore = knowledgeDenominator > 0 && responded > 0
+    ? Math.round(knowledgeFromSums(knowledgeNumerator, knowledgeDenominator, fullAt))
+    : null
+
+  // Nothing known at all → no risk verdict either ("No data", never a clean 0).
+  let riskScore: number | null = null
+  if (risk.length > 0 && knowledgeNumerator > 0) {
+    const tw = risk.reduce((s, c) => s + c.weight, 0)
+    const ws = risk.reduce((s, c) => s + c.weight * c.subscore, 0)
+    riskScore = Math.max(0, Math.min(10, Math.round(ws / tw)))
   }
 
-  const totalWeight = contributions.reduce((sum, c) => sum + c.weight, 0)
-  const weightedSum = contributions.reduce((sum, c) => sum + c.weight * c.subscore, 0)
-  const score = Math.max(0, Math.min(10, Math.round(weightedSum / totalWeight)))
+  const quadrant = knowledgeScore == null ? null : classify(knowledgeScore, riskScore, risk, config.thresholds)
 
-  return { score, contributions }
+  return {
+    risk: riskScore,
+    knowledge: knowledgeScore,
+    quadrant,
+    contributions: { risk, knowledge, knowledgeFullAt: fullAt },
+    responded,
+    queried,
+  }
 }

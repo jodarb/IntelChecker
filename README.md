@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🛡️ IntelChecker
+<img src="docs/logo.png" alt="IntelChecker logo" width="260" />
+
+# IntelChecker
 
 **Real-time Threat Intelligence triage for SOC analysts and CTI teams**
 
@@ -8,10 +10,10 @@
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
-[![Vite](https://img.shields.io/badge/Vite-6-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
 
 </div>
 
@@ -38,17 +40,16 @@ How to get IntelChecker running in your own environment.
    cp backend/.env.example backend/.env
    ```
    Uncomment and fill in the keys for the sources you have access to. Anything left commented out just shows as "not configured" in the UI — it doesn't break the rest of the app.
-3. *(Optional)* Drop your organization's logos at `logo/light.png` and `logo/dark.png` (repo root — one per theme, shown/hidden automatically as the analyst switches theme) and tune `weights.json` (repo root) to adjust how much each engine contributes to the verdict score. Both are optional — the app works fine without either.
-4. *(Optional)* If `8080` and/or `8000` are already taken by something else on this host:
+3. *(Optional)* If `8080` and/or `8000` are already taken by something else on this host:
    ```bash
    cp .env.example .env
    ```
    and change `FRONTEND_PORT` / `BACKEND_PORT` in the new root `.env` — don't confuse it with `backend/.env` (API keys), it only controls ports and Docker Compose reads it directly, nothing else needs editing.
-5. Build and start the stack:
+4. Build and start the stack:
    ```bash
    docker compose up --build -d
    ```
-6. Open `http://<host>:<FRONTEND_PORT>` (`8080` unless you changed it in step 4).
+5. Open `http://<host>:<FRONTEND_PORT>` (`8080` unless you changed it in step 3). Verdict weights are tuned from the **Admin** page once the stack is running (no files to edit).
 
 That's the whole stack — one container for the backend, one for the frontend/nginx reverse proxy. `backend/data/` (query history) and `backend/certs/` (MISP mTLS client certs, if you need them) are Docker volumes, so they persist across restarts and rebuilds.
 
@@ -62,7 +63,7 @@ git pull
 docker compose up --build -d
 ```
 
-Stop the running containers first, then pull, then rebuild and relaunch — this avoids updating source files out from under a container that's still running against them. `docker compose down` doesn't touch anything outside the containers themselves, so your `backend/.env`, `weights.json`, `logo/`, and the `backend/data/history.db` volume are all untouched by an update.
+Stop the running containers first, then pull, then rebuild and relaunch — this avoids updating source files out from under a container that's still running against them. `docker compose down` doesn't touch anything outside the containers themselves, so your `backend/.env` and the `backend/data/` volume (`history.db` and the admin-edited `weights.json`) are all untouched by an update.
 
 If you ever suspect a container is still serving stale code after an update (rare, but Docker's build cache can occasionally miss a change), force a clean rebuild instead:
 
@@ -80,16 +81,19 @@ docker compose up -d
 |---|---|
 | ⚡ **Parallel queries** | All CTI sources are queried simultaneously — no waiting in line |
 | 🎴 **Per-engine cards** | Each source renders its result independently as soon as it responds |
-| 📊 **Summary section** | GeoIP, ASN, ISP and Tor-exit status aggregated across all engines with consensus count |
-| 🎯 **Threat score gauge** | Visual semicircle gauge (0 – 10) driven by the VerdictEngine |
-| 🧮 **Weighted verdict** | Configurable per-engine weights (`weights.json`, plus per-instance for MISP) drive the score, with a full contribution breakdown |
+| 📊 **Summary section** | Cross-source aggregates: which sources flagged the indicator (with their risk subscores) and which gave a clean verdict, malware families (merged across aliases, using a built-in table plus MITRE ATT&CK software aliases) and noise-filtered tags (actor names found in tags move to the actors list), threat actors & campaigns (actors link to a threat-actor lookup), first/last seen across all sources, plus GeoIP, ASN, ISP and Tor-exit status with consensus count |
+| 🎯 **Knowledge + Risk scores** | Risk gauge (semicircle, 0 – 10) with a Knowledge bar (0 – 10) underneath: how risky the indicator is according to the sources that issued a verdict, and how much is known about it — plus a quadrant reading (Confirmed malicious · Isolated signal · Known benign · Known, low-level signals · Known, no verdict · Unknown) |
+| 🗺️ **Verdict matrix** | *View matrix* plots Knowledge (X) × Risk (Y) and replays, step by step from (0, 0), how each source moved both scores — knowledge only ever climbs, risk can rise or fall |
+| 🧮 **Weighted verdict** | Per-engine risk and knowledge weights, editable from the **Admin** page, with a full contribution breakdown for each score (*How is this calculated?*) |
 | 🏷️ **Per-engine score badges** | Every card shows its own 0–10 score, keeping "checked & clean" visually distinct from "no signal" and from "error" |
-| ⬆️ **Weight-sorted results** | Both the home page's source list and the results page sort engines by weight, highest first |
+| ⬆️ **Weight-sorted results** | Both the home page's source list and the results page sort engines by weight, highest first — every source always shows its R (risk) and K (knowledge) weight |
 | 🕓 **Query history** | Every lookup is logged to a local database — browse past queries and reopen the exact result they returned at the time |
 | 🌡️ **Search frequency** | Flags indicators that keep coming back, color-scaled from grey (new) to red (hot) across 24h/72h/30d windows |
 | 🔗 **Deep links** | Every card links straight to the indicator's page on the original tool |
 | 🔍 **Raw JSON viewer** | Per-card `{ RAW }` button opens a syntax-highlighted modal with copy & download |
 | 🛠️ **Actionable errors** | Failed sources show the exact reason (invalid key, rate limit, timeout…) |
+| 📖 **In-app docs** | Header → **Docs**: how to read a lookup, the formulas, quadrants and every Admin setting, with this deployment's live weights and thresholds |
+| 🌐 **English / Español** | Language selector in the header (EN / ES) for the whole interface, docs included; remembered per browser, defaults to the browser language |
 | 🌗 **Dark / Light mode** | Full theme support — syntax highlighter adapts automatically |
 
 ---
@@ -117,8 +121,9 @@ docker compose up -d
 | [GreyNoise](https://greynoise.io) *(Community)* | ✅ | | | | | |
 | [Hybrid Analysis](https://hybrid-analysis.com) *(Falcon Sandbox)* | ✅ | ✅ | ✅ | ✅ | | |
 | [Google Safe Browsing](https://safebrowsing.google.com) | | | ✅ | | | |
+| [TweetFeed](https://tweetfeed.live) | ✅ | ✅ | ✅ | ✅ | | |
 
-> No API key required for Tor Exit Nodes, MITRE ATT&CK, RIPEstat, or PhishTank — all four are free public datasets/APIs, always on, toggleable like any other source. MITRE ATT&CK caches its ~50 MB STIX dataset in memory for 24h (the first lookup after a cold start takes a few seconds). RIPEstat returns routing (ASN/prefix) and abuse-contact data from the RIPE NCC registry. PhishTank's `checkurl` API works anonymously — an optional `PHISHTANK_API_KEY` gets you higher request priority but isn't required.
+> No API key required for Tor Exit Nodes, MITRE ATT&CK, RIPEstat, PhishTank, or TweetFeed — all five are free public datasets/APIs, always on, toggleable like any other source. MITRE ATT&CK caches its ~50 MB STIX dataset in memory for 24h (the first lookup after a cold start takes a few seconds). RIPEstat returns routing (ASN/prefix) and abuse-contact data from the RIPE NCC registry. PhishTank's `checkurl` API works anonymously — an optional `PHISHTANK_API_KEY` gets you higher request priority but isn't required.
 > urlscan.io queries the public search index of scans already submitted by others (passive lookup) — it does not submit your indicator for an active scan, so nothing you look up becomes visible to third parties.
 > MalwareBazaar shares its credential with ThreatFox and URLhaus (`ABUSECH_AUTH_KEY`) — same unified abuse.ch key, no new registration needed if you already have one configured.
 > AlienVault OTX's Threat Actor support queries the [pulse search API](https://otx.alienvault.com/api/v1/search/pulses) (same `ALIENVAULT_API_KEY` as its other lookups) — it's a full-text search over community threat reports, not a curated actor database, so results can take up to ~20s and MITRE ATT&CK remains the more authoritative source for actor profiles.
@@ -127,6 +132,7 @@ docker compose up -d
 > GreyNoise's free **Community API** classifies an IP as an internet-wide scanner (noise) and/or a known-good business service (RIOT — search engines, CDNs, etc.); it's capped at 50 lookups/week per key.
 > Hybrid Analysis integrates via `/search/terms` and `/search/hash` — also a passive search over existing Falcon Sandbox detonation reports, not a live submission.
 > Google Safe Browsing only supports URL lookups (it's a real-time check against Google's threat lists, not a database of domains/IPs) — unlike most sources here, a clean result is a genuine active verdict, not just "no data".
+> TweetFeed needs no API key — it's a free (CC0) feed of IOCs shared by the infosec community on X/Twitter, queried via its exact-match lookup over the last 365 days. Reports are unvetted (a legitimate service hosting abused content can show up), so its risk subscore is capped at 7 and it never issues a clean verdict: not being reported is just "no data". For reported IPs/domains it also feeds GeoIP/ASN/ISP into the summary.
 
 > **Roadmap:** Criminal IP · OpenCTI
 
@@ -136,29 +142,71 @@ Every other source above is one fixed integration. MISP is different: you can po
 
 Each instance searches by indicator value only (not MISP's `ip-src`/`ip-dst`/etc. attribute-type distinctions), so it works the same way across IP, domain, URL, and hash lookups regardless of how a given MISP community tags its attributes.
 
+**Scoring**: only attributes flagged for detection (`to_ids`, shown as an **IDS** chip on the card) count as a risk hit (subscore 9). A match whose attributes all have `to_ids` off — typically benign infrastructure referenced inside an event, like a public DNS resolver — still adds to the Knowledge Score, but issues no risk verdict (and is never treated as clean).
+
 **Mutual TLS**: some MISP instances (common on government/CERT deployments) reject every request with a TLS-layer "certificate required" alert unless the client presents its own certificate — the API key alone isn't enough. If yours does this, drop the cert (and key, if it's a separate file) into `backend/certs/` (gitignored, mounted into the backend container at `/app/certs`) and point `MISP_<N>_CLIENT_CERT` / `MISP_<N>_CLIENT_KEY` at the filenames. A combined cert+key PEM only needs `CLIENT_CERT`.
 
 ---
 
 ## 🧮 Verdict Scoring & Weights
 
-The Threat Score gauge is a weighted average of every engine's own 0–10 subscore. Weights live in `weights.json` (repo root) — a flat `{ "engineId": weight }` map, same optional-file pattern as the `logo/` folder: edit the numbers to retune the verdict, no code changes, no rebuild logic to touch. **Every** engine has an entry, including ones that don't affect the score — a weight of `0` is how you explicitly say "show this source, but don't let it move the needle" (that's the default for purely contextual sources like Shodan, IPinfo, RIPEstat and MITRE ATT&CK, none of which carry a maliciousness signal to score).
+Every lookup produces **two independent scores** and a reading of both together.
 
-Each engine's own card shows its individual score too, using a badge deliberately styled to avoid two different kinds of ambiguity:
+### Knowledge Score (0–10) — how much is known about the indicator
+Good or bad doesn't matter here — it measures how much of the available intel coverage has information on the indicator. Every **configured and enabled** source that supports the indicator type counts in the total; sources without an API key or disabled by the analyst are left out.
 
-- **Solid, high-contrast pill** (green → red) — an actual 0–10 score. `0` is a real "checked and found clean" result (e.g. VirusTotal scanned it with dozens of engines and none flagged it) — that's a meaningfully different, stronger claim than "no data."
-- **Soft pill, yellow** — `No results`: the engine has no record of this indicator at all (not the same as clean — absence of evidence isn't evidence of absence), or `No score`: the engine returned real data but has nothing to score (a Shodan host profile, an IPinfo geolocation).
-- **Soft pill, red** — `Error`: the lookup itself failed (timeout, rate limit, bad credentials…).
+Knowledge **only grows**: each source *adds* its share, and a source with no record simply adds nothing. It **saturates**: once a configurable share of the available weight has a record (*Knowledge saturation* in Admin, 70 % by default), Knowledge is already 10 — an indicator doesn't need *every* source to know it to be well known. A source that fails for a **temporary** reason (rate limit, timeout, network, service unavailable) is left out of the total, since an API hiccup says nothing about the indicator; a persistent failure (invalid key, forbidden) still counts with depth 0.
 
-Both the home page's Connected Sources list and the results page's per-engine cards sort by weight, highest first (ties keep their original order) — on the home page, sources matching the currently-selected indicator type float to the top of that ordering first. A small weight badge next to each result shows the exact number in play.
+Each source rates its own **depth of record**: `None` (0, no record), `Basic` (0.5, a generic profile, a single pulse/scan) or `Rich` (1, multiple reports, samples, verdicts, vulns…). Sources that answer for almost anything (IPinfo, RIPEstat) or only say yes/no (Tor exit list, Safe Browsing) carry low knowledge weights, so they can't inflate the score on their own.
 
-MISP is the one exception to `weights.json`: since instances are only known at deploy time (see above), their weight is set alongside their name — `MISP_<N>_WEIGHT` in `backend/.env`, defaulting to `0` if omitted — and merged into the same scoring pipeline at runtime. A MISP instance contributes its high-confidence score whenever it returns a matching attribute; no match is treated as "no results," same as everywhere else.
+```
+coverage  = Σ(knowledge_weight × depth) / Σ(knowledge_weight of every counted source for that type)
+knowledge = round(10 × min(1, coverage ÷ knowledge_full_at))      # knowledge_full_at = 70 % by default
+```
+
+### Risk Score (0–10) — how risky it is, according to sources that issued a verdict
+Weighted average of the 0–10 maliciousness subscores, using **only** sources that returned an actual verdict: a risk signal, or an explicit clean evaluation (e.g. a VirusTotal file scan with 0/70 detections, a GreyNoise RIOT match, an AbuseIPDB whitelist). Having no record — or having only context, like Shodan ports or IPinfo geolocation — is **not** a benign verdict, so those sources stay out. If nothing issued a verdict, the Risk Score shows **No data**, never a clean `0`.
+
+```
+risk = round(Σ(risk_weight × subscore) / Σ(risk_weight))
+```
+
+### Quadrant
+| | Risk < threshold | Risk ≥ threshold |
+|---|---|---|
+| **Knowledge ≥ threshold** | Known · Benign · Known · Low-level signals · Known · No risk verdict *(see below)* | Malicious · Confirmed |
+| **Knowledge < threshold** | Unknown | Isolated signal · Verify |
+
+In the "known, low risk" cell, the label depends on *why* the risk is low — a low average alone is never called benign:
+- **Known · Benign** — at least one source explicitly evaluated it as clean, and no single source raised a signal at or above the risk threshold.
+- **Known · Low-level signals** — the average is below the threshold, but it's made of risk signals (or a strong signal was diluted by others). Not a benign confirmation.
+- **Known · No risk verdict** — sources have context on it, but none issued a risk verdict at all.
+
+Default thresholds: knowledge ≥ 4, risk ≥ 5.
+
+### Verdict matrix
+The **View matrix** button in the summary opens a Knowledge (X) × Risk (Y) chart with the quadrant regions and threshold lines. Starting from (0, 0), it adds one source at a time — in the same order as the result cards — and draws the staircase of how each one moved the two scores: knowledge only climbs (a source with no record or an error adds nothing), while risk is the running weighted average and can go up or down. The side list shows each step's Δ; hovering a step highlights it on the chart. It is rebuilt from the saved contributions, so it works the same for archived history entries.
+
+Every weight and threshold is explained in detail in [docs/admin.md](docs/admin.md), and in the app itself on the **Docs** page (header → Docs, `/docs`), which also shows the deployment's live weights, thresholds and source coverage.
+
+### Weights & the Admin page
+Each engine has a **risk weight** and a **knowledge weight** (plus optional per-indicator-type knowledge overrides — e.g. RIPEstat counts 1 for IPs but 6 for ASNs). Both are always visible: as `R`/`K` chips on the home page's source list and on every result card (the `K` chip also shows that source's depth for the current result). The **Admin** page (header → Admin) edits every weight — MISP instances included — and the quadrant thresholds; changes are saved to `backend/data/weights.json` and apply to the next lookup. *Reset to defaults* restores the built-in values. The Admin page has no authentication, consistent with the rest of the app being an internal tool.
+
+`MISP_<N>_WEIGHT` / `MISP_<N>_KNOWLEDGE_WEIGHT` in `backend/.env` only set an instance's *initial* weights (defaults `0` / `9`); a value saved in Admin takes precedence.
+
+Each engine's card also shows its own risk subscore, using a badge deliberately styled to avoid ambiguity:
+
+- **Solid, high-contrast pill** (green → red) — an actual 0–10 risk verdict. `0` is an explicit "evaluated and found clean" result — a stronger claim than "no data".
+- **Soft pill, yellow** — `No results`: the engine has no record of this indicator (absence of evidence isn't evidence of absence), or `No score`: real data, but nothing to score (a Shodan host profile, an IPinfo geolocation).
+- **Soft pill, red** — `Error`: the lookup itself failed (timeout, rate limit, bad credentials…). "Not found" is never shown as an error.
+
+Both the home page's Connected Sources list and the results page sort engines by risk weight, then knowledge weight (ties keep their original order).
 
 ---
 
 ## 🕓 Query History & Search Frequency
 
-Every completed lookup is logged to a small local database (`backend/data/history.db`, SQLite — gitignored, and mounted as a Docker volume so it survives container rebuilds) — one entry per indicator+type per visit to the results page, not per engine toggle. The **History** button in the header opens a chronological list (indicator, type, timestamp, score), optionally filtered to one indicator via `?indicator=` (that's what the Search Frequency card's **View all** link uses — an unlimited, all-time count, not just the 24h/72h/30d windows). Opening an entry reconstructs the results page exactly as it looked at that moment — the score, the per-engine weight contributions, and every engine's raw response are all frozen at save time, so a later change to `weights.json` or a MISP instance's config won't rewrite history.
+Every completed lookup is logged to a small local database (`backend/data/history.db`, SQLite — gitignored, and mounted as a Docker volume so it survives container rebuilds) — one entry per indicator+type per visit to the results page, not per engine toggle. The **History** button in the header opens a chronological list (indicator, type, timestamp, quadrant, Knowledge / Risk scores), optionally filtered to one indicator via `?indicator=` (that's what the Search Frequency card's **View all** link uses — an unlimited, all-time count, not just the 24h/72h/30d windows). Opening an entry reconstructs the results page exactly as it looked at that moment — both scores, the quadrant, the per-engine weight contributions (so the matrix view replays too), and every engine's raw response are all frozen at save time, so a later change to the weights or a MISP instance's config won't rewrite history. Entries saved before the two-score model only have a Risk Score; their Knowledge Score shows as `—`.
 
 Each result also shows a **Search Frequency** card — how many *other* times that exact indicator has been looked up in the last 24h, 72h, and 30d — color-scaled so a spike is obvious at a glance without reading the numbers, with a **View all** link that jumps to the History page pre-filtered to that indicator (see below):
 
@@ -182,7 +230,7 @@ The lookup currently on screen never counts itself — on a live results page it
 
 ## 🚀 Quick Start
 
-Three steps: set your keys, drop in your logo (optional), run one command.
+Two steps: set your keys, run one command.
 
 ```bash
 git clone <repo-url>
@@ -190,10 +238,6 @@ cd IntelChecker
 
 cp backend/.env.example backend/.env
 # Edit backend/.env and fill in your API keys
-
-# Optional: replace logo/light.png and logo/dark.png (repo root) with your own —
-# if you leave them out or delete them, the UI just renders without a logo, no
-# broken image. The right one is shown automatically based on the active theme.
 
 # Optional: 8080 or 8000 already taken by something else? cp .env.example .env
 # and change FRONTEND_PORT / BACKEND_PORT there — nothing else to edit.
@@ -212,9 +256,8 @@ The frontend container serves the built SPA via nginx and reverse-proxies `/api/
 docker compose down
 ```
 
-> Re-run `docker compose up --build -d` any time you change `.env`, the logo, `weights.json`, or the code — it rebuilds only what changed.
-> `logo/light.png` and `logo/dark.png` live at the repo root so they're the first thing a deployer sees — `frontend/public/logo` is just a symlink to that folder, kept for local (non-Docker) dev. Missing either file? The build doesn't fail and the UI silently renders without it, per theme.
-> `weights.json` (repo root) sets each engine's contribution to the unified verdict score — edit the numbers to tune it, no code changes needed. Same symlink/optional-copy pattern as the logo folder: missing file just means no verdict score is computed.
+> Re-run `docker compose up --build -d` any time you change `.env` or the code — it rebuilds only what changed.
+> Verdict weights are edited from the **Admin** page and saved to `backend/data/weights.json` (same volume as the history DB) — no rebuild needed, changes apply to the next lookup.
 > Query history needs no setup — `docker compose up` creates `backend/data/history.db` on first run and it persists across restarts/rebuilds via the volume mount in `docker-compose.yml`.
 > `.env` (repo root) sets `FRONTEND_PORT` / `BACKEND_PORT` — Docker Compose loads it automatically for variable substitution in `docker-compose.yml`. It's a different file from `backend/.env` (API keys) and doesn't get passed into any container. No file present? Compose falls back to `8080` / `8000`.
 
@@ -291,6 +334,7 @@ IntelChecker/
 │   │   ├── core/
 │   │   │   ├── config.py        # API key loader (.env)
 │   │   │   ├── registry.py      # Engine capabilities (which types each supports)
+│   │   │   ├── weights.py       # Default verdict weights/thresholds + Admin persistence (data/weights.json)
 │   │   │   └── db.py            # SQLite query-history store (save/list/get/frequency)
 │   │   └── services/            # Async CTI client modules
 │   │       ├── abuseipdb.py
@@ -311,6 +355,7 @@ IntelChecker/
 │   │       ├── greynoise.py
 │   │       ├── hybridanalysis.py
 │   │       ├── safebrowsing.py
+│   │       ├── tweetfeed.py
 │   │       └── misp.py          # One class, N instances — see registry.py's MISP_INSTANCES loop
 │   ├── .env                     # Your keys — gitignored
 │   ├── .env.example             # Empty template
@@ -320,21 +365,23 @@ IntelChecker/
 │   └── requirements.txt
 ├── frontend/
 │   ├── public/
-│   │   ├── logo/                 # Symlink → ../../logo/ (for local `npm run dev`)
-│   │   └── weights.json          # Symlink → ../../weights.json (for local `npm run dev`)
+│   │   └── app-logo.png          # IntelChecker logo (header) · favicon.png · apple-touch-icon.png
 │   ├── src/
-│   │   ├── components/results/  # Per-engine cards, ScoreBadge, WeightBadge, SearchFrequencyCard, RawJsonModal, shared MISPCard
-│   │   ├── pages/                # HomePage · ResultsPage · HistoryPage · HistoryDetailPage
+│   │   ├── components/results/  # Per-engine cards, ScoreBadge, WeightBadge, SearchFrequencyCard, RawJsonModal, VerdictExplainerModal, MatrixModal, shared MISPCard
+│   │   ├── pages/                # HomePage · ResultsPage · HistoryPage · HistoryDetailPage · AdminPage · DocsPage
 │   │   ├── registry.tsx          # Static (build-time) engine registry
-│   │   ├── verdictEngine.ts      # Per-engine + aggregate 0-10 scoring logic
+│   │   ├── verdictEngine.ts      # Per-engine subscores + depth, Knowledge/Risk scores, quadrant
+│   │   ├── trajectory.ts         # Step-by-step replay of the verdict for the matrix view
+│   │   ├── quadrants.ts          # Quadrant / outcome labels and styles
 │   │   ├── EnginesContext.tsx    # Merges static engines with backend-discovered MISP instances
+│   │   ├── i18n/                 # EN/ES dictionaries (messages/<area>.ts), Docs content, useI18n, rich()
+│   │   ├── intelAggregates.ts    # Summary: tags/families, actors, first/last seen, flagged-by
 │   │   └── summaryRegistry.ts    # Summary field extractors per engine+type
 │   ├── Dockerfile               # Multi-stage build → nginx serving the SPA
 │   └── nginx.conf                # Serves the SPA + proxies /api/* to the backend
-├── logo/
-│   ├── light.png                 # ← Replace with your org's logo, light theme (optional, PNG)
-│   └── dark.png                  # ← Replace with your org's logo, dark theme (optional, PNG)
-├── weights.json                  # ← Per-engine weights for the verdict score (optional)
+├── docs/
+│   ├── admin.md                  # Admin page guide: every weight/threshold and its effect
+│   └── logo.png
 ├── .env                          # ← FRONTEND_PORT / BACKEND_PORT — gitignored, default 8080 / 8000
 ├── .env.example                  # Template for the above
 ├── docker-compose.yml
@@ -364,14 +411,14 @@ Analyst input
        ┌──┴───┴───┴───┴───┴──────────┐
        │  React frontend             │
        │  Per-engine cards           │
-       │  Summary + Verdict gauge    │
+       │  Knowledge + Risk · matrix  │
        └──────────────┬──────────────┘
                        │ once every engine settles
                        ▼
        ┌─────────────────────────────┐
        │  POST /history               │
        │  → SQLite (backend/data/)    │
-       │  score + per-engine snapshot │
+       │  scores + engine snapshot    │
        └─────────────────────────────┘
 ```
 

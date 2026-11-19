@@ -1,0 +1,33 @@
+const en = {
+  'history.title': 'Query History',
+  'history.filteredTo': 'Filtered to',
+  'history.total_one': '— {n} search total',
+  'history.total_other': '— {n} searches total',
+  'history.clearFilter': 'Clear filter',
+  'history.emptyFor': 'No queries logged yet for {indicator}.',
+  'history.empty': 'No queries have been logged yet.',
+  'history.knowledgeTitle': 'Knowledge Score',
+  'history.riskTitle': 'Risk Score',
+  'history.loadError': 'Could not load this history entry. It may have been removed.',
+  'history.backToHistory': 'Back to history',
+  'history.archived': 'Archived result from {date} — showing what each source returned at that time, not a live lookup.',
+  'history.legacy': 'This entry predates the Knowledge Score — only its Risk Score was recorded.',
+  'history.unknownEngine': 'This source is no longer configured — showing the raw stored response.',
+}
+const es: Record<keyof typeof en, string> = {
+  'history.title': 'Historial de consultas',
+  'history.filteredTo': 'Filtrado por',
+  'history.total_one': '— {n} búsqueda en total',
+  'history.total_other': '— {n} búsquedas en total',
+  'history.clearFilter': 'Quitar filtro',
+  'history.emptyFor': 'Aún no hay consultas registradas para {indicator}.',
+  'history.empty': 'Aún no se ha registrado ninguna consulta.',
+  'history.knowledgeTitle': 'Knowledge Score',
+  'history.riskTitle': 'Risk Score',
+  'history.loadError': 'No se pudo cargar esta entrada del historial. Puede que se haya eliminado.',
+  'history.backToHistory': 'Volver al historial',
+  'history.archived': 'Resultado archivado del {date} — muestra lo que devolvió cada fuente en ese momento, no una consulta en vivo.',
+  'history.legacy': 'Esta entrada es anterior al Knowledge Score — solo se guardó su Risk Score.',
+  'history.unknownEngine': 'Esta fuente ya no está configurada — se muestra la respuesta guardada en bruto.',
+}
+export default { en, es }

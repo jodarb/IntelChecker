@@ -1,0 +1,270 @@
+// In-app documentation (pages/DocsPage.tsx). Strings use the inline markup from
+// i18n/rich.tsx: **bold**, `code`, *italic*, [label](/route or #anchor).
+// `{tk}` / `{tr}` are replaced with the live knowledge / risk thresholds.
+// Mirrors README "Verdict Scoring & Weights" and docs/admin.md — keep in sync.
+export const docsEn = {
+  title: 'Documentation',
+  intro: 'How IntelChecker queries sources, how it turns their answers into a Knowledge Score, a Risk Score and a quadrant, and how admins tune it. Tables marked **live** show this deployment\'s current values.',
+  live: 'live',
+  toc: {
+    analysts: 'For analysts',
+    admins: 'For admins',
+    lookup: 'Running a lookup',
+    results: 'Reading the results',
+    outcomes: 'Source outcomes',
+    knowledge: 'Knowledge Score',
+    risk: 'Risk Score',
+    quadrants: 'Quadrants',
+    summary: 'Summary panel',
+    matrix: 'Matrix & breakdown',
+    history: 'History & frequency',
+    adminPage: 'The Admin page',
+    weights: 'Current weights',
+    subscores: 'Risk subscore rules',
+    depth: 'Depth of record rules',
+    config: 'Configuration',
+  },
+  partAnalysts: {
+    title: 'For analysts',
+    intro: 'Everything you need to run a lookup and read the verdict correctly.',
+  },
+  partAdmins: {
+    title: 'For admins',
+    intro: 'How to tune the verdict, what every value does, and where configuration lives.',
+  },
+
+  lookup: {
+    title: 'Running a lookup',
+    p1: 'On the home page, type an indicator, choose its type and press **Analyze**. Every source that supports that type is queried **in parallel** and each result card appears as soon as its own source answers — a slow source never blocks the others.',
+    head: ['Type', 'Examples'],
+    types: [
+      ['IP Address', '`185.220.101.1`'],
+      ['Domain', '`example.com`'],
+      ['URL', '`https://example.com/login.php`'],
+      ['File Hash', 'MD5, SHA-1 or SHA-256'],
+      ['ASN', '`AS13335`'],
+      ['Threat Actor', '`APT28`, `Kimsuky` (names and aliases)'],
+    ],
+    list: [
+      'Use the switch next to a source to turn it off; disabled sources aren\'t queried and don\'t count in either score. The choice is remembered on this browser only.',
+      'Each source shows two chips: **R** (its risk weight) and **K** (its knowledge weight). Sources are sorted by risk weight, then knowledge weight.',
+      'Sources without an API key are listed under **Not configured** and are left out of the lookup entirely.',
+      'Lookups are always live — nothing is cached. Every completed lookup is saved to [History](/history).',
+      'The **EN / ES** selector in the header switches the interface language; the choice is remembered on this browser.',
+    ],
+  },
+
+  results: {
+    title: 'Reading the results',
+    p1: 'The results page has three parts, top to bottom:',
+    list: [
+      '**Search Frequency** — how many *other* times this indicator was looked up recently (see [History & frequency](#history)).',
+      '**Summary** — the quadrant label, the **Risk** gauge (semicircle), the **Knowledge** bar and the cross-source aggregates (see [Summary panel](#summary)).',
+      '**Results by engine** — one card per source with its own data, a link to the indicator on the original tool and a `RAW` button with the exact JSON it returned.',
+    ],
+    p2: 'Every card carries a badge that keeps three very different situations apart:',
+    head: ['Badge', 'Meaning'],
+    badges: {
+      score: 'Solid pill (green → red): an actual 0–10 risk verdict from that source. 0 is an explicit “evaluated and clean”, a stronger statement than “no data”.',
+      noResults: 'The source has no record of the indicator. Absence of evidence is not evidence of absence.',
+      noScore: 'The source returned real data, but nothing to score (e.g. Shodan ports, IPinfo geolocation).',
+      error: 'The lookup itself failed. The card says why: invalid API key, rate limit, timeout, service unavailable…',
+    },
+  },
+
+  outcomes: {
+    title: 'Source outcomes',
+    p1: 'Before scoring, each source\'s answer is classified into one of five outcomes:',
+    head: ['Outcome', 'Meaning', 'Example', 'Knowledge', 'Risk'],
+    rows: {
+      hit: ['Returned a maliciousness signal', 'VirusTotal detections, a MISP IDS attribute', '✓', '✓'],
+      clean: ['Explicitly evaluated it as benign', 'VT file scan 0/70, GreyNoise RIOT, AbuseIPDB whitelist', '✓', '✓'],
+      context: ['Has data, but no risk verdict', 'Shodan open ports, IPinfo geolocation', '✓', '—'],
+      no_data: ['Answered, but doesn\'t know it (“not found”)', 'OTX with 0 pulses', 'adds 0', '—'],
+      excluded: ['The lookup failed or is still loading', 'Invalid key, rate limit, timeout', 'adds 0', '—'],
+    },
+    note: '**“Not found” is never “clean”.** A source that has never seen an indicator has not vouched for it, so it stays out of the Risk Score. Only an explicit benign evaluation counts as clean.',
+  },
+
+  knowledge: {
+    title: 'Knowledge Score (0–10) — how much is known',
+    p1: 'It doesn\'t say whether the indicator is good or bad — only how much of your intel coverage has information on it. Each source rates its **depth of record**: **None** = 0 (no record), **Basic** = 0.5 (a generic profile, a single report) or **Rich** = 1 (several reports, samples, verdicts…).',
+    formula: 'coverage  = Σ(knowledge_weight × depth) / Σ(knowledge_weight of every counted source for the type)\nknowledge = round( 10 × min(1, coverage ÷ full_at) )          full_at = {fa}% (Admin)',
+    list: [
+      'It **only grows** as sources answer: a source with no record adds nothing, it never subtracts.',
+      'It **saturates**: once {fa}% of the counted weight has a record, Knowledge is already 10 — an indicator doesn\'t need *every* source to know it to be well known. Set it in Admin → *Knowledge saturation* (100% = no saturation).',
+      'A source that fails for a **temporary** reason (rate limit, timeout, network, service unavailable) is **left out of the total**: an API hiccup says nothing about the indicator. A persistent failure (invalid key, forbidden) or a source still loading counts in the total with depth 0.',
+      'It shows **N/A** until at least one source has answered. The bar\'s vertical mark is the current “known” threshold ({tk}).',
+    ],
+    example: '**Example (real lookup, full_at 70%).** Recorded Future, OTX and ThreatFox rich, MISP and TweetFeed basic, AbuseIPDB / URLhaus / Shodan with no record, VirusTotal rate-limited (left out): 29.5 of 54 counted weight.',
+    exampleFormula: 'coverage = 29.5 / 54 = 0.546   →   knowledge = round( 10 × min(1, 0.546 ÷ 0.70) ) = round(7.8) = 8',
+  },
+
+  risk: {
+    title: 'Risk Score (0–10) — how risky, per sources with a verdict',
+    p1: 'A weighted average of the 0–10 risk subscores, using **only** sources whose outcome is *Risk signal* or *Evaluated clean*. Sources with no record or context only stay out.',
+    formula: 'risk = round( Σ(risk_weight × subscore) / Σ(risk_weight) )',
+    list: [
+      'If no source issued a verdict — or nothing at all is known — it shows **No data**, never a clean 0.',
+      'Only the **ratio** between weights matters: all weights at 10 or all at 1 give the same result.',
+      'A heavy source pulls the average towards its own subscore in **both** directions — including down, if it reports a weak signal or clean.',
+    ],
+    example: '**Example.** Recorded Future (R 10, subscore 1.0), AbuseIPDB (R 7, 2.1), OTX (R 6, 4.0), TweetFeed (R 4, 7.0):',
+    exampleFormula: 'risk = round( (10×1.0 + 7×2.1 + 6×4.0 + 4×7.0) / (10 + 7 + 6 + 4) ) = round(76.7 / 27) = round(2.84) = 3',
+  },
+
+  quadrants: {
+    title: 'Quadrants',
+    p1: 'The two scores are combined into one label, using the thresholds set in Admin — currently **live**: **Knowledge ≥ {tk}** is “known” and **Risk ≥ {tr}** is “high risk”. Thresholds compare against the rounded scores and are inclusive.',
+    riskBelow: 'Risk < {tr}',
+    riskAbove: 'Risk ≥ {tr}',
+    knowledgeAbove: 'Knowledge ≥ {tk}',
+    knowledgeBelow: 'Knowledge < {tk}',
+    head: ['Label', 'When', 'What to do'],
+    rows: {
+      confirmed_malicious: ['Well known and high risk.', 'Act on it.'],
+      isolated_signal: ['High risk, but few sources know it.', 'Corroborate before acting — a single source can be wrong.'],
+      known_benign: ['Well known, risk below {tr}, at least one source explicitly evaluated it as clean and no single source scored ≥ {tr}.', 'Likely benign.'],
+      known_low_signals: ['Well known, average risk below the threshold, but made of risk signals (or a strong signal was diluted).', 'Not a benign confirmation — look at the flagged sources.'],
+      known_no_verdict: ['Sources have context but none issued a risk verdict.', 'Not a benign confirmation.'],
+      unknown: ['Little or no information.', 'Absence of data is not evidence of safety.'],
+    },
+  },
+
+  summary: {
+    title: 'Summary panel',
+    p1: 'Besides the scores, the Summary merges what every source said into a few blocks. Blocks without data are hidden.',
+    head: ['Block', 'What it shows'],
+    rows: [
+      ['Flagged by', 'How many of the responding sources returned a risk signal, each with its subscore (highest first), plus the sources that gave a clean verdict. Sources with risk weight 0 are shown dashed: they flagged it but don\'t count in the Risk Score.'],
+      ['Malware families', 'Families from structured fields (ThreatFox, MalwareBazaar, OTX, MISP galaxies, VirusTotal, Hybrid Analysis, ANY.RUN, TweetFeed). Aliases are merged — e.g. Qbot / QakBot / Pinkslipbot — using a built-in table plus MITRE ATT&CK software aliases. ×N = number of sources.'],
+      ['Tags', 'Free-text tags, de-duplicated and filtered: ASN/ISP names, generic words, honeypot sensor names, MISP classification tags (tlp:, pap:…), pulse authors and scraped keyword dumps are removed; synonyms (c2 / c&c / botnet_cc) are merged.'],
+      ['Threat actors & campaigns', 'Actors from OTX, MISP and MITRE, plus actor names found among the tags (matched against MITRE ATT&CK groups and aliases). Click an actor to look it up. Campaigns come from TweetFeed.'],
+      ['Activity window', 'Earliest first-seen and latest last-seen date across all sources, with the source each came from.'],
+      ['GeoIP · ASN · ISP · Tor · Ports', 'Network context, with how many sources agree on each value.'],
+    ],
+    note: 'Hover a chip to see which sources reported it.',
+  },
+
+  matrix: {
+    title: 'Matrix view & “How is this calculated?”',
+    list: [
+      '**View matrix** plots Knowledge (X) × Risk (Y) with the quadrant regions and threshold lines, and replays the verdict source by source from (0, 0) in the same order as the result cards. Knowledge only climbs; risk is the running weighted average and can go up or down. Hover a step to highlight it.',
+      '**How is this calculated?** shows the exact contribution of every source to both scores (weight, depth, subscore) and the formulas filled in with this lookup\'s numbers.',
+      'Both are rebuilt from the saved contributions, so they work the same for archived History entries.',
+    ],
+  },
+
+  history: {
+    title: 'History & search frequency',
+    p1: 'Every completed lookup is stored with a **frozen snapshot**: both scores, the quadrant, every source\'s contribution and raw response. Opening a History entry shows the result exactly as it was — later changes to the weights never rewrite history. Entries from before the two-score model only have a Risk Score.',
+    p2: 'The **Search Frequency** card counts how many *other* times the same indicator was looked up (the current lookup never counts itself). Its colour is whichever window reads most severe:',
+    head: ['Level', '24 h', '72 h', '30 d'],
+    levels: ['Grey — no other activity', 'Green — stale only', 'Yellow', 'Orange', 'Red'],
+    p3: 'Any hit within 72 h is at least yellow. **View all** opens History filtered to that indicator.',
+  },
+
+  adminPage: {
+    title: 'The Admin page',
+    p1: '[Admin](/admin) controls how much each source\'s answer counts — not which sources are queried or what they return. Every weight and threshold is on a **0–10** scale; use the slider or type the number, values outside the range are not accepted.',
+    head: ['Setting', 'What it does', 'Raise it…', 'Set to 0…'],
+    rows: [
+      ['Risk weight', 'How much the source\'s subscore counts in the Risk Score, relative to the other sources with a verdict on the same lookup.', 'Its verdict pulls the average harder — up for threats, down for clean/weak signals.', 'Still queried and shown, never affects risk.'],
+      ['Knowledge weight', 'The share of the Knowledge Score the source can contribute (its weight over the total for the type).', 'It adds more when it knows the indicator, but also enlarges the total, so others\' shares shrink and a miss costs more.', 'Never affects knowledge (not in the total either).'],
+      ['Per-type override', 'A different knowledge weight for one indicator type. Blank = use the general value.', 'e.g. RIPEstat: 1 for IPs, 6 for ASNs, where few sources exist.', '—'],
+      ['Knowledge saturation', 'Share of the counted knowledge weight at which Knowledge reaches 10 (now {fa}%, range 10–100).', 'Harder to reach 10: more sources must know the indicator.', '— (minimum 10%; 100% = no saturation)'],
+      ['Knowledge ≥', 'From this Knowledge Score up, the indicator is “known” (now {tk}).', 'Needs more corroboration: more Unknown / Isolated signal.', 'Everything counts as known.'],
+      ['Risk ≥', 'From this Risk Score up, it\'s “high risk” (now {tr}). Also the level a single source must reach to block “Known · Benign”.', 'Fewer alerts, fewer false positives.', 'Everything is high risk.'],
+    ],
+    list: [
+      '**Risk weight does nothing for context-only sources** (Shodan, IPinfo, RIPEstat, MITRE ATT&CK): they never return a subscore. Their value is in Knowledge.',
+      'Keep knowledge weights **low for sources that answer for almost anything** (IPinfo, RIPEstat) or only say yes/no (Tor exit list, Safe Browsing), so they can\'t inflate knowledge.',
+      '**Watch out for one dominant risk weight**: it also amplifies that source\'s *low* subscores and dilutes strong signals from others.',
+      'Thresholds only change the **label**, never the two numbers.',
+    ],
+    buttonsHead: ['Button', 'Effect'],
+    buttons: [
+      ['Save', 'Validates and stores every weight and both thresholds. Out-of-range values are rejected and nothing is saved.'],
+      ['Discard changes', 'Drops unsaved edits.'],
+      ['Reset to defaults', 'After confirmation, deletes all admin changes and restores the built-in values. Cannot be undone.'],
+    ],
+    note: 'Changes apply to **new lookups**; an open results page keeps the values it loaded (reload it). History entries keep the weights in force when they were run. The home page and results order also follow the new weights. The Admin page has **no authentication** — restrict access at the network/VPN level.',
+  },
+
+  weights: {
+    title: 'Current weights',
+    p1: '**Live** — this deployment\'s weights and the indicator types each source supports. Grey rows are sources that are not configured (no API key).',
+    notConfigured: '(not configured)',
+    overrideTitle: 'Per-type knowledge override',
+    sourceCol: 'Source',
+  },
+
+  subscores: {
+    title: 'Risk subscore rules (0–10)',
+    p1: 'How each source\'s answer becomes a subscore. “No verdict” means the source stays out of the Risk Score for that lookup. These rules are fixed in code; Admin only changes how much each result counts.',
+    head: ['Source', 'Rule'],
+    rows: [
+      ['VirusTotal', 'malicious + suspicious detections: 0 → clean (0), 1–2 → 3, 3–5 → 6, >5 → 10. For IPs and domains, 0 detections with no votes or tags → no verdict.'],
+      ['AbuseIPDB', 'abuse confidence ÷ 10. 0 confidence and 0 reports → no verdict; whitelisted → clean.'],
+      ['AlienVault OTX', 'pulses: 0 → no verdict, 1–2 → 4, 3–5 → 7, >5 → 10.'],
+      ['ThreatFox', 'match → 7 + (confidence ÷ 100 × 3); no match → no verdict.'],
+      ['URLhaus', 'URL online → 9, offline → 6; no match → no verdict.'],
+      ['MalwareBazaar', 'sample on file → 10; otherwise no verdict.'],
+      ['Recorded Future', 'risk score ÷ 9.9; score 0 with no risk rules → no verdict.'],
+      ['urlscan.io', 'prior scans: 0 → no verdict, 1–2 → 3, 3–5 → 5, >5 → 6.'],
+      ['PhishTank', 'verified → 10, unverified → 5, marked invalid → clean; not in DB → no verdict.'],
+      ['ANY.RUN', 'threat level 2 (malicious) → 9, 1 (suspicious) → 5, 0 → clean; no record → no verdict.'],
+      ['GreyNoise', 'malicious → 9, scanning unclassified → 4, benign or RIOT → clean; not observed → no verdict.'],
+      ['Hybrid Analysis', 'malicious → 9, suspicious → 5, whitelisted / no specific threat → clean; otherwise no verdict.'],
+      ['Safe Browsing', 'on a threat list → 9; not listed → clean (a real-time check).'],
+      ['Tor Exit List', 'exit node → 7; otherwise no verdict.'],
+      ['MISP', 'attribute flagged to_ids (IDS) → 9; matches without to_ids are context only; no match → no verdict.'],
+      ['TweetFeed', '1 reporter → 5, 2 → 6, ≥3 or a family/campaign → 7 (capped: reports are unvetted); never clean.'],
+      ['Shodan, IPinfo, RIPEstat, MITRE ATT&CK', 'context only — never a subscore.'],
+    ],
+  },
+
+  depth: {
+    title: 'Depth of record rules (Knowledge)',
+    head: ['Source', 'None (0)', 'Basic (0.5)', 'Rich (1)'],
+    rows: [
+      ['Recorded Future', 'not found', 'record without risk rules', '≥1 risk rule'],
+      ['MISP', '0 attributes', '1–2 attributes', '≥3 attributes or ≥2 events'],
+      ['MITRE ATT&CK', 'not found', 'profile without techniques', 'techniques or software'],
+      ['VirusTotal', 'not found', 'no detections, votes or tags', 'detections, votes or tags'],
+      ['AlienVault OTX', '0 pulses', '1–2 pulses', '≥3 pulses'],
+      ['MalwareBazaar', 'no sample', '—', 'sample on file'],
+      ['AbuseIPDB', '0 reports', '1–9 reports', '≥10 reports or whitelisted'],
+      ['ThreatFox', 'no match', '—', '≥1 IOC'],
+      ['URLhaus', 'no match', '1 related URL', '≥2 URLs, or the URL with payloads'],
+      ['ANY.RUN', 'no record', 'threat level 0', 'threat level ≥1'],
+      ['Shodan', 'not found / ASN with 0 hosts', '1–2 ports, no vulns or tags', '≥3 ports, vulns or tags; ASN with hosts'],
+      ['Hybrid Analysis', 'no results', 'only “no verdict”', 'any verdict'],
+      ['urlscan.io', '0 scans', '1–2 scans', '≥3 scans'],
+      ['GreyNoise', 'not observed', 'scanning, unclassified', 'classified or RIOT'],
+      ['PhishTank', 'not in DB', 'unverified', 'verified'],
+      ['TweetFeed', 'not reported', '1 reporter, 1 tweet', '≥2 reporters, ≥2 tweets, or a campaign'],
+      ['Safe Browsing', 'not listed', '—', 'listed'],
+      ['Tor Exit List', 'not an exit node', '—', 'exit node'],
+      ['IPinfo', 'bogon', 'any answer', '—'],
+      ['RIPEstat', 'no announced route', 'announced prefix (IP)', 'ASN holder found (ASN)'],
+    ],
+  },
+
+  config: {
+    title: 'Configuration',
+    head: ['What', 'Where', 'Notes'],
+    rows: [
+      ['API keys', '`backend/.env`', 'Copy from `backend/.env.example`. A source without its key shows as not configured and is excluded from both scores. Rebuild after changes: `docker compose up --build -d`.'],
+      ['MISP instances', '`MISP_<N>_*`', 'Any number: `_NAME`, `_URL`, `_KEY`, `_VERIFY_SSL`. `_WEIGHT` / `_KNOWLEDGE_WEIGHT` (0–10, defaults 0 / 9) are only the initial weights — a value saved in Admin wins. For mutual TLS, put the cert in `backend/certs/` and set `_CLIENT_CERT` / `_CLIENT_KEY`.'],
+      ['Weights & thresholds', '`backend/data/weights.json`', 'Written by Admin; survives restarts and rebuilds (Docker volume). Values above 10 from older versions are clamped to 10 on load. Reset to defaults deletes it.'],
+      ['History', '`backend/data/history.db`', 'SQLite, same volume. Created automatically on first run.'],
+      ['Ports', '`.env` (repo root)', '`FRONTEND_PORT` / `BACKEND_PORT`. Different file from `backend/.env`.'],
+      ['MITRE ATT&CK data', 'downloaded by the backend', 'The ~50 MB dataset is fetched from GitHub and cached 24 h. It powers actor lookups and the actor/alias detection in the Summary; without internet those fall back to the built-in family table.'],
+      ['Interface language', 'header → EN / ES', 'Stored per browser. Source data (raw JSON, tags, report titles) is shown as the source returned it.'],
+    ],
+    note: 'Lookups are never cached: only history and weights are stored. IntelChecker has no authentication anywhere — it is meant for an internal network or VPN.',
+  },
+}
+
+export type DocsContent = typeof docsEn

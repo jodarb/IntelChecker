@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { Loader2, ShieldCheck, ShieldAlert, ShieldQuestion, ChevronDown, FileCode2, ExternalLink } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
 import ScoreBadge from './ScoreBadge'
-import WeightBadge from './WeightBadge'
+import WeightBadge, { type CardWeight } from './WeightBadge'
+import { useI18n } from '@/i18n/useI18n'
+import { apiErrorText } from '@/i18n/errors'
 
 interface PhishTankResponse {
   url?: string
@@ -20,7 +22,7 @@ interface Props {
   error: string | null
   data: PhishTankResponse | null
   score?: number | null
-  weight?: number | null
+  weight?: CardWeight | null
 }
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
@@ -33,11 +35,12 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 function VerdictBadge({ data }: { data: PhishTankResponse }) {
+  const { t } = useI18n()
   if (!data.in_database) {
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-semibold text-green-400 bg-green-500/10 border-green-500/30">
         <ShieldCheck className="h-3 w-3" />
-        Not Listed
+        {t('phishtank.notListed')}
       </span>
     )
   }
@@ -45,19 +48,21 @@ function VerdictBadge({ data }: { data: PhishTankResponse }) {
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-semibold text-red-400 bg-red-500/10 border-red-500/30">
         <ShieldAlert className="h-3 w-3" />
-        Confirmed Phishing
+        {t('phishtank.confirmed')}
       </span>
     )
   }
   return (
     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-semibold text-amber-400 bg-amber-500/10 border-amber-500/30">
       <ShieldQuestion className="h-3 w-3" />
-      Submitted, Not Confirmed
+      {t('phishtank.unconfirmed')}
     </span>
   )
 }
 
 export default function PhishTankCard({ loading, error, data, score = null, weight = null }: Props) {
+  const i18n = useI18n()
+  const { t, locale } = i18n
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.error ?? null
@@ -79,7 +84,7 @@ export default function PhishTankCard({ loading, error, data, score = null, weig
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border text-xs font-medium text-muted-foreground bg-muted/30 hover:bg-muted/70 hover:text-foreground transition-colors"
-              title="View raw JSON"
+              title={t('raw.buttonTitle')}
             >
               <FileCode2 className="h-3 w-3" />
               RAW
@@ -92,27 +97,27 @@ export default function PhishTankCard({ loading, error, data, score = null, weig
       {open && (
         <div className="px-4 py-4">
           {loading && (
-            <p className="text-sm text-muted-foreground">Checking PhishTank...</p>
+            <p className="text-sm text-muted-foreground">{t('phishtank.checking')}</p>
           )}
 
           {!loading && isRealError && (
-            <p className="text-sm text-red-400">{error ?? apiError?.message}</p>
+            <p className="text-sm text-red-400">{error ?? apiErrorText(i18n, apiError, 'PhishTank')}</p>
           )}
 
           {!loading && isKnown && !data?.in_database && (
-            <p className="text-sm text-muted-foreground">This URL is not in PhishTank's database.</p>
+            <p className="text-sm text-muted-foreground">{t('phishtank.notInDb')}</p>
           )}
 
           {!loading && isKnown && data?.in_database && (
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
-                <Field label="Status" value={<VerdictBadge data={data!} />} />
-                <Field label="Verified" value={data?.verified ? 'Yes' : 'No'} />
+                <Field label={t('f.status')} value={<VerdictBadge data={data!} />} />
+                <Field label={t('f.verified')} value={data?.verified ? t('common.yes') : t('common.no')} />
                 <Field
-                  label="Verified At"
-                  value={data?.verified_at ? new Date(data.verified_at).toLocaleString() : undefined}
+                  label={t('f.verifiedAt')}
+                  value={data?.verified_at ? new Date(data.verified_at).toLocaleString(locale) : undefined}
                 />
-                <Field label="Phish ID" value={data?.phish_id} />
+                <Field label={t('f.phishId')} value={data?.phish_id} />
               </div>
               {data?.phish_detail_page && (
                 <a
@@ -121,7 +126,7 @@ export default function PhishTankCard({ loading, error, data, score = null, weig
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit"
                 >
-                  <ExternalLink className="h-3 w-3" /> View on PhishTank
+                  <ExternalLink className="h-3 w-3" /> {t('card.viewOn', { source: 'PhishTank' })}
                 </a>
               )}
             </div>

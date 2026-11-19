@@ -51,6 +51,11 @@ def _load_misp_instances() -> list[dict]:
             weight = int(weight_raw) if weight_raw else 0
         except ValueError:
             weight = 0
+        kweight_raw = os.environ.get(f"MISP_{idx}_KNOWLEDGE_WEIGHT", "9").strip()
+        try:
+            knowledge_weight = int(kweight_raw) if kweight_raw else 9
+        except ValueError:
+            knowledge_weight = 9
         instances.append({
             "id": f"misp_{idx}",
             "name": name,
@@ -60,6 +65,7 @@ def _load_misp_instances() -> list[dict]:
             "client_cert": _resolve_cert(idx, "CLIENT_CERT"),
             "client_key": _resolve_cert(idx, "CLIENT_KEY"),
             "weight": weight,
+            "knowledge_weight": knowledge_weight,
         })
     return instances
 

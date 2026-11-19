@@ -7,33 +7,22 @@ export interface SummaryExtractorDef {
   extract: (data: unknown) => string | null
 }
 
-export const SUMMARY_FIELD_META: Record<SummaryField, { label: string; format: (v: string) => string }> = {
+// Labels are i18n keys `summaryField.<field>`. Extractors return raw values
+// ('Yes' for torExit, ISO country codes); `format` localises them for display.
+export const SUMMARY_FIELD_META: Record<SummaryField, { format: (v: string, ctx: { locale: string; yes: string }) => string }> = {
   country: {
-    label: 'GeoIP',
-    format: (code) => {
+    format: (code, { locale }) => {
       try {
-        return new Intl.DisplayNames(['en'], { type: 'region' }).of(code.toUpperCase()) ?? code
+        return new Intl.DisplayNames([locale], { type: 'region' }).of(code.toUpperCase()) ?? code
       } catch {
         return code
       }
     },
   },
-  asn: {
-    label: 'ASN',
-    format: (v) => v,
-  },
-  isp: {
-    label: 'ISP',
-    format: (v) => v,
-  },
-  torExit: {
-    label: 'Tor Exit Node',
-    format: (v) => v,
-  },
-  openPorts: {
-    label: 'Open Ports',
-    format: (v) => v,
-  },
+  asn: { format: (v) => v },
+  isp: { format: (v) => v },
+  torExit: { format: (v, { yes }) => (v === 'Yes' ? yes : v) },
+  openPorts: { format: (v) => v },
 }
 
 // Display order of summary fields
@@ -42,6 +31,23 @@ export const SUMMARY_FIELDS: SummaryField[] = ['country', 'asn', 'isp', 'torExit
 // Registry: engineId → indicatorType → extractors
 // Add new fields here when new summary data points are needed.
 export const SUMMARY_REGISTRY: Record<string, Partial<Record<IndicatorType, SummaryExtractorDef[]>>> = {
+  // TweetFeed only carries geo/network context once the indicator has been
+  // reported (net for IPs, reg for domains/URLs).
+  tweetfeed: {
+    ip: [
+      { field: 'country', extract: (d) => ((d as any)?.net?.country) || null },
+      { field: 'asn', extract: (d) => ((d as any)?.net?.org as string)?.match(/^AS\d+/)?.[0] || null },
+      { field: 'isp', extract: (d) => ((d as any)?.net?.org as string)?.replace(/^AS\d+\s*/, '') || null },
+    ],
+    domain: [
+      { field: 'asn', extract: (d) => ((d as any)?.reg?.asn) || null },
+      { field: 'isp', extract: (d) => ((d as any)?.reg?.org) || null },
+    ],
+    url: [
+      { field: 'asn', extract: (d) => ((d as any)?.reg?.asn) || null },
+      { field: 'isp', extract: (d) => ((d as any)?.reg?.org) || null },
+    ],
+  },
   abuseipdb: {
     ip: [
       { field: 'country', extract: (d) => ((d as any)?.data?.countryCode) || null },

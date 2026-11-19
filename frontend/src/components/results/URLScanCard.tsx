@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { Loader2, ChevronDown, FileCode2, Tag, ExternalLink, Camera } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
 import ScoreBadge from './ScoreBadge'
-import WeightBadge from './WeightBadge'
+import WeightBadge, { type CardWeight } from './WeightBadge'
+import { useI18n } from '@/i18n/useI18n'
+import { apiErrorText } from '@/i18n/errors'
 
 interface URLScanResult {
   task?: { time?: string; tags?: string[]; uuid?: string; url?: string }
@@ -22,7 +24,7 @@ interface Props {
   error: string | null
   data: URLScanResponse | null
   score?: number | null
-  weight?: number | null
+  weight?: CardWeight | null
 }
 
 function TagChip({ tag }: { tag: string }) {
@@ -35,6 +37,8 @@ function TagChip({ tag }: { tag: string }) {
 }
 
 export default function URLScanCard({ loading, error, data, score = null, weight = null }: Props) {
+  const i18n = useI18n()
+  const { t, locale } = i18n
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.error ?? null
@@ -59,7 +63,7 @@ export default function URLScanCard({ loading, error, data, score = null, weight
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border text-xs font-medium text-muted-foreground bg-muted/30 hover:bg-muted/70 hover:text-foreground transition-colors"
-              title="View raw JSON"
+              title={t('raw.buttonTitle')}
             >
               <FileCode2 className="h-3 w-3" />
               RAW
@@ -72,15 +76,15 @@ export default function URLScanCard({ loading, error, data, score = null, weight
       {open && (
         <div className="px-4 py-4">
           {loading && (
-            <p className="text-sm text-muted-foreground">Searching urlscan.io...</p>
+            <p className="text-sm text-muted-foreground">{t('urlscan.searching')}</p>
           )}
 
           {!loading && isRealError && (
-            <p className="text-sm text-red-400">{error ?? apiError?.message}</p>
+            <p className="text-sm text-red-400">{error ?? apiErrorText(i18n, apiError, 'urlscan.io')}</p>
           )}
 
           {!loading && !apiError && !hasResults && (
-            <p className="text-sm text-muted-foreground">No prior urlscan.io scans were found for this indicator.</p>
+            <p className="text-sm text-muted-foreground">{t('urlscan.none')}</p>
           )}
 
           {!loading && hasResults && (
@@ -90,14 +94,14 @@ export default function URLScanCard({ loading, error, data, score = null, weight
                   <div className="flex items-start justify-between gap-3">
                     <span className="text-sm font-medium text-foreground break-all">{r.page?.url ?? r.task?.url}</span>
                     <span className="text-xs text-muted-foreground shrink-0">
-                      {r.task?.time ? new Date(r.task.time).toLocaleString() : ''}
+                      {r.task?.time ? new Date(r.task.time).toLocaleString(locale) : ''}
                     </span>
                   </div>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                    {r.page?.ip && <span>IP: <span className="text-foreground">{r.page.ip}</span></span>}
-                    {r.page?.country && <span>Country: <span className="text-foreground">{r.page.country}</span></span>}
-                    {r.page?.asnname && <span>ASN: <span className="text-foreground">{r.page.asnname}</span></span>}
-                    {r.page?.server && <span>Server: <span className="text-foreground">{r.page.server}</span></span>}
+                    {r.page?.ip && <span>{t('urlscan.ip')} <span className="text-foreground">{r.page.ip}</span></span>}
+                    {r.page?.country && <span>{t('urlscan.country')} <span className="text-foreground">{r.page.country}</span></span>}
+                    {r.page?.asnname && <span>{t('urlscan.asn')} <span className="text-foreground">{r.page.asnname}</span></span>}
+                    {r.page?.server && <span>{t('urlscan.server')} <span className="text-foreground">{r.page.server}</span></span>}
                   </div>
                   {(r.task?.tags?.length ?? 0) > 0 && (
                     <div className="flex flex-wrap gap-1.5">
@@ -107,12 +111,12 @@ export default function URLScanCard({ loading, error, data, score = null, weight
                   <div className="flex items-center gap-3 pt-0.5">
                     {r.result && (
                       <a href={r.result} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
-                        <ExternalLink className="h-3 w-3" /> Result
+                        <ExternalLink className="h-3 w-3" /> {t('urlscan.result')}
                       </a>
                     )}
                     {r.screenshot && (
                       <a href={r.screenshot} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
-                        <Camera className="h-3 w-3" /> Screenshot
+                        <Camera className="h-3 w-3" /> {t('urlscan.screenshot')}
                       </a>
                     )}
                   </div>

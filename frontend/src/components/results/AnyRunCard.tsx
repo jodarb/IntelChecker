@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { Loader2, ChevronDown, FileCode2, ExternalLink } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
 import ScoreBadge from './ScoreBadge'
-import WeightBadge from './WeightBadge'
+import WeightBadge, { type CardWeight } from './WeightBadge'
 import type { IndicatorType } from '@/registry'
+import { useI18n } from '@/i18n/useI18n'
+import { apiErrorText } from '@/i18n/errors'
 
 interface RelatedIP {
   destinationIP: string
@@ -53,7 +55,7 @@ interface Props {
   error: string | null
   data: AnyRunResponse | null
   score?: number | null
-  weight?: number | null
+  weight?: CardWeight | null
   indicator?: string
   type?: IndicatorType
 }
@@ -63,13 +65,14 @@ const VERDICT_STYLES: Record<number, string> = {
   1: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
   2: 'text-red-400 bg-red-500/10 border-red-500/30',
 }
-const VERDICT_LABELS: Record<number, string> = { 0: 'No info', 1: 'Suspicious', 2: 'Malicious' }
+const VERDICT_LABELS = { 0: 'anyrun.noInfo', 1: 'card.suspicious', 2: 'card.malicious' } as const
 
 function VerdictBadge({ threatLevel }: { threatLevel: number }) {
+  const { t } = useI18n()
   const style = VERDICT_STYLES[threatLevel] ?? VERDICT_STYLES[0]
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full border text-xs font-semibold ${style}`}>
-      {VERDICT_LABELS[threatLevel] ?? 'No info'}
+      {t(VERDICT_LABELS[threatLevel as 0 | 1 | 2] ?? 'anyrun.noInfo')}
     </span>
   )
 }
@@ -112,6 +115,8 @@ function buildDeepLink(indicator?: string, type?: IndicatorType): string | null 
 }
 
 export default function AnyRunCard({ loading, error, data, score = null, weight = null, indicator, type }: Props) {
+  const i18n = useI18n()
+  const { t, locale } = i18n
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.error ?? null
@@ -135,7 +140,7 @@ export default function AnyRunCard({ loading, error, data, score = null, weight 
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border text-xs font-medium text-muted-foreground bg-muted/30 hover:bg-muted/70 hover:text-foreground transition-colors"
-              title="View raw JSON"
+              title={t('raw.buttonTitle')}
             >
               <FileCode2 className="h-3 w-3" />
               RAW
@@ -148,30 +153,30 @@ export default function AnyRunCard({ loading, error, data, score = null, weight 
       {open && (
         <div className="px-4 py-4 flex flex-col gap-4">
           {loading && (
-            <p className="text-sm text-muted-foreground">Querying ANY.RUN TI Lookup...</p>
+            <p className="text-sm text-muted-foreground">{t('anyrun.querying')}</p>
           )}
 
           {!loading && isRealError && (
-            <p className="text-sm text-red-400">{error ?? apiError?.message}</p>
+            <p className="text-sm text-red-400">{error ?? apiErrorText(i18n, apiError, 'ANY.RUN')}</p>
           )}
 
           {!loading && notFound && (
-            <p className="text-sm text-muted-foreground">No related sandbox intelligence found for this indicator in the last {180} days.</p>
+            <p className="text-sm text-muted-foreground">{t('anyrun.none', { days: 180 })}</p>
           )}
 
           {!loading && summary && !notFound && (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
                 <Field
-                  label="Verdict"
+                  label={t('f.verdict')}
                   value={summary.threatLevel != null ? <VerdictBadge threatLevel={summary.threatLevel} /> : undefined}
                 />
                 <Field
-                  label="Last Seen"
-                  value={summary.lastSeen ? new Date(summary.lastSeen).toLocaleString() : undefined}
+                  label={t('f.lastSeen')}
+                  value={summary.lastSeen ? new Date(summary.lastSeen).toLocaleString(locale) : undefined}
                 />
-                <Field label="Country" value={data?.destinationIPgeo?.[0]?.toUpperCase()} />
-                <Field label="ASN" value={data?.destinationIpAsn?.[0]?.asn} />
+                <Field label={t('f.country')} value={data?.destinationIPgeo?.[0]?.toUpperCase()} />
+                <Field label={t('f.asn')} value={data?.destinationIpAsn?.[0]?.asn} />
               </div>
 
               {summary.tags && summary.tags.length > 0 && (
@@ -187,7 +192,7 @@ export default function AnyRunCard({ loading, error, data, score = null, weight 
               {data?.relatedURLs && data.relatedURLs.length > 0 && (
                 <div className="flex flex-col gap-2">
                   <span className="text-xs text-muted-foreground uppercase tracking-wide">
-                    Related URLs ({data.relatedURLs.length})
+                    {t('anyrun.relatedUrls', { n: data.relatedURLs.length })}
                   </span>
                   {data.relatedURLs.slice(0, 5).map((u, i) => (
                     <div key={i} className="rounded-md border border-border bg-muted/20 px-3 py-2 flex items-center justify-between gap-2">
@@ -201,7 +206,7 @@ export default function AnyRunCard({ loading, error, data, score = null, weight 
               {data?.relatedDNS && data.relatedDNS.length > 0 && (
                 <div className="flex flex-col gap-2">
                   <span className="text-xs text-muted-foreground uppercase tracking-wide">
-                    Related Domains ({data.relatedDNS.length})
+                    {t('anyrun.relatedDomains', { n: data.relatedDNS.length })}
                   </span>
                   {data.relatedDNS.slice(0, 5).map((d, i) => (
                     <div key={i} className="rounded-md border border-border bg-muted/20 px-3 py-2 flex items-center justify-between gap-2">
@@ -215,7 +220,7 @@ export default function AnyRunCard({ loading, error, data, score = null, weight 
               {data?.destinationIP && data.destinationIP.length > 0 && (
                 <div className="flex flex-col gap-2">
                   <span className="text-xs text-muted-foreground uppercase tracking-wide">
-                    Related IPs ({data.destinationIP.length})
+                    {t('anyrun.relatedIps', { n: data.destinationIP.length })}
                   </span>
                   {data.destinationIP.slice(0, 5).map((ip, i) => (
                     <div key={i} className="rounded-md border border-border bg-muted/20 px-3 py-2 flex items-center justify-between gap-2">
@@ -229,7 +234,7 @@ export default function AnyRunCard({ loading, error, data, score = null, weight 
               {data?.relatedFiles && data.relatedFiles.length > 0 && (
                 <div className="flex flex-col gap-2">
                   <span className="text-xs text-muted-foreground uppercase tracking-wide">
-                    Related Files ({data.relatedFiles.length})
+                    {t('anyrun.relatedFiles', { n: data.relatedFiles.length })}
                   </span>
                   {data.relatedFiles.slice(0, 5).map((f, i) => (
                     <div key={i} className="rounded-md border border-border bg-muted/20 px-3 py-2 flex flex-col gap-0.5">
@@ -247,7 +252,7 @@ export default function AnyRunCard({ loading, error, data, score = null, weight 
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit"
                 >
-                  <ExternalLink className="h-3 w-3" /> View on ANY.RUN TI Lookup
+                  <ExternalLink className="h-3 w-3" /> {t('card.viewOn', { source: 'ANY.RUN TI Lookup' })}
                 </a>
               )}
             </>

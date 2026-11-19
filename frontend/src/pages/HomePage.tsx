@@ -11,20 +11,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import Layout from '@/components/Layout'
-import CustomLogo from '@/components/CustomLogo'
 import EngineStatusPanel from '@/components/EngineStatusPanel'
+import { useI18n } from '@/i18n/useI18n'
 
-const IOC_TYPES = [
-  { value: 'ip', label: 'IP Address' },
-  { value: 'domain', label: 'Domain' },
-  { value: 'url', label: 'URL' },
-  { value: 'hash', label: 'File Hash' },
-  { value: 'asn', label: 'ASN' },
-  { value: 'threat-actor', label: 'Threat Actor' },
-]
+const IOC_TYPES = ['ip', 'domain', 'url', 'hash', 'asn', 'threat-actor'] as const
 
 export default function HomePage() {
   const navigate = useNavigate()
+  const { t } = useI18n()
   const [query, setQuery] = useState('')
   const [iocType, setIocType] = useState('ip')
 
@@ -38,13 +32,12 @@ export default function HomePage() {
     <Layout>
       <main className="flex-1 flex flex-col items-center justify-center px-4 gap-8">
         <div className="text-center space-y-6">
-          <CustomLogo />
           <div className="space-y-2">
             <h1 className="text-3xl font-bold tracking-tight text-foreground">
-              Threat Intelligence Lookup
+              {t('home.title')}
             </h1>
             <p className="text-muted-foreground text-sm">
-              Analyze IPs, domains, URLs, ASNs and threat actors across multiple CTI sources.
+              {t('home.subtitle')}
             </p>
           </div>
         </div>
@@ -56,9 +49,9 @@ export default function HomePage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {IOC_TYPES.map(t => (
-                  <SelectItem key={t.value} value={t.value}>
-                    {t.label}
+                {IOC_TYPES.map(type => (
+                  <SelectItem key={type} value={type}>
+                    {t(`type.${type}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -66,14 +59,14 @@ export default function HomePage() {
             <Input
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Enter an IP, domain, URL, ASN or threat actor..."
+              placeholder={t('home.placeholder')}
               className="flex-1"
               autoFocus
             />
           </div>
           <Button type="submit" className="w-full gap-2" disabled={!query.trim()}>
             <Search className="h-4 w-4" />
-            Analyze
+            {t('home.analyze')}
           </Button>
         </form>
 
