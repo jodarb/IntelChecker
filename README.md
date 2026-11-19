@@ -141,6 +141,8 @@ Every other source above is one fixed integration. MISP is different: you can po
 
 Each instance searches by indicator value only (not MISP's `ip-src`/`ip-dst`/etc. attribute-type distinctions), so it works the same way across IP, domain, URL, and hash lookups regardless of how a given MISP community tags its attributes.
 
+**Scoring**: only attributes flagged for detection (`to_ids`, shown as an **IDS** chip on the card) count as a risk hit (subscore 9). A match whose attributes all have `to_ids` off — typically benign infrastructure referenced inside an event, like a public DNS resolver — still adds to the Knowledge Score, but issues no risk verdict (and is never treated as clean).
+
 **Mutual TLS**: some MISP instances (common on government/CERT deployments) reject every request with a TLS-layer "certificate required" alert unless the client presents its own certificate — the API key alone isn't enough. If yours does this, drop the cert (and key, if it's a separate file) into `backend/certs/` (gitignored, mounted into the backend container at `/app/certs`) and point `MISP_<N>_CLIENT_CERT` / `MISP_<N>_CLIENT_KEY` at the filenames. A combined cert+key PEM only needs `CLIENT_CERT`.
 
 ---

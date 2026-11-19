@@ -212,7 +212,7 @@ ANY.RUN, Hybrid Analysis, GreyNoise and Safe Browsing ship with risk weight 0: t
 | Hybrid Analysis | malicious → 9; suspicious → 5; whitelisted / no specific threat → clean; nothing or only "no verdict" → no verdict |
 | Safe Browsing | on a threat list → 9; not listed → clean (a genuine real-time check) |
 | Tor Exit List | exit node → 7; otherwise no verdict |
-| MISP | matching attribute → 9; otherwise no verdict |
+| MISP | matching attribute flagged `to_ids` (IDS) → 9; matches with `to_ids` off are context only (count for Knowledge, no risk verdict); no match → no verdict |
 | TweetFeed | not reported → no verdict; 1 reporter → 5; 2 → 6; ≥3, or a malware family / campaign → 7 (capped: reports are unvetted) |
 | Shodan, IPinfo, RIPEstat, MITRE ATT&CK | never return a risk subscore |
 

@@ -302,8 +302,11 @@ function mispSubscore(d: unknown): number | null {
   if (!Array.isArray(attrs)) return null
   // No matching attribute in this instance ≠ confirmed clean, just not (yet) shared.
   if (attrs.length === 0) return null
-  // Any match is a real analyst-curated IOC hit — treat as high-confidence.
-  return 9
+  // Only attributes flagged for detection (to_ids) are actionable IOCs — a match
+  // with to_ids off is context (e.g. a resolver or benign infra referenced in an
+  // event), so it feeds Knowledge but issues no risk verdict, and never a clean one.
+  const idsHit = attrs.some((a: any) => a?.to_ids === true || a?.to_ids === 1 || a?.to_ids === '1')
+  return idsHit ? 9 : null
 }
 
 // Registry: engineId → indicatorType → normalizer.
