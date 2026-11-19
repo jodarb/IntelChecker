@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Loader2, ChevronDown, FileCode2, ExternalLink, ShieldAlert } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
 import ScoreBadge from './ScoreBadge'
-import WeightBadge from './WeightBadge'
+import WeightBadge, { type CardWeight } from './WeightBadge'
 
 interface ThreatMatch {
   threatType: string
@@ -21,7 +21,7 @@ interface Props {
   error: string | null
   data: SafeBrowsingResponse | null
   score?: number | null
-  weight?: number | null
+  weight?: CardWeight | null
   indicator?: string
 }
 

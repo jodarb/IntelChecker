@@ -7,7 +7,7 @@
 * **Decoupled & Internal Architecture:** SPA design deployed within a local network/VPN environment, omitting initial user authentication mechanisms.
 * **Asynchronous Processing:** Multi-threaded/asynchronous API requests that prevent thread blocking and resource starvation.
 * **Real-Time Data Streaming:** Dynamic frontend components that render individual API responses immediately as they are streamed from the backend.
-* **Stateless Operation:** No database persistence layer required; all queries are executed and processed strictly in real time.
+* **Near-stateless Operation:** Lookups are always executed in real time (no result caching). The only persisted state lives in `backend/data/` (Docker volume): `history.db` (SQLite query history with frozen snapshots of every lookup) and `weights.json` (verdict weights/thresholds edited from the Admin page).
 
 ---
 
@@ -16,12 +16,13 @@
 ### Backend
 * **Language/Framework:** Python 3.11+ using **FastAPI**.
 * **Concurrency:** `asyncio` and `httpx` for non-blocking, asynchronous HTTP client requests.
-* **Data Transmission:** Server-Sent Events (SSE) or WebSockets to handle real-time streaming to the frontend client.
+* **Data Transmission:** One `POST /analyze/{engine}` request per source, fired in parallel by the frontend, so each card renders as soon as its own response arrives (per-source streaming without SSE/WebSockets).
 
 ### Frontend
-* **Framework:** Component-driven modern SPA built with **React 18** and **TypeScript**, bundled via **Vite**.
-* **Styling:** **Tailwind CSS** configured with a clean, high-contrast dark theme optimized for SOC and Threat Intel operations.
+* **Framework:** Component-driven modern SPA built with **React 19** and **TypeScript**, bundled via **Vite**.
+* **Styling:** **Tailwind CSS v4** (`@tailwindcss/vite`, no `tailwind.config.js`) configured with a clean, high-contrast dark theme optimized for SOC and Threat Intel operations.
 * **UI Components:** **shadcn/ui** as the component library, providing accessible and composable primitives that integrate natively with Tailwind.
+* **Branding:** Detective logo at `frontend/public/app-logo.png` (also `favicon.png`, `apple-touch-icon.png`, `docs/logo.png`). Header wordmark uses **Bebas Neue**, bundled locally via `@fontsource/bebas-neue` (no external font requests — the app must work on networks without internet); colors are the `.brand-*` classes in `index.css`.
 
 ### Infrastructure
 * **Containerisation:** The entire application is orchestrated via **Docker Compose**. Each service (backend, frontend) runs in its own container. The single entry point to spin up the full stack is `docker compose up`.
@@ -41,57 +42,57 @@
 ---
 
 ## 4. Threat Intel Integrations (CTI Sources)
-The backend manages API authentication using server-side credentials defined in an environment file (`.env`). The following integrations will be available:
+The backend manages API authentication using server-side credentials defined in `backend/.env`. Engine capabilities (supported indicator types, required key) are declared in `backend/app/core/registry.py`; each source is a module in `backend/app/services/` and a card in `frontend/src/components/results/`, wired through `frontend/src/registry.tsx` and `summaryRegistry.ts`. A source without its API key is reported as `MissingApiKey` and excluded from both scores.
 
-* **VirusTotal** (IPs, Domains, URLs)
-* **AlienVault OTX** (IPs, Domains, URLs, Threat Actors)
-* **AbuseIPDB** (IPs)
-* **Shodan** (IPs, ASNs)
-* **Criminal IP** (IPs, Domains)
-* **IPinfo** (IPs, ASNs)
-* **Recorded Future** (Multi-IoC, Threat Context)
-* **Any.run** (URLs, Domains)
-* **OpenCTI** (Internal/External instance connection - Global Context & Threat Actors)
+Implemented sources: VirusTotal, AlienVault OTX, AbuseIPDB, abuse.ch (ThreatFox), URLhaus, MalwareBazaar, Shodan, IPinfo, RIPEstat, Tor Exit List, MITRE ATT&CK, URLScan, PhishTank, Recorded Future, Any.run, GreyNoise, Hybrid Analysis, Google Safe Browsing, TweetFeed, and N MISP instances (`MISP_<N>_*` env vars). The README's coverage table is the source of truth for which types each one supports.
 
 ---
 
-## 5. Verdict Engine (Pending Definition)
-* The system will calculate a unified scoring metric ranging from **0 to 10**.
-* *Development Note:* The architecture must abstract this logic into a dedicated component/class (`VerdictEngine`). This engine will ingest the normalized results from all responsive APIs and output a structured integer score. The mathematical distribution, weights, and thresholds will be defined and implemented at a later stage.
+## 5. Verdict Engine
+Implemented in `frontend/src/verdictEngine.ts` (`computeVerdict`). It produces **two independent scores** plus a quadrant. Full user-facing explanation: README "Verdict Scoring & Weights" and `docs/admin.md` — keep both in sync with any change to the logic.
+
+* **Per-engine assessment:** each engine's result is normalized to an outcome — `hit` / `clean` / `context` / `no_data` / `excluded` — with a risk **subscore** (0–10, only for hit/clean) and a **depth of record** (0 / 0.5 / 1). "Not found" is `no_data`, never `clean`: absence of data is not a benign confirmation.
+* **Knowledge (0–10):** `round(10 × Σ(kw × depth) / Σ(kw of every configured, enabled source for the type))`. Cumulative: errors count in the denominator with depth 0, so knowledge only grows as sources answer and no single source can reach 10.
+* **Risk (0–10):** `round(Σ(rw × subscore) / Σ(rw))` over hit/clean sources only; `null` ("No data") if no source issued a verdict.
+* **Quadrants** (`frontend/src/quadrants.ts`): confirmed_malicious, isolated_signal, known_benign (requires ≥1 explicit clean verdict and no single source ≥ risk threshold), known_low_signals, known_no_verdict, unknown. Default thresholds: knowledge 4, risk 5.
+* **Weights:** defaults in `backend/app/core/weights.py`, editable from the Admin page (`GET/PUT /weights`, `POST /weights/reset`), persisted to `backend/data/weights.json`. Supports per-type knowledge overrides. MISP initial weights come from `MISP_<N>_WEIGHT` / `MISP_<N>_KNOWLEDGE_WEIGHT`.
+* **Matrix view:** `frontend/src/trajectory.ts` replays the verdict source by source from (0, 0) for `MatrixModal.tsx`, using only the saved contributions so it works for history entries too.
+* History entries store `score`, `knowledge_score`, `quadrant` and contributions at save time; they are never recomputed.
 
 ---
 
 ## 6. Development Instructions for the AI Assistant
 
-### Target Directory Structure
+### Directory Structure
 ```text
 intelchecker/
 ├── backend/
 │   ├── app/
-│   │   ├── __init__.py
-│   │   ├── main.py            # FastAPI application entrypoint & streaming routes
+│   │   ├── main.py            # FastAPI app: /analyze/{engine}, /engines/status, /history, /weights
 │   │   ├── core/
-│   │   │   └── config.py      # Environment variables and app configuration (.env)
-│   │   ├── services/          # Asynchronous CTI client modules
-│   │   │   ├── __init__.py
-│   │   │   ├── base.py        # Abstract base class for CTI API clients
-│   │   │   ├── virustotal.py
-│   │   │   ├── abuseipdb.py
-│   │   │   └── ...
-│   │   └── utils/
-│   │       └── parser.py      # Regex and logical parsing for "Free Text" detection
+│   │   │   ├── config.py      # Environment variables (.env), MISP instances
+│   │   │   ├── registry.py    # Engine capabilities (types supported, required key)
+│   │   │   ├── weights.py     # Default verdict weights/thresholds + persistence
+│   │   │   └── db.py          # SQLite query history
+│   │   └── services/          # One async httpx client module per CTI source
+│   ├── data/                  # history.db + weights.json (Docker volume, gitignored)
 │   ├── Dockerfile
 │   ├── .env.example
 │   └── requirements.txt
 ├── frontend/
+│   ├── public/                # app-logo.png, favicons, logos/ (source logos)
 │   ├── src/
-│   │   ├── components/        # UI Cards for individual API source tracking
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   ├── Dockerfile
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── tailwind.config.js
+│   │   ├── components/        # Layout, EngineStatusPanel, results/ (per-source cards, Summary, modals)
+│   │   ├── pages/             # Home, Results, History, HistoryDetail, Admin
+│   │   ├── hooks/             # useVerdictWeights, useEngineToggles, useTheme
+│   │   ├── verdictEngine.ts   # Two-score verdict
+│   │   ├── trajectory.ts      # Matrix view replay
+│   │   ├── quadrants.ts       # Quadrant/outcome labels
+│   │   ├── registry.tsx       # Frontend engine registry
+│   │   └── summaryRegistry.ts # Summary field extractors
+│   ├── Dockerfile             # Build → nginx (proxies /api to backend)
+│   └── package.json
+├── docs/                      # admin.md, logo.png, screenshot.png
 ├── docker-compose.yml
-└── .env.example               # API keys template for Docker Compose
+└── .env.example               # FRONTEND_PORT / BACKEND_PORT
 ```

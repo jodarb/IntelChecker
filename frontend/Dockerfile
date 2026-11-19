@@ -13,10 +13,6 @@ COPY frontend/ .
 RUN rm -rf ./public/logo && mkdir -p ./public/logo
 COPY logo/light.pn[g] ./public/logo/
 COPY logo/dark.pn[g] ./public/logo/
-# Same optional-copy trick for weights.json: glob matches the file if present at
-# the repo root, matches nothing (no build failure) if the deployer left it untouched.
-RUN rm -f ./public/weights.json
-COPY weights.jso[n] ./public/
 RUN npm run build
 
 FROM nginx:alpine

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Loader2, ChevronDown, FileCode2, ExternalLink } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
 import ScoreBadge from './ScoreBadge'
-import WeightBadge from './WeightBadge'
+import WeightBadge, { type CardWeight } from './WeightBadge'
 
 interface RIPEstatResponse {
   // type=ip
@@ -18,7 +18,7 @@ interface Props {
   error: string | null
   data: RIPEstatResponse | null
   score?: number | null
-  weight?: number | null
+  weight?: CardWeight | null
   indicator?: string
 }
 

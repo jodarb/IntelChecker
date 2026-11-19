@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Loader2, CheckCircle2, ShieldX, ChevronDown, FileCode2, ExternalLink } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
 import ScoreBadge from './ScoreBadge'
-import WeightBadge from './WeightBadge'
+import WeightBadge, { type CardWeight } from './WeightBadge'
 
 interface Pulse {
   id: string
@@ -38,7 +38,7 @@ interface Props {
   error: string | null
   data: OTXResponse | null
   score?: number | null
-  weight?: number | null
+  weight?: CardWeight | null
   indicator?: string
   type?: string
 }

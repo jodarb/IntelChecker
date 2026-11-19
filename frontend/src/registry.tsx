@@ -1,4 +1,5 @@
 import type React from 'react'
+import type { CardWeight } from '@/components/results/WeightBadge'
 import AbuseIPDBCard from '@/components/results/AbuseIPDBCard'
 import VirusTotalCard from '@/components/results/VirusTotalCard'
 import AbuseCHCard from '@/components/results/AbuseCHCard'
@@ -17,6 +18,7 @@ import AnyRunCard from '@/components/results/AnyRunCard'
 import GreyNoiseCard from '@/components/results/GreyNoiseCard'
 import HybridAnalysisCard from '@/components/results/HybridAnalysisCard'
 import SafeBrowsingCard from '@/components/results/SafeBrowsingCard'
+import TweetFeedCard from '@/components/results/TweetFeedCard'
 
 export type IndicatorType = 'ip' | 'domain' | 'url' | 'hash' | 'asn' | 'threat-actor'
 
@@ -26,7 +28,7 @@ export interface CardProps {
   data: unknown
   label?: string
   score?: number | null
-  weight?: number | null
+  weight?: CardWeight | null
   indicator?: string
   type?: IndicatorType
 }
@@ -174,6 +176,13 @@ export const STATIC_ENGINES: EngineConfig[] = [
     supports: ['url'],
     component: SafeBrowsingCard as React.ComponentType<CardProps>,
     logo: '/logos/safebrowsing.ico',
+  },
+  {
+    id: 'tweetfeed',
+    label: 'TweetFeed',
+    supports: ['ip', 'domain', 'url', 'hash'],
+    component: TweetFeedCard as React.ComponentType<CardProps>,
+    logo: '/logos/tweetfeed.png',
   },
 ]
 

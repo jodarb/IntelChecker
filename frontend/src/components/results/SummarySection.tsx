@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Info } from 'lucide-react'
+import { Info, Grid2x2 } from 'lucide-react'
 import type { EngineConfig, QueryResult, IndicatorType } from '@/registry'
 import {
   SUMMARY_REGISTRY,
@@ -7,8 +7,10 @@ import {
   SUMMARY_FIELDS,
   type SummaryField,
 } from '@/summaryRegistry'
-import type { VerdictContribution } from '@/verdictEngine'
+import type { Quadrant, VerdictResult, VerdictThresholds } from '@/verdictEngine'
+import { QUADRANT_META } from '@/quadrants'
 import VerdictExplainerModal from './VerdictExplainerModal'
+import MatrixModal from './MatrixModal'
 
 // ── Aggregation ──────────────────────────────────────────────────────────────
 
@@ -82,18 +84,34 @@ function SummaryItem({
 
 // ── Score Gauge ──────────────────────────────────────────────────────────────
 
-function ScoreGauge({ score }: { score: number | null }) {
+function riskColor(score: number) {
+  return score <= 3 ? '#4ade80' : score <= 6 ? '#fbbf24' : '#f87171'
+}
+
+// Knowledge isn't good or bad, just more or less — a single-hue scale.
+function knowledgeColor(score: number) {
+  return score <= 3 ? '#94a3b8' : score <= 6 ? '#60a5fa' : '#3b82f6'
+}
+
+function ScoreGauge({
+  title, score, color, emptyLabel,
+}: {
+  title: string
+  score: number | null
+  color: (s: number) => string
+  emptyLabel: string
+}) {
   const r = 68
   const cx = 86
   const cy = 78
   const arcLen = Math.PI * r
   const pct = (score ?? 0) / 10
-  const color = score == null ? 'currentColor' : score <= 3 ? '#4ade80' : score <= 6 ? '#fbbf24' : '#f87171'
+  const stroke = score == null ? 'currentColor' : color(score)
 
   return (
     <div className="flex flex-col items-center">
-      <span className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Threat Score</span>
-      <svg viewBox="0 0 172 100" className="w-44">
+      <span className="text-xs text-muted-foreground uppercase tracking-wide mb-2">{title}</span>
+      <svg viewBox="0 0 172 100" className="w-40">
         <path
           d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
           fill="none"
@@ -106,7 +124,7 @@ function ScoreGauge({ score }: { score: number | null }) {
           <path
             d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
             fill="none"
-            stroke={color}
+            stroke={stroke}
             strokeWidth="13"
             strokeLinecap="round"
             strokeDasharray={`${pct * arcLen} ${arcLen}`}
@@ -116,12 +134,12 @@ function ScoreGauge({ score }: { score: number | null }) {
           x={cx}
           y={cy - 10}
           textAnchor="middle"
-          fontSize={score == null ? '20' : '30'}
+          fontSize={score == null ? '18' : '30'}
           fontWeight="700"
-          fill={color}
+          fill={stroke}
           opacity={score == null ? 0.4 : 1}
         >
-          {score ?? 'N/A'}
+          {score ?? emptyLabel}
         </text>
         {score != null && (
           <text x={cx} y={cy + 7} textAnchor="middle" fontSize="11" fill="currentColor" opacity="0.4">
@@ -135,23 +153,40 @@ function ScoreGauge({ score }: { score: number | null }) {
   )
 }
 
+function QuadrantBadge({ quadrant }: { quadrant: Quadrant | null }) {
+  if (!quadrant) {
+    return <span className="text-xs text-muted-foreground">Waiting for sources…</span>
+  }
+  const meta = QUADRANT_META[quadrant]
+  return (
+    <div className="flex flex-col items-center sm:items-end gap-1 max-w-xs">
+      <span className={`inline-flex items-center px-3 py-1 rounded-full border text-sm font-semibold ${meta.className}`}>
+        {meta.label}
+      </span>
+      <span className="text-xs text-muted-foreground text-center sm:text-right">{meta.hint}</span>
+    </div>
+  )
+}
+
 // ── Main component ───────────────────────────────────────────────────────────
 
 interface Props {
   type: IndicatorType
   engines: EngineConfig[]
   results: Record<string, QueryResult>
-  score: number | null
-  contributions: VerdictContribution[]
+  verdict: VerdictResult
+  thresholds: VerdictThresholds | null
 }
 
-export default function SummarySection({ type, engines, results, score, contributions }: Props) {
+export default function SummarySection({ type, engines, results, verdict, thresholds }: Props) {
   const [explainerOpen, setExplainerOpen] = useState(false)
+  const [matrixOpen, setMatrixOpen] = useState(false)
+  const hasContributions = verdict.contributions.knowledge.length > 0 || verdict.contributions.risk.length > 0
 
   return (
     <div className="rounded-lg border border-border bg-muted/20 p-5">
       <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-4">Summary</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="flex flex-col gap-4">
           {SUMMARY_FIELDS.map(field => (
             <SummaryItem
@@ -163,8 +198,25 @@ export default function SummarySection({ type, engines, results, score, contribu
             />
           ))}
         </div>
-        <div className="flex flex-col items-center sm:items-end gap-2">
-          <ScoreGauge score={score} />
+        <div className="flex flex-col items-center sm:items-end gap-3">
+          <div className="flex flex-wrap justify-center sm:justify-end gap-2">
+            <ScoreGauge title="Knowledge" score={verdict.knowledge} color={knowledgeColor} emptyLabel="N/A" />
+            <ScoreGauge title="Risk" score={verdict.risk} color={riskColor} emptyLabel="No data" />
+          </div>
+          <QuadrantBadge quadrant={verdict.quadrant} />
+          <span className="text-xs text-muted-foreground">
+            {verdict.responded} of {verdict.queried} sources answered
+          </span>
+          <div className="flex flex-wrap justify-center sm:justify-end gap-2">
+          <button
+            onClick={() => setMatrixOpen(true)}
+            disabled={!hasContributions}
+            title={hasContributions ? 'Plot knowledge vs risk, source by source' : 'No source contributions to plot'}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-primary/40 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 transition-colors disabled:opacity-40 disabled:pointer-events-none"
+          >
+            <Grid2x2 className="h-3 w-3" />
+            View matrix
+          </button>
           <button
             onClick={() => setExplainerOpen(true)}
             className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border text-xs font-medium text-muted-foreground bg-muted/30 hover:bg-muted/70 hover:text-foreground transition-colors"
@@ -172,13 +224,20 @@ export default function SummarySection({ type, engines, results, score, contribu
             <Info className="h-3 w-3" />
             How is this calculated?
           </button>
+          </div>
         </div>
       </div>
+      <MatrixModal
+        open={matrixOpen}
+        onClose={() => setMatrixOpen(false)}
+        verdict={verdict}
+        thresholds={thresholds}
+      />
       <VerdictExplainerModal
         open={explainerOpen}
         onClose={() => setExplainerOpen(false)}
-        score={score}
-        contributions={contributions}
+        verdict={verdict}
+        thresholds={thresholds}
       />
     </div>
   )

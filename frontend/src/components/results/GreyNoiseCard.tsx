@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Loader2, ChevronDown, FileCode2, ExternalLink, ShieldX, ShieldCheck, ShieldQuestion } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
 import ScoreBadge from './ScoreBadge'
-import WeightBadge from './WeightBadge'
+import WeightBadge, { type CardWeight } from './WeightBadge'
 
 interface GreyNoiseResponse {
   ip?: string
@@ -21,7 +21,7 @@ interface Props {
   error: string | null
   data: GreyNoiseResponse | null
   score?: number | null
-  weight?: number | null
+  weight?: CardWeight | null
 }
 
 const CLASSIFICATION_STYLES: Record<string, string> = {

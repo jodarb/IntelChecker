@@ -4,6 +4,8 @@ import { ArrowLeft, ChevronRight, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Layout from '@/components/Layout'
 import ScoreBadge from '@/components/results/ScoreBadge'
+import { QUADRANT_META } from '@/quadrants'
+import type { Quadrant } from '@/verdictEngine'
 
 interface HistoryListEntry {
   id: number
@@ -11,6 +13,8 @@ interface HistoryListEntry {
   type: string
   timestamp: string
   score: number | null
+  knowledge_score: number | null
+  quadrant: Quadrant | null
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -107,7 +111,20 @@ export default function HistoryPage() {
                 </div>
                 <div className="flex items-center gap-4 shrink-0">
                   <span className="text-xs text-muted-foreground">{formatTimestamp(entry.timestamp)}</span>
-                  <ScoreBadge score={entry.score} />
+                  {entry.quadrant && (
+                    <span className={`hidden md:inline-flex px-2 py-0.5 rounded-full border text-xs font-medium ${QUADRANT_META[entry.quadrant].className}`}>
+                      {QUADRANT_META[entry.quadrant].label}
+                    </span>
+                  )}
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title="Knowledge Score">
+                    K
+                    <span className="inline-flex px-2 py-0.5 rounded-full border border-border bg-muted/30 font-semibold text-foreground">
+                      {entry.knowledge_score ?? '—'}
+                    </span>
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title="Risk Score">
+                    R <ScoreBadge score={entry.score} />
+                  </span>
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </div>
               </Link>

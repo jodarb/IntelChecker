@@ -1,7 +1,9 @@
 import { useEngines } from '@/EnginesContext'
 import { useEngineToggles } from '@/hooks/useEngineToggles'
 import { useVerdictWeights } from '@/hooks/useVerdictWeights'
-import WeightBadge from '@/components/results/WeightBadge'
+import WeightBadge, { type CardWeight } from '@/components/results/WeightBadge'
+import { knowledgeWeightOf, riskWeightOf } from '@/verdictEngine'
+import type { IndicatorType } from '@/registry'
 
 const TYPE_CHIP: Record<string, string> = {
   ip: 'IP',
@@ -46,7 +48,7 @@ function EngineCard({
   relevant: boolean
   enabled: boolean
   selectedType: string
-  weight: number | null
+  weight: CardWeight | null
   onToggle: () => void
 }) {
   return (
@@ -110,7 +112,7 @@ function EngineCard({
 export default function EngineStatusPanel({ selectedType }: Props) {
   const { engines, status } = useEngines()
   const { disabled, toggle } = useEngineToggles()
-  const weights = useVerdictWeights()
+  const config = useVerdictWeights()
 
   if (!status) return null
 
@@ -124,7 +126,12 @@ export default function EngineStatusPanel({ selectedType }: Props) {
       supports,
       relevant: supports.includes(selectedType),
       enabled: !disabled.has(engine.id),
-      weight: weights?.[engine.id] ?? 0,
+      weight: config
+        ? {
+            risk: riskWeightOf(config, engine.id),
+            knowledge: knowledgeWeightOf(config, engine.id, selectedType as IndicatorType),
+          }
+        : null,
     }
   })
 
@@ -133,7 +140,10 @@ export default function EngineStatusPanel({ selectedType }: Props) {
   // stable, so anything still tied keeps its original relative order.
   const configured = enriched
     .filter(e => e.connected)
-    .sort((a, b) => Number(b.relevant) - Number(a.relevant) || b.weight - a.weight)
+    .sort((a, b) =>
+      Number(b.relevant) - Number(a.relevant)
+      || (b.weight?.risk ?? 0) - (a.weight?.risk ?? 0)
+      || (b.weight?.knowledge ?? 0) - (a.weight?.knowledge ?? 0))
   const notConfigured = enriched.filter(e => !e.connected)
 
   return (
@@ -143,7 +153,7 @@ export default function EngineStatusPanel({ selectedType }: Props) {
           Connected sources ({configured.length})
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {configured.map(({ engine, connected, supports, relevant, enabled }) => (
+          {configured.map(({ engine, connected, supports, relevant, enabled, weight }) => (
             <EngineCard
               key={engine.id}
               engine={engine}
@@ -152,7 +162,7 @@ export default function EngineStatusPanel({ selectedType }: Props) {
               relevant={relevant}
               enabled={enabled}
               selectedType={selectedType}
-              weight={weights?.[engine.id] ?? null}
+              weight={weight}
               onToggle={() => toggle(engine.id)}
             />
           ))}
@@ -165,7 +175,7 @@ export default function EngineStatusPanel({ selectedType }: Props) {
             Not configured ({notConfigured.length})
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {notConfigured.map(({ engine, connected, supports, relevant, enabled }) => (
+            {notConfigured.map(({ engine, connected, supports, relevant, enabled, weight }) => (
               <EngineCard
                 key={engine.id}
                 engine={engine}
@@ -174,7 +184,7 @@ export default function EngineStatusPanel({ selectedType }: Props) {
                 relevant={relevant}
                 enabled={enabled}
                 selectedType={selectedType}
-                weight={weights?.[engine.id] ?? null}
+                weight={weight}
                 onToggle={() => toggle(engine.id)}
               />
             ))}

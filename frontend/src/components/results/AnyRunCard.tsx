@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Loader2, ChevronDown, FileCode2, ExternalLink } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
 import ScoreBadge from './ScoreBadge'
-import WeightBadge from './WeightBadge'
+import WeightBadge, { type CardWeight } from './WeightBadge'
 import type { IndicatorType } from '@/registry'
 
 interface RelatedIP {
@@ -53,7 +53,7 @@ interface Props {
   error: string | null
   data: AnyRunResponse | null
   score?: number | null
-  weight?: number | null
+  weight?: CardWeight | null
   indicator?: string
   type?: IndicatorType
 }

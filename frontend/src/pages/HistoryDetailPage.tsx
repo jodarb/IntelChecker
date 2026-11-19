@@ -7,7 +7,10 @@ import SummarySection from '@/components/results/SummarySection'
 import SearchFrequencyCard from '@/components/results/SearchFrequencyCard'
 import RawJsonModal from '@/components/results/RawJsonModal'
 import { useEngines } from '@/EnginesContext'
-import { getEngineSubscore, type VerdictContribution } from '@/verdictEngine'
+import {
+  getEngineAssessment, type Quadrant, type VerdictContributions, type VerdictResult,
+} from '@/verdictEngine'
+import { useVerdictWeights } from '@/hooks/useVerdictWeights'
 import type { IndicatorType, QueryResult } from '@/registry'
 
 interface StoredEngineResult {
@@ -21,9 +24,11 @@ interface HistoryDetail {
   indicator: string
   type: IndicatorType
   timestamp: string
-  score: number | null
+  score: number | null            // Risk Score
+  knowledge_score: number | null  // null for entries saved before the two-score model
+  quadrant: Quadrant | null
   results: Record<string, StoredEngineResult>
-  contributions: VerdictContribution[]
+  contributions: VerdictContributions
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -67,6 +72,7 @@ function UnknownEngineCard({ label, data }: { label: string; data: unknown }) {
 export default function HistoryDetailPage() {
   const { id } = useParams()
   const { engines } = useEngines()
+  const config = useVerdictWeights()
   const [entry, setEntry] = useState<HistoryDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -106,6 +112,21 @@ export default function HistoryDetailPage() {
     Object.entries(entry.results).map(([id, r]) => [id, { loading: false, data: r.data, error: r.error }]),
   )
   const enginesForSummary = engines.filter(e => e.id in entry.results)
+  const assessments = Object.fromEntries(
+    Object.keys(entry.results).map(id => [id, getEngineAssessment(id, entry.type, resultsForSummary[id])]),
+  )
+  // Scores are the ones computed at query time (with the weights in force then),
+  // not recomputed with today's weights.
+  const verdict: VerdictResult = {
+    risk: entry.score,
+    knowledge: entry.knowledge_score,
+    quadrant: entry.quadrant,
+    contributions: entry.contributions,
+    responded: Object.values(assessments).filter(a => a.outcome !== 'excluded').length,
+    queried: Object.values(entry.results)
+      .filter(r => (r.data as { error?: { code?: string } })?.error?.code !== 'MissingApiKey').length,
+  }
+  const isLegacy = entry.knowledge_score == null && entry.contributions.knowledge.length === 0
 
   return (
     <Layout>
@@ -137,9 +158,15 @@ export default function HistoryDetailPage() {
           type={entry.type}
           engines={enginesForSummary}
           results={resultsForSummary}
-          score={entry.score}
-          contributions={entry.contributions}
+          verdict={verdict}
+          thresholds={config?.thresholds ?? null}
         />
+
+        {isLegacy && (
+          <p className="text-xs text-muted-foreground -mt-3">
+            This entry predates the Knowledge Score — only its Risk Score was recorded.
+          </p>
+        )}
 
         <div className="flex flex-col gap-3">
           <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Results by engine</p>
@@ -150,8 +177,13 @@ export default function HistoryDetailPage() {
                 return <UnknownEngineCard key={engineId} label={stored.label} data={stored.data} />
               }
               const Component = engine.component
-              const score = getEngineSubscore(engineId, entry.type, stored.data)
-              const weight = entry.contributions.find(c => c.engineId === engineId)?.weight ?? 0
+              const assessment = assessments[engineId]
+              const score = assessment.subscore
+              const weight = {
+                risk: entry.contributions.risk.find(c => c.engineId === engineId)?.weight ?? 0,
+                knowledge: entry.contributions.knowledge.find(c => c.engineId === engineId)?.weight ?? 0,
+                depth: assessment.depth,
+              }
               return (
                 <Component
                   key={engineId}

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Loader2, ChevronDown, FileCode2 } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
 import ScoreBadge from './ScoreBadge'
-import WeightBadge from './WeightBadge'
+import WeightBadge, { type CardWeight } from './WeightBadge'
 
 interface MitreItem {
   attack_id: string
@@ -25,7 +25,7 @@ interface Props {
   error: string | null
   data: MitreAttackResponse | null
   score?: number | null
-  weight?: number | null
+  weight?: CardWeight | null
 }
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {

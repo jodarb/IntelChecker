@@ -42,6 +42,23 @@ export const SUMMARY_FIELDS: SummaryField[] = ['country', 'asn', 'isp', 'torExit
 // Registry: engineId → indicatorType → extractors
 // Add new fields here when new summary data points are needed.
 export const SUMMARY_REGISTRY: Record<string, Partial<Record<IndicatorType, SummaryExtractorDef[]>>> = {
+  // TweetFeed only carries geo/network context once the indicator has been
+  // reported (net for IPs, reg for domains/URLs).
+  tweetfeed: {
+    ip: [
+      { field: 'country', extract: (d) => ((d as any)?.net?.country) || null },
+      { field: 'asn', extract: (d) => ((d as any)?.net?.org as string)?.match(/^AS\d+/)?.[0] || null },
+      { field: 'isp', extract: (d) => ((d as any)?.net?.org as string)?.replace(/^AS\d+\s*/, '') || null },
+    ],
+    domain: [
+      { field: 'asn', extract: (d) => ((d as any)?.reg?.asn) || null },
+      { field: 'isp', extract: (d) => ((d as any)?.reg?.org) || null },
+    ],
+    url: [
+      { field: 'asn', extract: (d) => ((d as any)?.reg?.asn) || null },
+      { field: 'isp', extract: (d) => ((d as any)?.reg?.org) || null },
+    ],
+  },
   abuseipdb: {
     ip: [
       { field: 'country', extract: (d) => ((d as any)?.data?.countryCode) || null },

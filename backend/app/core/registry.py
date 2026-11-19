@@ -19,6 +19,7 @@ ENGINES: dict[str, dict] = {
     "greynoise":   {"supports": ["ip"],                            "key": "GREYNOISE_API_KEY"},
     "hybridanalysis": {"supports": ["ip", "domain", "url", "hash"], "key": "HYBRID_ANALYSIS_API_KEY"},
     "safebrowsing": {"supports": ["url"],                          "key": "GOOGLE_SAFE_BROWSING_API_KEY"},
+    "tweetfeed":   {"supports": ["ip", "domain", "url", "hash"],   "key": None},
 }
 
 # MISP is multi-instance: any number of servers can be defined via MISP_<N>_*
@@ -30,5 +31,4 @@ for _inst in MISP_INSTANCES:
         "key": None,
         "name": _inst["name"],
         "connected": bool(_inst["url"]) and bool(_inst["key"]),
-        "weight": _inst["weight"],
     }

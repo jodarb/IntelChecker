@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Loader2, ChevronDown, FileCode2, ExternalLink } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
 import ScoreBadge from './ScoreBadge'
-import WeightBadge from './WeightBadge'
+import WeightBadge, { type CardWeight } from './WeightBadge'
 
 interface MispTag {
   name: string
@@ -51,7 +51,7 @@ interface Props {
   data: MispResponse | null
   label?: string
   score?: number | null
-  weight?: number | null
+  weight?: CardWeight | null
 }
 
 const THREAT_LEVEL: Record<string, { label: string; style: string }> = {

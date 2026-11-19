@@ -7,7 +7,11 @@ import SummarySection from '@/components/results/SummarySection'
 import SearchFrequencyCard from '@/components/results/SearchFrequencyCard'
 import { getEnginesForType, type EngineConfig, type IndicatorType, type QueryResult } from '@/registry'
 import DisconnectedCard from '@/components/results/DisconnectedCard'
-import { computeVerdict, getEngineSubscore } from '@/verdictEngine'
+import {
+  computeVerdict, getEngineAssessment, knowledgeWeightOf, riskWeightOf, EMPTY_VERDICT,
+  type VerdictConfig,
+} from '@/verdictEngine'
+import type { CardWeight } from '@/components/results/WeightBadge'
 import { useVerdictWeights } from '@/hooks/useVerdictWeights'
 import { useEngineToggles } from '@/hooks/useEngineToggles'
 import { useEngines } from '@/EnginesContext'
@@ -56,16 +60,25 @@ function useAllEngineQueries(
   return results
 }
 
+function cardWeight(
+  config: VerdictConfig | null, engineId: string, type: IndicatorType, depth: number | null,
+): CardWeight | null {
+  if (!config) return null
+  return { risk: riskWeightOf(config, engineId), knowledge: knowledgeWeightOf(config, engineId, type), depth }
+}
+
 function EngineCard({
-  engine, result, type, weight, indicator,
+  engine, result, type, config, indicator,
 }: {
   engine: EngineConfig
   result: QueryResult | undefined
   type: IndicatorType
-  weight: number | null
+  config: VerdictConfig | null
   indicator: string
 }) {
   const Component = engine.component
+  const assessment = getEngineAssessment(engine.id, type, result)
+  const weight = cardWeight(config, engine.id, type, assessment.depth)
   if (!result) {
     return (
       <Component
@@ -78,7 +91,7 @@ function EngineCard({
   if (!result.loading && apiErrorCode === 'MissingApiKey') {
     return <DisconnectedCard label={engine.label} />
   }
-  const score = result.loading ? null : getEngineSubscore(engine.id, type, result.data)
+  const score = result.loading ? null : assessment.subscore
   return (
     <Component
       loading={result.loading}
@@ -106,27 +119,28 @@ export default function ResultsPage() {
     [engines, disabled],
   )
   const results = useAllEngineQueries(activeEngines, indicator, type, !enginesLoading)
-  const weights = useVerdictWeights()
+  const config = useVerdictWeights()
 
   const verdict = useMemo(() => {
-    if (!weights) return { score: null, contributions: [] }
-    return computeVerdict(weights, activeEngines, results, type)
-  }, [weights, activeEngines, results, type])
+    if (!config) return EMPTY_VERDICT
+    return computeVerdict(config, activeEngines, results, type)
+  }, [config, activeEngines, results, type])
 
-  // Highest-weighted engines float to the top — Array#sort is stable, so engines
-  // sharing a weight (including ones absent from weights.json, treated as 0) keep
-  // their original relative order.
+  // Highest-weighted engines float to the top (risk weight first, knowledge weight
+  // as tie-breaker) — Array#sort is stable, so ties keep their original order.
   const sortedEngines = useMemo(() => {
-    if (!weights) return engines
-    return [...engines].sort((a, b) => (weights[b.id] ?? 0) - (weights[a.id] ?? 0))
-  }, [engines, weights])
+    if (!config) return engines
+    return [...engines].sort((a, b) =>
+      riskWeightOf(config, b.id) - riskWeightOf(config, a.id)
+      || knowledgeWeightOf(config, b.id, type) - knowledgeWeightOf(config, a.id, type))
+  }, [engines, config, type])
 
   // Once every active engine has settled, log this query to the history DB —
   // once per indicator+type, not on every re-render (e.g. toggling an engine
   // shouldn't spawn a new history entry for the same search).
   const savedKeyRef = useRef<string | null>(null)
   useEffect(() => {
-    if (!indicator || !weights || activeEngines.length === 0) return
+    if (!indicator || !config || activeEngines.length === 0) return
     const allSettled = activeEngines.every(e => results[e.id] && !results[e.id].loading)
     if (!allSettled) return
 
@@ -145,12 +159,18 @@ export default function ResultsPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        indicator, type, score: verdict.score, results: snapshot, contributions: verdict.contributions,
+        indicator,
+        type,
+        score: verdict.risk,
+        knowledge_score: verdict.knowledge,
+        quadrant: verdict.quadrant,
+        results: snapshot,
+        contributions: verdict.contributions,
       }),
     }).catch(() => {
       // History logging is best-effort — a failure here shouldn't disrupt the lookup itself.
     })
-  }, [indicator, type, weights, activeEngines, results, verdict])
+  }, [indicator, type, config, activeEngines, results, verdict])
 
   return (
     <Layout>
@@ -179,8 +199,8 @@ export default function ResultsPage() {
           type={type}
           engines={activeEngines}
           results={results}
-          score={verdict.score}
-          contributions={verdict.contributions}
+          verdict={verdict}
+          thresholds={config?.thresholds ?? null}
         />
 
         {/* Engine results */}
@@ -196,7 +216,7 @@ export default function ResultsPage() {
                     engine={engine}
                     result={results[engine.id]}
                     type={type}
-                    weight={weights?.[engine.id] ?? null}
+                    config={config}
                     indicator={indicator}
                   />
                 )

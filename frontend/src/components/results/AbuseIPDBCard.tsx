@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Loader2, AlertCircle, CheckCircle2, ShieldX, ChevronDown, FileCode2, ExternalLink } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
 import EngineScoreBadge from './ScoreBadge'
-import WeightBadge from './WeightBadge'
+import WeightBadge, { type CardWeight } from './WeightBadge'
 
 interface AbuseData {
   ipAddress: string
@@ -31,7 +31,7 @@ interface Props {
   error: string | null
   data: AbuseIPDBResponse | null
   score?: number | null
-  weight?: number | null
+  weight?: CardWeight | null
 }
 
 function ScoreBadge({ score }: { score: number }) {

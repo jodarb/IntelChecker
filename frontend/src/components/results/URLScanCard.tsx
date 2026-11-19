@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Loader2, ChevronDown, FileCode2, Tag, ExternalLink, Camera } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
 import ScoreBadge from './ScoreBadge'
-import WeightBadge from './WeightBadge'
+import WeightBadge, { type CardWeight } from './WeightBadge'
 
 interface URLScanResult {
   task?: { time?: string; tags?: string[]; uuid?: string; url?: string }
@@ -22,7 +22,7 @@ interface Props {
   error: string | null
   data: URLScanResponse | null
   score?: number | null
-  weight?: number | null
+  weight?: CardWeight | null
 }
 
 function TagChip({ tag }: { tag: string }) {
