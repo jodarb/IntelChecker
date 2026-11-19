@@ -1,31 +1,64 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// Cross-source aggregates for the Summary panel: malware families, tags, threat
-// actors / campaigns, first/last seen and which sources flagged the indicator.
+// Cross-source aggregates for the Summary panel: malware families, threat actor
+// relations, campaigns, first/last seen and which sources flagged the indicator.
 // Extractors read each engine's raw payload (the same JSON the cards render), so
 // they work identically for live lookups and frozen history entries.
 //
-// Families and tags are kept apart on purpose:
-//   * families come only from structured fields (ThreatFox malware, MalwareBazaar
-//     signature, OTX malware_families, MISP malware galaxies, VT threat names…);
-//   * tags are free text, so they're filtered hard — OTX pulses that dump scraped
-//     keywords, MISP org-specific namespaces, ASN / ISP names, file-format words.
+// Families come only from structured fields (ThreatFox malware, MalwareBazaar
+// signature, OTX malware_families, MISP malware galaxies, VT threat names…).
+// Free-text tags are not shown; they're only scanned for threat actor names
+// (matched against MITRE ATT&CK groups), so a feed that only tags an actor still
+// counts as a relation.
+//
+// Every value keeps its provenance (source, field, pulse/event) so the Summary can
+// show where it came from. Families and actors taken from a *bulk* OTX pulse (a
+// weekly roundup or a feed with ≥ BULK_PULSE_MIN indicators) are dropped: they
+// describe the report, not necessarily this indicator.
 import type { EngineConfig, IndicatorType, QueryResult } from '@/registry'
 import { getEngineAssessment } from '@/verdictEngine'
-import { SUMMARY_REGISTRY } from '@/summaryRegistry'
+
+/** Where a value was read from — i18n key `prov.<field>` describes it. */
+export type ProvField =
+  | 'vt.threatName' | 'vt.category' | 'vt.tag'
+  | 'tf.family' | 'tf.threatType' | 'tf.tag'
+  | 'bazaar.signature' | 'bazaar.tag'
+  | 'urlhaus.payload' | 'urlhaus.threat' | 'urlhaus.tag'
+  | 'otx.family' | 'otx.tag' | 'otx.adversary' | 'otx.related'
+  | 'tweetfeed.family' | 'tweetfeed.tag' | 'tweetfeed.campaign'
+  | 'anyrun.threat' | 'anyrun.tag'
+  | 'hybrid.family'
+  | 'urlscan.tag'
+  | 'mitre.group' | 'mitre.software'
+  | 'misp.galaxyActor' | 'misp.galaxyFamily' | 'misp.tag'
+  | 'rf.rule'
+
+/** A raw value plus where it came from. */
+interface Item {
+  value: unknown
+  field: ProvField
+  /** Pulse name, MISP event title… */
+  context?: string
+  /** Number of indicators in that pulse/report, when known */
+  size?: number
+  /** From a bulk report: describes the report, not necessarily this indicator */
+  indirect?: boolean
+}
 
 interface EngineIntel {
-  families: string[]
+  families: Item[]
   /** family name → aliases a source declares for it (ThreatFox malware_alias) */
   aliases: [string, string[]][]
-  tags: string[]
-  actors: string[]
-  campaigns: string[]
+  tags: Item[]
+  actors: Item[]
+  /** A source links the indicator to an actor without naming it (Recorded Future "Linked to APT") */
+  unnamedActorLinks: { rule: string; evidence?: string }[]
+  campaigns: Item[]
   firstSeen: (string | number | null | undefined)[]
   lastSeen: (string | number | null | undefined)[]
 }
 
 const empty = (): EngineIntel => ({
-  families: [], aliases: [], tags: [], actors: [], campaigns: [], firstSeen: [], lastSeen: [],
+  families: [], aliases: [], tags: [], actors: [], unnamedActorLinks: [], campaigns: [], firstSeen: [], lastSeen: [],
 })
 
 const arr = <T = any>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : [])
@@ -37,6 +70,12 @@ const str = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? 
  * are ignored, but its malware families, adversary and dates still count.
  */
 const MAX_TAGS_PER_PULSE = 15
+
+/** An OTX pulse with at least this many indicators is a bulk feed / report. */
+export const BULK_PULSE_MIN = 100
+
+const it = (field: ProvField, extra: Omit<Item, 'value' | 'field'> = {}) =>
+  (value: unknown): Item => ({ value, field, ...extra })
 
 // ── Date parsing ─────────────────────────────────────────────────────────────
 
@@ -74,19 +113,22 @@ const MISP_TAG_NS = /^(ecsirt:malicious-code|malware_classification|ms-caro-malw
 
 function mispIntel(d: any): EngineIntel {
   const out = empty()
-  const tagNames = [
-    ...arr(d?.Attribute).flatMap(a => arr(a?.Tag).map(t => t?.name)),
-    ...Object.values(d?.Events ?? {}).flatMap((e: any) => arr(e?.Tag).map(t => t?.name)),
-  ].filter((n): n is string => typeof n === 'string')
+  const events = (d?.Events ?? {}) as Record<string, any>
+  const tagged: { name: string; context?: string }[] = [
+    ...arr(d?.Attribute).flatMap(a => arr(a?.Tag).map(t => ({
+      name: t?.name, context: events[a?.event_id]?.info ?? a?.Event?.info,
+    }))),
+    ...Object.values(events).flatMap((e: any) => arr(e?.Tag).map(t => ({ name: t?.name, context: e?.info }))),
+  ].filter(x => typeof x.name === 'string')
 
-  for (const name of tagNames) {
+  for (const { name, context } of tagged) {
     const mt = machineTag(name)
     if (mt) {
-      if (mt.ns.startsWith('misp-galaxy:') && MISP_ACTOR_NS.test(mt.ns)) out.actors.push(mt.value)
-      else if (mt.ns.startsWith('misp-galaxy:') && MISP_FAMILY_NS.test(mt.ns)) out.families.push(mt.value)
-      else if (MISP_TAG_NS.test(mt.ns)) out.tags.push(mt.value)
+      if (mt.ns.startsWith('misp-galaxy:') && MISP_ACTOR_NS.test(mt.ns)) out.actors.push({ value: mt.value, field: 'misp.galaxyActor', context })
+      else if (mt.ns.startsWith('misp-galaxy:') && MISP_FAMILY_NS.test(mt.ns)) out.families.push({ value: mt.value, field: 'misp.galaxyFamily', context })
+      else if (MISP_TAG_NS.test(mt.ns)) out.tags.push({ value: mt.value, field: 'misp.tag', context })
     } else if (!name.includes(':')) {
-      out.tags.push(name)
+      out.tags.push({ value: name, field: 'misp.tag', context })
     }
   }
   for (const a of arr(d?.Attribute)) {
@@ -106,8 +148,8 @@ const EXTRACTORS: Record<string, (d: any) => EngineIntel> = {
     const a = d?.data?.attributes ?? {}
     const out = empty()
     const ptc = a.popular_threat_classification
-    out.families.push(...arr(ptc?.popular_threat_name).map(x => x?.value))
-    out.tags.push(...arr(ptc?.popular_threat_category).map(x => x?.value), ...arr(a.tags))
+    out.families.push(...arr(ptc?.popular_threat_name).map(x => x?.value).map(it('vt.threatName')))
+    out.tags.push(...arr(ptc?.popular_threat_category).map(x => x?.value).map(it('vt.category')), ...arr(a.tags).map(it('vt.tag')))
     out.firstSeen.push(a.first_submission_date)
     out.lastSeen.push(a.last_submission_date)
     return out
@@ -117,10 +159,10 @@ const EXTRACTORS: Record<string, (d: any) => EngineIntel> = {
     for (const ioc of arr(d?.data)) {
       const family = str(ioc?.malware_printable)
       if (family && !/^unknown/i.test(family)) {
-        out.families.push(family)
+        out.families.push({ value: family, field: 'tf.family' })
         out.aliases.push([family, splitList(ioc?.malware_alias)])
       }
-      out.tags.push(ioc?.threat_type, ...arr(ioc?.tags))
+      out.tags.push({ value: ioc?.threat_type, field: 'tf.threatType' }, ...arr(ioc?.tags).map(it('tf.tag')))
       out.firstSeen.push(ioc?.first_seen)
       out.lastSeen.push(ioc?.last_seen ?? ioc?.first_seen)
     }
@@ -129,8 +171,8 @@ const EXTRACTORS: Record<string, (d: any) => EngineIntel> = {
   malwarebazaar: d => {
     const out = empty()
     for (const s of arr(d?.data)) {
-      out.families.push(s?.signature)
-      out.tags.push(...arr(s?.tags))
+      out.families.push({ value: s?.signature, field: 'bazaar.signature' })
+      out.tags.push(...arr(s?.tags).map(it('bazaar.tag')))
       out.firstSeen.push(s?.first_seen)
       out.lastSeen.push(s?.last_seen ?? s?.first_seen)
     }
@@ -138,12 +180,12 @@ const EXTRACTORS: Record<string, (d: any) => EngineIntel> = {
   },
   urlhaus: d => {
     const out = empty()
-    out.families.push(...arr(d?.payloads).map(p => p?.signature))
-    out.tags.push(d?.threat, ...arr(d?.tags))
+    out.families.push(...arr(d?.payloads).map(p => p?.signature).map(it('urlhaus.payload')))
+    out.tags.push({ value: d?.threat, field: 'urlhaus.threat' }, ...arr(d?.tags).map(it('urlhaus.tag')))
     out.firstSeen.push(d?.date_added)
     out.lastSeen.push(d?.last_online, d?.date_added)
     for (const u of arr(d?.urls)) {
-      out.tags.push(u?.threat, ...arr(u?.tags))
+      out.tags.push({ value: u?.threat, field: 'urlhaus.threat' }, ...arr(u?.tags).map(it('urlhaus.tag')))
       out.firstSeen.push(u?.date_added)
       out.lastSeen.push(u?.date_added)
     }
@@ -165,30 +207,51 @@ const EXTRACTORS: Record<string, (d: any) => EngineIntel> = {
         typeof t === 'string'
         && !/^[a-z0-9]+( [a-z0-9]+)+$/.test(t)
         && !handles.some(h => norm(t).length >= 4 && h.startsWith(norm(t))))
-      if (arr(p?.tags).length <= MAX_TAGS_PER_PULSE) out.tags.push(...tags)
-      out.families.push(...arr(p?.malware_families).map(m => (typeof m === 'string' ? m : m?.display_name)))
-      out.actors.push(p?.adversary)
+      const context = str(p?.name) ?? undefined
+      const size = typeof p?.indicator_count === 'number' ? p.indicator_count : undefined
+      // A roundup / bulk feed lists many campaigns: its families and adversary
+      // describe the report, not necessarily this indicator. Its *tags* (proxy,
+      // tor, scanner…) do apply to every indicator in the feed, so they stay direct.
+      const indirect = (size ?? 0) >= BULK_PULSE_MIN || /round-?up/i.test(context ?? '')
+      if (arr(p?.tags).length <= MAX_TAGS_PER_PULSE) out.tags.push(...tags.map(it('otx.tag', { context, size })))
+      out.families.push(...arr(p?.malware_families)
+        .map(m => (typeof m === 'string' ? m : m?.display_name))
+        .map(it('otx.family', { context, size, indirect })))
+      out.actors.push({ value: p?.adversary, field: 'otx.adversary', context, size, indirect })
       out.firstSeen.push(p?.created)
       out.lastSeen.push(p?.modified ?? p?.created)
+    }
+    // OTX's own summary of adversaries across every pulse that references the indicator.
+    for (const group of Object.values(d?.pulse_info?.related ?? {}) as any[]) {
+      out.actors.push(...arr(group?.adversary).map(it('otx.related')))
     }
     return out
   },
   recordedfuture: d => {
     const out = empty()
+    for (const e of arr(d?.risk?.evidenceDetails)) {
+      const rule = str(e?.rule)
+      if (!rule || !/linked to (apt|threat actor)/i.test(rule)) continue
+      const evidence = str(e?.evidenceString) ?? undefined
+      // When RF names the actors ("… related threat actors including APT28, …"), keep them.
+      const named = evidence?.match(/related (?:threat actors?|APT groups?|actors?) including ([^.]+)/i)?.[1]
+      if (named) out.actors.push(...named.split(',').map(x => x.trim()).filter(Boolean).map(it('rf.rule', { context: rule })))
+      else out.unnamedActorLinks.push({ rule, evidence })
+    }
     out.firstSeen.push(d?.timestamps?.firstSeen)
     out.lastSeen.push(d?.timestamps?.lastSeen)
     return out
   },
   tweetfeed: d => {
     const out = empty()
-    out.families.push(d?.ai?.family)
+    out.families.push({ value: d?.ai?.family, field: 'tweetfeed.family' })
     for (const r of arr(d?.records)) {
-      out.tags.push(...arr(r?.tags))
+      out.tags.push(...arr(r?.tags).map(it('tweetfeed.tag')))
       out.firstSeen.push(r?.first_seen)
       out.lastSeen.push(r?.last_seen)
     }
     for (const c of arr(d?.campaigns)) {
-      out.campaigns.push(c?.name)
+      out.campaigns.push({ value: c?.name, field: 'tweetfeed.campaign' })
       out.lastSeen.push(c?.last_seen)
     }
     return out
@@ -201,9 +264,9 @@ const EXTRACTORS: Record<string, (d: any) => EngineIntel> = {
   },
   anyrun: d => {
     const out = empty()
-    out.tags.push(...arr(d?.summary?.tags))
+    out.tags.push(...arr(d?.summary?.tags).map(it('anyrun.tag')))
     for (const k of ['destinationIP', 'relatedDNS', 'relatedURLs']) {
-      for (const x of arr(d?.[k])) out.families.push(...arr(x?.threatName))
+      for (const x of arr(d?.[k])) out.families.push(...arr(x?.threatName).map(it('anyrun.threat')))
     }
     out.lastSeen.push(d?.summary?.lastSeen)
     return out
@@ -211,7 +274,7 @@ const EXTRACTORS: Record<string, (d: any) => EngineIntel> = {
   hybridanalysis: d => {
     const out = empty()
     for (const r of arr(d?.result)) {
-      out.families.push(r?.vx_family)
+      out.families.push({ value: r?.vx_family, field: 'hybrid.family', context: str(r?.submit_name) ?? undefined })
       out.firstSeen.push(r?.analysis_start_time)
       out.lastSeen.push(r?.analysis_start_time)
     }
@@ -220,7 +283,7 @@ const EXTRACTORS: Record<string, (d: any) => EngineIntel> = {
   urlscan: d => {
     const out = empty()
     for (const r of arr(d?.results)) {
-      out.tags.push(...arr(r?.task?.tags))
+      out.tags.push(...arr(r?.task?.tags).map(it('urlscan.tag', { context: str(r?.task?.url) ?? undefined })))
       out.firstSeen.push(r?.task?.time)
       out.lastSeen.push(r?.task?.time)
     }
@@ -233,8 +296,8 @@ const EXTRACTORS: Record<string, (d: any) => EngineIntel> = {
   },
   mitreattack: d => {
     const out = empty()
-    if (str(d?.name)) out.actors.push(d.name)
-    out.families.push(...arr(d?.software).map(s => s?.name))
+    if (str(d?.name)) out.actors.push({ value: d.name, field: 'mitre.group' })
+    out.families.push(...arr(d?.software).map(s => s?.name).map(it('mitre.software')))
     return out
   },
 }
@@ -266,17 +329,8 @@ const GENERIC = new Set([
   'daily', 'weekly', 'monthly', 'feed', 'blocklist', 'blacklist',
 ])
 
-function isNoiseTag(v: string, orgNames: Set<string>): boolean {
-  const n = norm(v)
-  return n.length < 2 || v.length > 40 || GENERIC.has(n)
-    || /^as\d+$/i.test(v.trim()) // ASN — already shown in the ASN field
-    || orgNames.has(n) // ISP / org name — already shown in the ISP field
-    || /^\d+(\.\d+)*$/.test(v) // bare numbers / versions / IPs
-}
-
 // Common malware families and their aliases (first entry = display name). Works
 // offline; when the backend can reach MITRE ATT&CK its software aliases are added.
-// Anything here is also promoted from a free-text tag to a malware family.
 const FAMILY_ALIASES: string[][] = [
   ['QakBot', 'Qbot', 'Qakbot', 'Pinkslipbot', 'QuackBot'],
   ['Gh0st RAT', 'Ghost RAT', 'Gh0st', 'Farfli', 'PCRat'],
@@ -329,38 +383,46 @@ export interface MitreAliases {
   software: string[][]
 }
 
-// Different spellings of the same concept collapse into one tag.
-const SYNONYMS: Record<string, string> = {
-  c2: 'c2', cc: 'c2', cnc: 'c2', botnetcc: 'c2', c2server: 'c2', commandandcontrol: 'c2', c2c: 'c2',
-  phishing: 'phishing', phish: 'phishing',
-  rat: 'rat', remoteaccesstrojan: 'rat',
-  ransomware: 'ransomware', ransom: 'ransomware',
-  stealer: 'stealer', infostealer: 'stealer',
-  scanner: 'scanner', scanning: 'scanner', webscan: 'scanner', webscanner: 'scanner', probing: 'scanner',
-  bruteforce: 'bruteforce', sshbruteforce: 'bruteforce',
-}
-const DISPLAY: Record<string, string> = { c2: 'C2', rat: 'RAT', phishing: 'Phishing', ransomware: 'Ransomware', stealer: 'Stealer', scanner: 'Scanner', bruteforce: 'Brute force' }
+type Bucket = Map<string, { value: string; engines: Set<string>; sources: Provenance[]; direct: boolean }>
 
-type Bucket = Map<string, { value: string; engines: Set<string> }>
-
-function add(target: Bucket, key: string, value: string, engine: string, display?: string) {
-  const entry = target.get(key) ?? { value: display ?? DISPLAY[key] ?? value, engines: new Set<string>() }
+function add(target: Bucket, key: string, raw: string, engine: string, item: Item, display?: string) {
+  const entry = target.get(key) ?? { value: display ?? raw, engines: new Set<string>(), sources: [], direct: false }
   entry.engines.add(engine)
+  const indirect = !!item.indirect
+  if (!indirect) entry.direct = true
+  const dup = entry.sources.some(s => s.engine === engine && s.field === item.field && s.context === item.context && s.raw === raw)
+  if (!dup) entry.sources.push({ engine, field: item.field, raw, context: item.context, size: item.size, indirect })
   target.set(key, entry)
 }
 
 const ranked = (m: Bucket): AggregatedValue[] =>
   [...m.values()]
-    .map(e => ({ value: e.value, engines: [...e.engines] }))
-    // Stable sort: insertion order breaks ties.
-    .sort((a, b) => b.engines.length - a.engines.length)
+    .map(e => ({ value: e.value, engines: [...e.engines], sources: e.sources, indirect: !e.direct }))
+    // Direct before indirect, then by number of sources; stable for ties.
+    .sort((a, b) => Number(a.indirect) - Number(b.indirect) || b.engines.length - a.engines.length)
 
 // ── Public API ───────────────────────────────────────────────────────────────
+
+export interface Provenance {
+  /** Engine label */
+  engine: string
+  field: ProvField
+  /** The value exactly as the source wrote it */
+  raw: string
+  /** Pulse name, MISP event title… */
+  context?: string
+  /** Indicators in that pulse/report */
+  size?: number
+  indirect: boolean
+}
 
 export interface AggregatedValue {
   value: string
   /** Engine labels that reported it */
   engines: string[]
+  sources: Provenance[]
+  /** Every source for it is indirect (bulk report) */
+  indirect: boolean
 }
 
 export interface SeenDate {
@@ -374,10 +436,19 @@ export interface FlaggedSource {
   subscore: number
 }
 
+export interface UnnamedActorLink {
+  engine: string
+  rule: string
+  evidence?: string
+}
+
 export interface IntelSummary {
+  /** Families attributed directly to the indicator (bulk-report mentions dropped) */
   families: AggregatedValue[]
-  tags: AggregatedValue[]
+  /** Named threat actors some source relates the indicator to */
   actors: AggregatedValue[]
+  /** Sources that link it to an actor without naming one */
+  unnamedActorLinks: UnnamedActorLink[]
   campaigns: AggregatedValue[]
   firstSeen: SeenDate | null
   lastSeen: SeenDate | null
@@ -399,7 +470,6 @@ export function aggregateIntel(
   let responded = 0
   let loading = false
   const perEngine: { label: string; intel: EngineIntel }[] = []
-  const orgNames = new Set<string>()
 
   for (const engine of engines) {
     const result = results[engine.id]
@@ -410,11 +480,6 @@ export function aggregateIntel(
     if (a.outcome === 'hit' && a.subscore != null) flagged.push({ engineId: engine.id, label: engine.label, subscore: a.subscore })
     if (a.outcome === 'clean') clean.push(engine.label)
 
-    for (const ex of SUMMARY_REGISTRY[engine.id]?.[type] ?? []) {
-      if (ex.field !== 'isp') continue
-      const v = ex.extract(result?.data)
-      if (v) orgNames.add(norm(v))
-    }
     const intel = extract(engine.id, result?.data)
     if (intel) perEngine.push({ label: engine.label, intel })
   }
@@ -425,27 +490,23 @@ export function aggregateIntel(
   // "rat" are registered too ("Gh0st RAT" ↔ "Gh0st").
   const aliasOf = new Map<string, string>()
   const familyName = new Map<string, string>() // canonical key → display name
-  const knownFamily = new Set<string>() // keys that may be promoted from tags
   const variants = (v: string) => [norm(v), norm(v).replace(/rat$/, '')].filter(k => k.length >= 3)
-  const register = (names: string[], promote: boolean) => {
+  const register = (names: string[]) => {
     const first = names.find(n => norm(n).length >= 3)
     if (!first) return
     // Join an existing group if any spelling is already known.
     const key = names.map(n => aliasOf.get(norm(n))).find(Boolean) ?? norm(first)
     if (!familyName.has(key)) familyName.set(key, first)
-    if (promote) knownFamily.add(key)
     for (const n of names) for (const k of variants(n)) if (!aliasOf.has(k)) aliasOf.set(k, key)
   }
-  for (const names of FAMILY_ALIASES) register(names, true)
-  // MITRE software only merges spellings; it isn't used to promote tags because it
-  // also lists generic utilities ("at", "ping", "Tor") that are common tags.
-  for (const names of mitre?.software ?? []) register(names, false)
+  for (const names of FAMILY_ALIASES) register(names)
+  for (const names of mitre?.software ?? []) register(names)
   for (const { intel } of perEngine) {
-    for (const [family, aliases] of intel.aliases) register([family, ...aliases], false)
+    for (const [family, aliases] of intel.aliases) register([family, ...aliases])
   }
   const canon = (v: string) => {
     const n = norm(v)
-    return SYNONYMS[n] ?? aliasOf.get(n) ?? aliasOf.get(n.replace(/rat$/, '')) ?? n
+    return aliasOf.get(n) ?? aliasOf.get(n.replace(/rat$/, '')) ?? n
   }
 
   // Threat actor names (MITRE groups and their aliases): an actor that a feed only
@@ -459,29 +520,32 @@ export function aggregateIntel(
   }
 
   const families: Bucket = new Map()
-  const tags: Bucket = new Map()
   const actors: Bucket = new Map()
+  const unnamedActorLinks: UnnamedActorLink[] = []
   const campaigns: Bucket = new Map()
   let firstSeen: SeenDate | null = null
   let lastSeen: SeenDate | null = null
 
   for (const { label, intel } of perEngine) {
-    for (const raw of intel.families) {
-      const v = str(raw)
+    for (const link of intel.unnamedActorLinks) unnamedActorLinks.push({ engine: label, ...link })
+    for (const item of intel.families) {
+      if (item.indirect) continue
+      const v = str(item.value)
       if (v && !GENERIC.has(norm(v)) && norm(v).length >= 2) {
         const key = canon(v)
-        add(families, key, v, label, familyName.get(key))
+        add(families, key, v, label, item, familyName.get(key))
       }
     }
-    for (const raw of intel.actors) {
-      const v = str(raw)
+    for (const item of intel.actors) {
+      if (item.indirect) continue
+      const v = str(item.value)
       if (!v) continue
       const name = actorOf.get(norm(v))
-      add(actors, name ? norm(name) : norm(v), name ?? v, label)
+      add(actors, name ? norm(name) : norm(v), v, label, item, name)
     }
-    for (const raw of intel.campaigns) {
-      const v = str(raw)
-      if (v) add(campaigns, norm(v), v, label)
+    for (const item of intel.campaigns) {
+      const v = str(item.value)
+      if (v) add(campaigns, norm(v), v, label, item)
     }
     for (const v of intel.firstSeen) {
       const d = parseDate(v)
@@ -493,26 +557,23 @@ export function aggregateIntel(
     }
   }
 
-  // Tags last, so anything that is already a family (or an alias of one) isn't
-  // repeated as a tag.
+  // Tags aren't shown, but a tag that is a known actor name ("Kimsuky" on an OTX
+  // pulse) is a relation to that actor.
   for (const { label, intel } of perEngine) {
-    // Some feeds pack several labels into one tag ("webscanner, bruteforce").
-    for (const raw of intel.tags.flatMap(t => (typeof t === 'string' ? t.split(',') : []))) {
-      const v = str(raw)
-      if (!v || isNoiseTag(v, orgNames)) continue
-      const actor = actorOf.get(norm(v))
-      if (actor) { add(actors, norm(actor), actor, label); continue }
-      const key = canon(v)
-      if (families.has(key) || knownFamily.has(key)) { add(families, key, v, label, familyName.get(key)); continue }
-      add(tags, key, v, label)
+    for (const item of intel.tags) {
+      for (const part of typeof item.value === 'string' ? item.value.split(',') : []) {
+        const v = str(part)
+        const actor = v ? actorOf.get(norm(v)) : undefined
+        if (v && actor) add(actors, norm(actor), v, label, item, actor)
+      }
     }
   }
 
   flagged.sort((x, y) => y.subscore - x.subscore)
   return {
     families: ranked(families),
-    tags: ranked(tags),
     actors: ranked(actors),
+    unnamedActorLinks,
     campaigns: ranked(campaigns),
     firstSeen,
     lastSeen,

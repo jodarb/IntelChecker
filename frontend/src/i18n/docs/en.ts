@@ -137,13 +137,12 @@ export const docsEn = {
     head: ['Block', 'What it shows'],
     rows: [
       ['Flagged by', 'How many of the responding sources returned a risk signal, each with its subscore (highest first), plus the sources that gave a clean verdict. Sources with risk weight 0 are shown dashed: they flagged it but don\'t count in the Risk Score.'],
-      ['Malware families', 'Families from structured fields (ThreatFox, MalwareBazaar, OTX, MISP galaxies, VirusTotal, Hybrid Analysis, ANY.RUN, TweetFeed). Aliases are merged — e.g. Qbot / QakBot / Pinkslipbot — using a built-in table plus MITRE ATT&CK software aliases. ×N = number of sources.'],
-      ['Tags', 'Free-text tags, de-duplicated and filtered: ASN/ISP names, generic words, honeypot sensor names, MISP classification tags (tlp:, pap:…), pulse authors and scraped keyword dumps are removed; synonyms (c2 / c&c / botnet_cc) are merged.'],
-      ['Threat actors & campaigns', 'Actors from OTX, MISP and MITRE, plus actor names found among the tags (matched against MITRE ATT&CK groups and aliases). Click an actor to look it up. Campaigns come from TweetFeed.'],
+      ['Malware families', 'Families from structured fields only (ThreatFox, MalwareBazaar, OTX, MISP galaxies, VirusTotal, Hybrid Analysis, ANY.RUN, TweetFeed). Aliases are merged — e.g. Qbot / QakBot / Pinkslipbot — using a built-in table plus MITRE ATT&CK software aliases. Families that only come from **bulk OTX pulses** (weekly roundups, feeds with ≥ 100 indicators) are left out: they describe the report, not this indicator.'],
+      ['Threat actor relations', 'One row per actor with **every source that relates the indicator to it**: OTX pulse adversaries and OTX’s related-adversary summary, MISP threat-actor galaxies, and actor names found in any source’s tags (matched against MITRE ATT&CK groups and aliases). Recorded Future “Linked to APT” rules appear as an unnamed relation. If sources answered and none relates it to an actor, the block says so. Campaigns (TweetFeed) are listed underneath.'],
       ['Activity window', 'Earliest first-seen and latest last-seen date across all sources, with the source each came from.'],
       ['GeoIP · ASN · ISP · Tor · Ports', 'Network context, with how many sources agree on each value.'],
     ],
-    note: 'Hover a chip to see which sources reported it.',
+    note: 'Every family chip shows the sources that reported it. **Click it** to see exactly where it comes from: source, field (e.g. *malware family of the IOC*), the value as the source wrote it, and the pulse or MISP event it was found in.',
   },
 
   matrix: {
