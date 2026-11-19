@@ -22,7 +22,7 @@ _WEIGHTS_PATH = Path(__file__).parent.parent.parent / "data" / "weights.json"
 _lock = threading.Lock()
 
 DEFAULT_ENGINE_WEIGHTS: dict[str, dict] = {
-    "recordedfuture": {"risk": 25, "knowledge": 9},
+    "recordedfuture": {"risk": 10, "knowledge": 9},
     "mitreattack":    {"risk": 0,  "knowledge": 9},
     "virustotal":     {"risk": 8,  "knowledge": 8},
     "alienvault":     {"risk": 6,  "knowledge": 7},
@@ -45,15 +45,42 @@ DEFAULT_ENGINE_WEIGHTS: dict[str, dict] = {
 
 DEFAULT_THRESHOLDS = {"knowledge": 4, "risk": 5}
 
-_MAX_WEIGHT = 100
+# Knowledge saturates: once this % of the available knowledge weight has a record
+# (weighted by depth), the Knowledge Score is already 10. An indicator doesn't need
+# *every* source to know it to be well known.
+DEFAULT_SCORING = {"knowledge_full_at": 70}
+_FULL_AT_MIN, _FULL_AT_MAX = 10, 100
+
+# Every weight (risk, knowledge and per-type knowledge overrides) lives on a 0-10 scale.
+_MAX_WEIGHT = 10
+
+
+def _clamp_weight(value):
+    """Coerce a stored/env weight into [0, _MAX_WEIGHT]; non-numbers become 0."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return 0
+    return max(0, min(_MAX_WEIGHT, value))
+
+
+def _clamp_entry(w: dict) -> dict:
+    out = dict(w)
+    for k in ("risk", "knowledge"):
+        if k in out:
+            out[k] = _clamp_weight(out[k])
+    if isinstance(out.get("knowledge_by_type"), dict):
+        out["knowledge_by_type"] = {t: _clamp_weight(v) for t, v in out["knowledge_by_type"].items()}
+    return out
 
 
 def _defaults() -> dict:
     engines = {k: json.loads(json.dumps(v)) for k, v in DEFAULT_ENGINE_WEIGHTS.items()}
     # MISP instances are discovered at deploy time; their .env weights act as defaults.
     for inst in MISP_INSTANCES:
-        engines[inst["id"]] = {"risk": inst["weight"], "knowledge": inst["knowledge_weight"]}
-    return {"engines": engines, "thresholds": dict(DEFAULT_THRESHOLDS)}
+        engines[inst["id"]] = {
+            "risk": _clamp_weight(inst["weight"]),
+            "knowledge": _clamp_weight(inst["knowledge_weight"]),
+        }
+    return {"engines": engines, "thresholds": dict(DEFAULT_THRESHOLDS), "scoring": dict(DEFAULT_SCORING)}
 
 
 def _read_overrides() -> dict:
@@ -69,8 +96,12 @@ def get_weights() -> dict:
     overrides = _read_overrides()
     for engine_id, w in (overrides.get("engines") or {}).items():
         if engine_id in merged["engines"] and isinstance(w, dict):
-            merged["engines"][engine_id].update(w)
+            # Clamp so a weights.json saved under the old 0-100 scale still loads in range.
+            merged["engines"][engine_id].update(_clamp_entry(w))
     merged["thresholds"].update(overrides.get("thresholds") or {})
+    full_at = (overrides.get("scoring") or {}).get("knowledge_full_at")
+    if isinstance(full_at, (int, float)) and not isinstance(full_at, bool):
+        merged["scoring"]["knowledge_full_at"] = max(_FULL_AT_MIN, min(_FULL_AT_MAX, full_at))
     return merged
 
 
@@ -121,7 +152,16 @@ def save_weights(payload: dict) -> dict:
         "risk": _check_number(thresholds_in.get("risk"), "thresholds.risk", 0, 10),
     }
 
-    data = {"engines": engines, "thresholds": thresholds}
+    # Optional for older clients: missing → keep the current value.
+    scoring_in = payload.get("scoring") or {}
+    if not isinstance(scoring_in, dict):
+        raise WeightsValidationError("'scoring' must be an object.")
+    full_at = scoring_in.get("knowledge_full_at", get_weights()["scoring"]["knowledge_full_at"])
+    scoring = {
+        "knowledge_full_at": _check_number(full_at, "scoring.knowledge_full_at", _FULL_AT_MIN, _FULL_AT_MAX),
+    }
+
+    data = {"engines": engines, "thresholds": thresholds, "scoring": scoring}
     with _lock:
         _WEIGHTS_PATH.parent.mkdir(parents=True, exist_ok=True)
         tmp = _WEIGHTS_PATH.with_suffix(".json.tmp")

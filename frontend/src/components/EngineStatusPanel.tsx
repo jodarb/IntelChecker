@@ -4,27 +4,20 @@ import { useVerdictWeights } from '@/hooks/useVerdictWeights'
 import WeightBadge, { type CardWeight } from '@/components/results/WeightBadge'
 import { knowledgeWeightOf, riskWeightOf } from '@/verdictEngine'
 import type { IndicatorType } from '@/registry'
-
-const TYPE_CHIP: Record<string, string> = {
-  ip: 'IP',
-  domain: 'Domain',
-  url: 'URL',
-  hash: 'Hash',
-  asn: 'ASN',
-  'threat-actor': 'Actor',
-}
+import { useI18n } from '@/i18n/useI18n'
 
 interface Props {
   selectedType: string
 }
 
 function ToggleSwitch({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
+  const { t } = useI18n()
   return (
     <button
       type="button"
       role="switch"
       aria-checked={enabled}
-      title={enabled ? 'Disable this source for the next search' : 'Enable this source'}
+      title={enabled ? t('home.disableSource') : t('home.enableSource')}
       onClick={onToggle}
       className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors ${
         enabled ? 'bg-primary' : 'bg-muted-foreground/30'
@@ -51,6 +44,7 @@ function EngineCard({
   weight: CardWeight | null
   onToggle: () => void
 }) {
+  const { t } = useI18n()
   return (
     <div
       className={`flex flex-col gap-1.5 px-3 py-2 rounded-lg border transition-all duration-200 ${
@@ -101,7 +95,7 @@ function EngineCard({
                 : 'bg-muted border-border text-muted-foreground'
             }`}
           >
-            {TYPE_CHIP[type] ?? type}
+            {t(`typeShort.${type as IndicatorType}`)}
           </span>
         ))}
       </div>
@@ -113,6 +107,7 @@ export default function EngineStatusPanel({ selectedType }: Props) {
   const { engines, status } = useEngines()
   const { disabled, toggle } = useEngineToggles()
   const config = useVerdictWeights()
+  const { t } = useI18n()
 
   if (!status) return null
 
@@ -150,7 +145,7 @@ export default function EngineStatusPanel({ selectedType }: Props) {
     <div className="w-full max-w-2xl flex flex-col gap-5">
       <div className="flex flex-col gap-2">
         <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">
-          Connected sources ({configured.length})
+          {t('home.connected', { n: configured.length })}
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {configured.map(({ engine, connected, supports, relevant, enabled, weight }) => (
@@ -172,7 +167,7 @@ export default function EngineStatusPanel({ selectedType }: Props) {
       {notConfigured.length > 0 && (
         <div className="flex flex-col gap-2">
           <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">
-            Not configured ({notConfigured.length})
+            {t('home.notConfigured', { n: notConfigured.length })}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {notConfigured.map(({ engine, connected, supports, relevant, enabled, weight }) => (

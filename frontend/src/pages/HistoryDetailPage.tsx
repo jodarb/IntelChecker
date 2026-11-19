@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useFetchJson } from '@/hooks/useFetchJson'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, History } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -12,6 +13,8 @@ import {
 } from '@/verdictEngine'
 import { useVerdictWeights } from '@/hooks/useVerdictWeights'
 import type { IndicatorType, QueryResult } from '@/registry'
+import { useI18n } from '@/i18n/useI18n'
+import { BACKEND_DOWN } from '@/i18n/errors'
 
 interface StoredEngineResult {
   label: string
@@ -31,23 +34,15 @@ interface HistoryDetail {
   contributions: VerdictContributions
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  ip: 'IP Address',
-  domain: 'Domain',
-  url: 'URL',
-  hash: 'File Hash',
-  asn: 'ASN',
-  'threat-actor': 'Threat Actor',
-}
-
 const BACKEND = '/api'
 
-function formatTimestamp(ts: string): string {
-  return new Date(ts.replace(' ', 'T') + 'Z').toLocaleString()
+function formatTimestamp(ts: string, locale: string): string {
+  return new Date(ts.replace(' ', 'T') + 'Z').toLocaleString(locale)
 }
 
 function UnknownEngineCard({ label, data }: { label: string; data: unknown }) {
   const [rawOpen, setRawOpen] = useState(false)
+  const { t } = useI18n()
   return (
     <div className="rounded-lg border border-border overflow-hidden">
       <div className="w-full flex items-center justify-between px-4 py-3 border-b border-border bg-muted/40">
@@ -56,12 +51,12 @@ function UnknownEngineCard({ label, data }: { label: string; data: unknown }) {
           onClick={() => setRawOpen(true)}
           className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border text-xs font-medium text-muted-foreground bg-muted/30 hover:bg-muted/70 hover:text-foreground transition-colors"
         >
-          RAW
+          {t('raw.button')}
         </button>
       </div>
       <div className="px-4 py-4">
         <p className="text-sm text-muted-foreground">
-          This source is no longer configured — showing the raw stored response.
+          {t('history.unknownEngine')}
         </p>
       </div>
       <RawJsonModal open={rawOpen} onClose={() => setRawOpen(false)} data={data} title={label} />
@@ -72,25 +67,17 @@ function UnknownEngineCard({ label, data }: { label: string; data: unknown }) {
 export default function HistoryDetailPage() {
   const { id } = useParams()
   const { engines } = useEngines()
+  const { t, locale } = useI18n()
   const config = useVerdictWeights()
-  const [entry, setEntry] = useState<HistoryDetail | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    setEntry(null)
-    setError(null)
-    fetch(`${BACKEND}/history/${id}`)
-      .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json() })
-      .then(setEntry)
-      .catch(() => setError('Could not load this history entry. It may have been removed.'))
-  }, [id])
+  const { data: entry, failed } = useFetchJson<HistoryDetail>(`${BACKEND}/history/${id}`)
+  const error = failed ? t('history.loadError') : null
 
   if (error) {
     return (
       <Layout>
         <main className="flex-1 px-6 py-6 w-full max-w-5xl mx-auto flex flex-col gap-6">
           <Button variant="ghost" size="sm" asChild className="w-fit">
-            <Link to="/history"><ArrowLeft className="h-4 w-4 mr-1" /> Back to history</Link>
+            <Link to="/history"><ArrowLeft className="h-4 w-4 mr-1" /> {t('history.backToHistory')}</Link>
           </Button>
           <p className="text-sm text-red-400">{error}</p>
         </main>
@@ -102,7 +89,7 @@ export default function HistoryDetailPage() {
     return (
       <Layout>
         <main className="flex-1 px-6 py-6 w-full max-w-5xl mx-auto flex flex-col gap-6">
-          <p className="text-sm text-muted-foreground">Loading...</p>
+          <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
         </main>
       </Layout>
     )
@@ -136,25 +123,26 @@ export default function HistoryDetailPage() {
           <Button variant="ghost" size="sm" asChild className="mt-0.5 shrink-0">
             <Link to="/history">
               <ArrowLeft className="h-4 w-4 mr-1" />
-              Back to history
+              {t('history.backToHistory')}
             </Link>
           </Button>
           <div>
             <h2 className="text-xl font-semibold text-foreground font-mono break-all">{entry.indicator}</h2>
             <span className="text-xs text-muted-foreground uppercase tracking-wide">
-              {TYPE_LABELS[entry.type] ?? entry.type}
+              {t(`type.${entry.type}`)}
             </span>
           </div>
         </div>
 
         <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border bg-muted/20 text-xs text-muted-foreground">
           <History className="h-3.5 w-3.5 shrink-0" />
-          Archived result from {formatTimestamp(entry.timestamp)} — showing what each source returned at that time, not a live lookup.
+          {t('history.archived', { date: formatTimestamp(entry.timestamp, locale) })}
         </div>
 
         <SearchFrequencyCard indicator={entry.indicator} excludeSelf />
 
         <SummarySection
+          indicator={entry.indicator}
           type={entry.type}
           engines={enginesForSummary}
           results={resultsForSummary}
@@ -164,12 +152,12 @@ export default function HistoryDetailPage() {
 
         {isLegacy && (
           <p className="text-xs text-muted-foreground -mt-3">
-            This entry predates the Knowledge Score — only its Risk Score was recorded.
+            {t('history.legacy')}
           </p>
         )}
 
         <div className="flex flex-col gap-3">
-          <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Results by engine</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">{t('results.byEngine')}</p>
           <div className="grid grid-cols-1 gap-4">
             {Object.entries(entry.results).map(([engineId, stored]) => {
               const engine = engines.find(e => e.id === engineId)
@@ -188,7 +176,7 @@ export default function HistoryDetailPage() {
                 <Component
                   key={engineId}
                   loading={false}
-                  error={stored.error}
+                  error={stored.error === BACKEND_DOWN ? t('common.backendDown') : stored.error}
                   data={stored.data}
                   label={stored.label}
                   score={score}

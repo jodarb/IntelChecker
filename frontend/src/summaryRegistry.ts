@@ -7,33 +7,22 @@ export interface SummaryExtractorDef {
   extract: (data: unknown) => string | null
 }
 
-export const SUMMARY_FIELD_META: Record<SummaryField, { label: string; format: (v: string) => string }> = {
+// Labels are i18n keys `summaryField.<field>`. Extractors return raw values
+// ('Yes' for torExit, ISO country codes); `format` localises them for display.
+export const SUMMARY_FIELD_META: Record<SummaryField, { format: (v: string, ctx: { locale: string; yes: string }) => string }> = {
   country: {
-    label: 'GeoIP',
-    format: (code) => {
+    format: (code, { locale }) => {
       try {
-        return new Intl.DisplayNames(['en'], { type: 'region' }).of(code.toUpperCase()) ?? code
+        return new Intl.DisplayNames([locale], { type: 'region' }).of(code.toUpperCase()) ?? code
       } catch {
         return code
       }
     },
   },
-  asn: {
-    label: 'ASN',
-    format: (v) => v,
-  },
-  isp: {
-    label: 'ISP',
-    format: (v) => v,
-  },
-  torExit: {
-    label: 'Tor Exit Node',
-    format: (v) => v,
-  },
-  openPorts: {
-    label: 'Open Ports',
-    format: (v) => v,
-  },
+  asn: { format: (v) => v },
+  isp: { format: (v) => v },
+  torExit: { format: (v, { yes }) => (v === 'Yes' ? yes : v) },
+  openPorts: { format: (v) => v },
 }
 
 // Display order of summary fields

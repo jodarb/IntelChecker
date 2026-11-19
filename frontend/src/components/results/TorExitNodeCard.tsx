@@ -3,6 +3,8 @@ import { Loader2, ShieldAlert, ShieldCheck, ChevronDown, FileCode2, ExternalLink
 import RawJsonModal from './RawJsonModal'
 import ScoreBadge from './ScoreBadge'
 import WeightBadge, { type CardWeight } from './WeightBadge'
+import { useI18n } from '@/i18n/useI18n'
+import { apiErrorText } from '@/i18n/errors'
 
 interface TorExitResponse {
   ip?: string
@@ -31,23 +33,26 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 function TorBadge({ isExit }: { isExit: boolean }) {
+  const { t } = useI18n()
   if (isExit) {
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-semibold text-red-400 bg-red-500/10 border-red-500/30">
         <ShieldAlert className="h-3 w-3" />
-        Tor Exit Node
+        {t('tor.exit')}
       </span>
     )
   }
   return (
     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-semibold text-green-400 bg-green-500/10 border-green-500/30">
       <ShieldCheck className="h-3 w-3" />
-      Not a Tor Exit
+      {t('tor.notExit')}
     </span>
   )
 }
 
 export default function TorExitNodeCard({ loading, error, data, score = null, weight = null }: Props) {
+  const i18n = useI18n()
+  const { t, locale } = i18n
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.error ?? null
@@ -68,7 +73,7 @@ export default function TorExitNodeCard({ loading, error, data, score = null, we
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border text-xs font-medium text-muted-foreground bg-muted/30 hover:bg-muted/70 hover:text-foreground transition-colors"
-              title="View raw JSON"
+              title={t('raw.buttonTitle')}
             >
               <FileCode2 className="h-3 w-3" />
               RAW
@@ -81,22 +86,22 @@ export default function TorExitNodeCard({ loading, error, data, score = null, we
       {open && (
         <div className="px-4 py-4">
           {loading && (
-            <p className="text-sm text-muted-foreground">Checking Tor exit node list...</p>
+            <p className="text-sm text-muted-foreground">{t('tor.checking')}</p>
           )}
 
           {!loading && (error || apiError) && (
-            <p className="text-sm text-red-400">{error ?? apiError?.message}</p>
+            <p className="text-sm text-red-400">{error ?? apiErrorText(i18n, apiError, 'Tor Exit Nodes')}</p>
           )}
 
           {!loading && isKnown && (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
-              <Field label="Status" value={<TorBadge isExit={!!data!.is_tor_exit} />} />
-              <Field label="List Size" value={data?.list_size} />
+              <Field label={t('f.status')} value={<TorBadge isExit={!!data!.is_tor_exit} />} />
+              <Field label={t('f.listSize')} value={data?.list_size} />
               <Field
-                label="List Updated"
-                value={data?.list_updated ? new Date(data.list_updated).toLocaleString() : undefined}
+                label={t('f.listUpdated')}
+                value={data?.list_updated ? new Date(data.list_updated).toLocaleString(locale) : undefined}
               />
-              <Field label="Source" value={data?.source} />
+              <Field label={t('f.source')} value={data?.source} />
             </div>
           )}
 
@@ -107,7 +112,7 @@ export default function TorExitNodeCard({ loading, error, data, score = null, we
               rel="noreferrer"
               className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit mt-3"
             >
-              <ExternalLink className="h-3 w-3" /> View source list
+              <ExternalLink className="h-3 w-3" /> {t('tor.viewList')}
             </a>
           )}
         </div>

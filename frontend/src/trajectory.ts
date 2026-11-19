@@ -1,4 +1,4 @@
-import type { EngineOutcome, VerdictContributions } from '@/verdictEngine'
+import { knowledgeFromSums, type EngineOutcome, type VerdictContributions } from '@/verdictEngine'
 
 export interface TrajectoryStep {
   engineId: string
@@ -15,8 +15,8 @@ export interface TrajectoryStep {
 
 /**
  * Replays the verdict one engine at a time, starting from (0, 0). Knowledge is
- * cumulative over a fixed denominator (the total knowledge weight of every source
- * in the verdict), so it only ever grows; risk is the weighted average of the
+ * cumulative over a fixed denominator (the knowledge weight of every source counted
+ * in the verdict, saturating at `knowledgeFullAt` %), so it only ever grows; risk is the weighted average of the
  * verdicts added so far, so it can go up or down. Same formulas as computeVerdict
  * (unrounded). Built only from the verdict's
  * contributions, so it works the same for live results and archived history.
@@ -47,10 +47,14 @@ export function computeTrajectory(contributions: VerdictContributions): Trajecto
 
   const ordered = [...byId.entries()].sort(([, a], [, b]) => (b.rw - a.rw) || (b.kw - a.kw) || (a.order - b.order))
 
-  const kTotal = contributions.knowledge.reduce((sum, k) => sum + k.weight, 0)
+  // Temporarily failed sources aren't part of the total; older history entries
+  // have no saturation (100 %).
+  const counted = new Set(contributions.knowledge.filter(k => k.inTotal !== false).map(k => k.engineId))
+  const kTotal = contributions.knowledge.reduce((sum, k) => sum + (counted.has(k.engineId) ? k.weight : 0), 0)
+  const fullAt = contributions.knowledgeFullAt ?? 100
   let kNum = 0, rNum = 0, rDen = 0
   const current = () => {
-    const knowledge = kTotal > 0 ? (10 * kNum) / kTotal : 0
+    const knowledge = knowledgeFromSums(kNum, kTotal, fullAt)
     // Same rule as computeVerdict: no risk verdict while nothing is known at all.
     const risk = rDen > 0 && kNum > 0 ? Math.max(0, Math.min(10, rNum / rDen)) : null
     return { knowledge, risk }
@@ -59,7 +63,7 @@ export function computeTrajectory(contributions: VerdictContributions): Trajecto
   const steps: TrajectoryStep[] = []
   for (const [engineId, e] of ordered) {
     const from = current()
-    if (e.kw > 0) kNum += e.kw * (e.depth ?? 0)
+    if (e.kw > 0 && counted.has(engineId)) kNum += e.kw * (e.depth ?? 0)
     if (e.rw > 0 && e.subscore != null) { rDen += e.rw; rNum += e.rw * e.subscore }
     steps.push({
       engineId, label: e.label, outcome: e.outcome,

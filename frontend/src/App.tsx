@@ -4,6 +4,7 @@ import ResultsPage from '@/pages/ResultsPage'
 import HistoryPage from '@/pages/HistoryPage'
 import HistoryDetailPage from '@/pages/HistoryDetailPage'
 import AdminPage from '@/pages/AdminPage'
+import DocsPage from '@/pages/DocsPage'
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/history/:id" element={<HistoryDetailPage />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/docs" element={<DocsPage />} />
       </Routes>
     </BrowserRouter>
   )

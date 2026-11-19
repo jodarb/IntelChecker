@@ -3,6 +3,8 @@ import { Loader2, ChevronDown, FileCode2, ExternalLink, AlertTriangle } from 'lu
 import RawJsonModal from './RawJsonModal'
 import ScoreBadge from './ScoreBadge'
 import WeightBadge, { type CardWeight } from './WeightBadge'
+import { useI18n } from '@/i18n/useI18n'
+import { apiErrorText } from '@/i18n/errors'
 
 interface TweetFeedRecord {
   type: string
@@ -82,6 +84,8 @@ function tweetFeedStats(d: TweetFeedResponse | null | undefined) {
 }
 
 export default function TweetFeedCard({ loading, error, data, score = null, weight = null, indicator }: Props) {
+  const i18n = useI18n()
+  const { t } = i18n
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.error ?? null
@@ -111,7 +115,7 @@ export default function TweetFeedCard({ loading, error, data, score = null, weig
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border text-xs font-medium text-muted-foreground bg-muted/30 hover:bg-muted/70 hover:text-foreground transition-colors"
-              title="View raw JSON"
+              title={t('raw.buttonTitle')}
             >
               <FileCode2 className="h-3 w-3" />
               RAW
@@ -123,13 +127,13 @@ export default function TweetFeedCard({ loading, error, data, score = null, weig
 
       {open && (
         <div className="px-4 py-4 flex flex-col gap-4">
-          {loading && <p className="text-sm text-muted-foreground">Querying TweetFeed...</p>}
+          {loading && <p className="text-sm text-muted-foreground">{t('card.querying', { source: 'TweetFeed' })}</p>}
 
-          {!loading && isRealError && <p className="text-sm text-red-400">{error ?? apiError?.message}</p>}
+          {!loading && isRealError && <p className="text-sm text-red-400">{error ?? apiErrorText(i18n, apiError, 'TweetFeed')}</p>}
 
           {!loading && !isRealError && !found && (
             <p className="text-sm text-muted-foreground">
-              Not reported on X/Twitter by the infosec community in the last 365 days. This is not a benign verdict.
+              {t('tweetfeed.notReported')}
             </p>
           )}
 
@@ -137,47 +141,47 @@ export default function TweetFeedCard({ loading, error, data, score = null, weig
             <>
               <p className="flex items-start gap-1.5 text-xs text-amber-400">
                 <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-px" />
-                Community reports, not vetted — legitimate services hosting abused content can appear here.
+                {t('tweetfeed.unvetted')}
               </p>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-4">
-                <Field label="Reporters" value={users.length} />
-                <Field label="Tweets" value={tweets.length} />
-                <Field label="First Seen" value={firstSeen} />
-                <Field label="Last Seen" value={lastSeen} />
+                <Field label={t('f.reporters')} value={users.length} />
+                <Field label={t('f.tweets')} value={tweets.length} />
+                <Field label={t('f.firstSeen')} value={firstSeen} />
+                <Field label={t('f.lastSeen')} value={lastSeen} />
                 {data?.net && (
                   <>
-                    <Field label="Country" value={data.net.country} />
-                    <Field label="Network" value={data.net.org} />
+                    <Field label={t('f.country')} value={data.net.country} />
+                    <Field label={t('f.network')} value={data.net.org} />
                   </>
                 )}
                 {data?.reg && (
                   <>
-                    <Field label="Registrar" value={data.reg.registrar} />
-                    <Field label="Hosting" value={[data.reg.asn, data.reg.org].filter(Boolean).join(' · ') || undefined} />
+                    <Field label={t('f.registrar')} value={data.reg.registrar} />
+                    <Field label={t('f.hosting')} value={[data.reg.asn, data.reg.org].filter(Boolean).join(' · ') || undefined} />
                   </>
                 )}
               </div>
 
-              {users.length > 0 && <Field label="Reported by" value={<Chips items={users.map(u => `@${u}`)} />} />}
-              {tags.length > 0 && <Field label="Tags" value={<Chips items={tags} />} />}
+              {users.length > 0 && <Field label={t('f.reportedBy')} value={<Chips items={users.map(u => `@${u}`)} />} />}
+              {tags.length > 0 && <Field label={t('f.tags')} value={<Chips items={tags} />} />}
 
               {data?.ai?.summary && (
                 <Field
-                  label="AI summary (TweetFeed)"
+                  label={t('f.aiSummary')}
                   value={<span className="font-normal text-muted-foreground">{data.ai.summary}</span>}
                 />
               )}
 
               {campaigns.length > 0 && (
                 <Field
-                  label="Campaigns"
+                  label={t('f.campaigns')}
                   value={
                     <div className="flex flex-col gap-1">
                       {campaigns.map(c => (
                         <span key={c.id} className="font-normal">
                           {c.name}
-                          <span className="text-muted-foreground"> · {c.confidence ?? '?'} confidence · {c.ioc_count ?? '?'} IOCs</span>
+                          <span className="text-muted-foreground">{t('tweetfeed.campaignMeta', { confidence: c.confidence ?? '?', iocs: c.ioc_count ?? '?' })}</span>
                         </span>
                       ))}
                     </div>
@@ -186,12 +190,12 @@ export default function TweetFeedCard({ loading, error, data, score = null, weig
               )}
 
               {related.length > 0 && (
-                <Field label={`Related IOCs (${related.length})`} value={<Chips items={related.slice(0, 12)} mono />} />
+                <Field label={t('tweetfeed.related', { n: related.length })} value={<Chips items={related.slice(0, 12)} mono />} />
               )}
 
               {tweets.length > 0 && (
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground uppercase tracking-wide">Source tweets</span>
+                  <span className="text-xs text-muted-foreground uppercase tracking-wide">{t('tweetfeed.sourceTweets')}</span>
                   {tweets.slice(0, 5).map(t => (
                     <a key={t} href={t} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit break-all">
                       <ExternalLink className="h-3 w-3 shrink-0" /> {t}
@@ -209,7 +213,7 @@ export default function TweetFeedCard({ loading, error, data, score = null, weig
               rel="noreferrer"
               className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit"
             >
-              <ExternalLink className="h-3 w-3" /> View on TweetFeed
+              <ExternalLink className="h-3 w-3" /> {t('card.viewOn', { source: 'TweetFeed' })}
             </a>
           )}
         </div>

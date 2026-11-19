@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { X, Download, Copy, Check } from 'lucide-react'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { useI18n } from '@/i18n/useI18n'
 
 interface Props {
   open: boolean
@@ -24,6 +25,7 @@ function useDark() {
 
 export default function RawJsonModal({ open, onClose, data, title }: Props) {
   const [copied, setCopied] = useState(false)
+  const { t } = useI18n()
   const dark = useDark()
   const json = JSON.stringify(data, null, 2)
 
@@ -62,15 +64,15 @@ export default function RawJsonModal({ open, onClose, data, title }: Props) {
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/40 shrink-0">
-          <span className="text-sm font-semibold text-foreground font-mono">{title} · Raw JSON</span>
+          <span className="text-sm font-semibold text-foreground font-mono">{t('raw.title', { source: title })}</span>
           <div className="flex items-center gap-2">
             <button
               onClick={handleCopy}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium border border-border hover:bg-muted/60 transition-colors text-muted-foreground hover:text-foreground"
             >
               {copied
-                ? <><Check className="h-3.5 w-3.5 text-green-400" />Copied!</>
-                : <><Copy className="h-3.5 w-3.5" />Copy</>
+                ? <><Check className="h-3.5 w-3.5 text-green-400" />{t('raw.copied')}</>
+                : <><Copy className="h-3.5 w-3.5" />{t('common.copy')}</>
               }
             </button>
             <button
@@ -78,10 +80,11 @@ export default function RawJsonModal({ open, onClose, data, title }: Props) {
               className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium border border-border hover:bg-muted/60 transition-colors text-muted-foreground hover:text-foreground"
             >
               <Download className="h-3.5 w-3.5" />
-              Download
+              {t('common.download')}
             </button>
             <button
               onClick={onClose}
+              aria-label={t('common.close')}
               className="p-1 rounded hover:bg-muted/60 transition-colors text-muted-foreground hover:text-foreground"
             >
               <X className="h-4 w-4" />

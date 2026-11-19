@@ -3,6 +3,8 @@ import { Loader2, ChevronDown, FileCode2, ExternalLink } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
 import ScoreBadge from './ScoreBadge'
 import WeightBadge, { type CardWeight } from './WeightBadge'
+import { useI18n } from '@/i18n/useI18n'
+import { apiErrorText } from '@/i18n/errors'
 
 interface SampleResult {
   sha256?: string
@@ -38,16 +40,19 @@ const VERDICT_STYLES: Record<string, string> = {
 }
 
 function VerdictBadge({ verdict }: { verdict: string }) {
+  const { t } = useI18n()
   const key = verdict.toLowerCase()
   const style = VERDICT_STYLES[key] ?? VERDICT_STYLES['no verdict']
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-medium capitalize shrink-0 ${style}`}>
-      {verdict}
+      {key in VERDICT_STYLES ? t(`hybrid.verdict.${key as 'malicious' | 'suspicious' | 'whitelisted' | 'no specific threat' | 'no verdict'}`) : verdict}
     </span>
   )
 }
 
 export default function HybridAnalysisCard({ loading, error, data, score = null, weight = null }: Props) {
+  const i18n = useI18n()
+  const { t } = i18n
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.error ?? null
@@ -70,7 +75,7 @@ export default function HybridAnalysisCard({ loading, error, data, score = null,
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border text-xs font-medium text-muted-foreground bg-muted/30 hover:bg-muted/70 hover:text-foreground transition-colors"
-              title="View raw JSON"
+              title={t('raw.buttonTitle')}
             >
               <FileCode2 className="h-3 w-3" />
               RAW
@@ -83,21 +88,21 @@ export default function HybridAnalysisCard({ loading, error, data, score = null,
       {open && (
         <div className="px-4 py-4 flex flex-col gap-3">
           {loading && (
-            <p className="text-sm text-muted-foreground">Querying Hybrid Analysis...</p>
+            <p className="text-sm text-muted-foreground">{t('card.querying', { source: 'Hybrid Analysis' })}</p>
           )}
 
           {!loading && isRealError && (
-            <p className="text-sm text-red-400">{error ?? apiError?.message}</p>
+            <p className="text-sm text-red-400">{error ?? apiErrorText(i18n, apiError, 'Hybrid Analysis')}</p>
           )}
 
           {!loading && !isRealError && !hasResults && (
-            <p className="text-sm text-muted-foreground">No related sandbox reports found in Hybrid Analysis.</p>
+            <p className="text-sm text-muted-foreground">{t('hybrid.none')}</p>
           )}
 
           {!loading && hasResults && (
             <div className="flex flex-col gap-2">
               <span className="text-xs text-muted-foreground uppercase tracking-wide">
-                Sandbox Reports ({results.length})
+                {t('hybrid.reports', { n: results.length })}
               </span>
               {results.slice(0, 8).map((r, i) => (
                 <div key={r.sha256 ?? i} className="rounded-md border border-border bg-muted/20 px-3 py-2.5 flex flex-col gap-1.5">
@@ -106,8 +111,8 @@ export default function HybridAnalysisCard({ loading, error, data, score = null,
                     {r.verdict && <VerdictBadge verdict={r.verdict} />}
                   </div>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                    {r.threat_score != null && <span>Threat score: {r.threat_score}/100</span>}
-                    {r.vx_family && <span>Family: {r.vx_family}</span>}
+                    {r.threat_score != null && <span>{t('hybrid.threatScore', { n: r.threat_score })}</span>}
+                    {r.vx_family && <span>{t('hybrid.family', { name: r.vx_family })}</span>}
                     {r.environment_description && <span>{r.environment_description}</span>}
                   </div>
                   {r.sha256 && (
@@ -117,7 +122,7 @@ export default function HybridAnalysisCard({ loading, error, data, score = null,
                       rel="noreferrer"
                       className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit"
                     >
-                      <ExternalLink className="h-3 w-3" /> View report
+                      <ExternalLink className="h-3 w-3" /> {t('hybrid.viewReport')}
                     </a>
                   )}
                 </div>

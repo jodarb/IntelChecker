@@ -96,6 +96,11 @@ async def analyze(engine: str, req: AnalyzeRequest):
     return await _SERVICES[engine].dispatch(req.indicator, req.type)
 
 
+@app.get("/mitre/aliases")
+async def mitre_aliases():
+    return await mitreattack.alias_lists()
+
+
 @app.get("/weights")
 def get_weights():
     return weights_store.get_weights()

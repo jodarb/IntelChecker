@@ -1,4 +1,5 @@
 import { Gauge, CheckCircle2, AlertTriangle, ShieldX, AlertCircle, SearchX } from 'lucide-react'
+import { useI18n } from '@/i18n/useI18n'
 
 interface Props {
   score: number | null
@@ -17,11 +18,12 @@ interface Props {
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1))
 
 export default function ScoreBadge({ score, isError = false, hasResult = false }: Props) {
+  const { t } = useI18n()
   if (isError) {
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-semibold text-red-400 bg-red-500/10 border-red-500/30">
         <AlertCircle className="h-3 w-3" />
-        Error
+        {t('badge.error')}
       </span>
     )
   }
@@ -30,14 +32,14 @@ export default function ScoreBadge({ score, isError = false, hasResult = false }
       return (
         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-medium text-yellow-400 bg-yellow-500/10 border-yellow-500/30">
           <Gauge className="h-3 w-3" />
-          No score
+          {t('badge.noScore')}
         </span>
       )
     }
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-medium text-yellow-400 bg-yellow-500/10 border-yellow-500/30">
         <SearchX className="h-3 w-3" />
-        No results
+        {t('badge.noResults')}
       </span>
     )
   }

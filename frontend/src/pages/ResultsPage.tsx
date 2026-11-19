@@ -15,49 +15,60 @@ import type { CardWeight } from '@/components/results/WeightBadge'
 import { useVerdictWeights } from '@/hooks/useVerdictWeights'
 import { useEngineToggles } from '@/hooks/useEngineToggles'
 import { useEngines } from '@/EnginesContext'
-
-const TYPE_LABELS: Record<string, string> = {
-  ip: 'IP Address',
-  domain: 'Domain',
-  url: 'URL',
-  hash: 'File Hash',
-  asn: 'ASN',
-  'threat-actor': 'Threat Actor',
-}
+import { useI18n } from '@/i18n/useI18n'
+import { BACKEND_DOWN } from '@/i18n/errors'
 
 const BACKEND = '/api'
 
+type ResultMap = Record<string, QueryResult>
+
+const loadingMap = (engines: EngineConfig[]): ResultMap =>
+  Object.fromEntries(engines.map(e => [e.id, { loading: true, data: null, error: null }]))
+
+// One POST /analyze/{engine} per source, fired in parallel. Responses are stored
+// under the key of the lookup that produced them (indicator + type + engine set),
+// so when the analyst moves to another indicator mid-lookup the old requests are
+// aborted and any late answer is discarded instead of overwriting the new cards.
 function useAllEngineQueries(
   engines: EngineConfig[],
   indicator: string,
   type: string,
   ready: boolean,
-): Record<string, QueryResult> {
-  const [results, setResults] = useState<Record<string, QueryResult>>(() =>
-    Object.fromEntries(engines.map(e => [e.id, { loading: true, data: null, error: null }])),
-  )
+): ResultMap {
+  const runKey = `${indicator}|${type}|${engines.map(e => e.id).join(',')}`
+  const [stored, setStored] = useState<{ key: string; results: ResultMap }>({ key: '', results: {} })
 
   useEffect(() => {
     if (!indicator || !ready) return
-    setResults(Object.fromEntries(engines.map(e => [e.id, { loading: true, data: null, error: null }])))
+    const ctrl = new AbortController()
+    const put = (id: string, r: QueryResult) =>
+      setStored(prev => ({
+        key: runKey,
+        results: { ...(prev.key === runKey ? prev.results : {}), [id]: r },
+      }))
 
     engines.forEach(engine => {
       fetch(`${BACKEND}/analyze/${engine.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ indicator, type }),
+        signal: ctrl.signal,
       })
         .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json() })
-        .then(data => setResults(prev => ({ ...prev, [engine.id]: { loading: false, data, error: null } })))
-        .catch(() => setResults(prev => ({
-          ...prev,
-          [engine.id]: { loading: false, data: null, error: 'Could not reach the backend. Is it running?' },
-        })))
+        .then(data => put(engine.id, { loading: false, data, error: null }))
+        .catch(() => {
+          if (ctrl.signal.aborted) return
+          put(engine.id, { loading: false, data: null, error: BACKEND_DOWN })
+        })
     })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [indicator, type, ready, engines])
+    return () => ctrl.abort()
+  }, [indicator, type, ready, engines, runKey])
 
-  return results
+  // Engines that haven't answered for *this* lookup yet show as loading.
+  return useMemo(
+    () => ({ ...loadingMap(engines), ...(stored.key === runKey ? stored.results : {}) }),
+    [engines, stored, runKey],
+  )
 }
 
 function cardWeight(
@@ -77,6 +88,7 @@ function EngineCard({
   indicator: string
 }) {
   const Component = engine.component
+  const { t } = useI18n()
   const assessment = getEngineAssessment(engine.id, type, result)
   const weight = cardWeight(config, engine.id, type, assessment.depth)
   if (!result) {
@@ -87,7 +99,7 @@ function EngineCard({
       />
     )
   }
-  const apiErrorCode = (result.data as any)?.error?.code
+  const apiErrorCode = (result.data as { error?: { code?: string } } | null)?.error?.code
   if (!result.loading && apiErrorCode === 'MissingApiKey') {
     return <DisconnectedCard label={engine.label} />
   }
@@ -95,7 +107,7 @@ function EngineCard({
   return (
     <Component
       loading={result.loading}
-      error={result.error}
+      error={result.error === BACKEND_DOWN ? t('common.backendDown') : result.error}
       data={result.data}
       label={engine.label}
       score={score}
@@ -110,6 +122,7 @@ export default function ResultsPage() {
   const [searchParams] = useSearchParams()
   const indicator = searchParams.get('indicator') ?? ''
   const type = (searchParams.get('type') ?? 'auto') as IndicatorType
+  const { t } = useI18n()
 
   const { engines: allEngines, loading: enginesLoading } = useEngines()
   const engines = useMemo(() => getEnginesForType(allEngines, type), [allEngines, type])
@@ -181,13 +194,13 @@ export default function ResultsPage() {
           <Button variant="ghost" size="sm" asChild className="mt-0.5 shrink-0">
             <Link to="/">
               <ArrowLeft className="h-4 w-4 mr-1" />
-              Back
+              {t('common.back')}
             </Link>
           </Button>
           <div>
             <h2 className="text-xl font-semibold text-foreground font-mono break-all">{indicator}</h2>
             <span className="text-xs text-muted-foreground uppercase tracking-wide">
-              {TYPE_LABELS[type] ?? type}
+              {t(`type.${type}`)}
             </span>
           </div>
         </div>
@@ -196,6 +209,7 @@ export default function ResultsPage() {
 
         {/* Summary */}
         <SummarySection
+          indicator={indicator}
           type={type}
           engines={activeEngines}
           results={results}
@@ -205,7 +219,7 @@ export default function ResultsPage() {
 
         {/* Engine results */}
         <div className="flex flex-col gap-3">
-          <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Results by engine</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">{t('results.byEngine')}</p>
           <div className="grid grid-cols-1 gap-4">
             {sortedEngines.map(engine => (
               disabled.has(engine.id)

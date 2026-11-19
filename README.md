@@ -40,17 +40,16 @@ How to get IntelChecker running in your own environment.
    cp backend/.env.example backend/.env
    ```
    Uncomment and fill in the keys for the sources you have access to. Anything left commented out just shows as "not configured" in the UI — it doesn't break the rest of the app.
-3. *(Optional)* Drop your organization's logos at `logo/light.png` and `logo/dark.png` (repo root — one per theme, shown/hidden automatically as the analyst switches theme). Optional — the app works fine without them. Verdict weights are tuned from the **Admin** page once the stack is running (no files to edit).
-4. *(Optional)* If `8080` and/or `8000` are already taken by something else on this host:
+3. *(Optional)* If `8080` and/or `8000` are already taken by something else on this host:
    ```bash
    cp .env.example .env
    ```
    and change `FRONTEND_PORT` / `BACKEND_PORT` in the new root `.env` — don't confuse it with `backend/.env` (API keys), it only controls ports and Docker Compose reads it directly, nothing else needs editing.
-5. Build and start the stack:
+4. Build and start the stack:
    ```bash
    docker compose up --build -d
    ```
-6. Open `http://<host>:<FRONTEND_PORT>` (`8080` unless you changed it in step 4).
+5. Open `http://<host>:<FRONTEND_PORT>` (`8080` unless you changed it in step 3). Verdict weights are tuned from the **Admin** page once the stack is running (no files to edit).
 
 That's the whole stack — one container for the backend, one for the frontend/nginx reverse proxy. `backend/data/` (query history) and `backend/certs/` (MISP mTLS client certs, if you need them) are Docker volumes, so they persist across restarts and rebuilds.
 
@@ -64,7 +63,7 @@ git pull
 docker compose up --build -d
 ```
 
-Stop the running containers first, then pull, then rebuild and relaunch — this avoids updating source files out from under a container that's still running against them. `docker compose down` doesn't touch anything outside the containers themselves, so your `backend/.env`, `logo/`, and the `backend/data/` volume (`history.db` and the admin-edited `weights.json`) are all untouched by an update.
+Stop the running containers first, then pull, then rebuild and relaunch — this avoids updating source files out from under a container that's still running against them. `docker compose down` doesn't touch anything outside the containers themselves, so your `backend/.env` and the `backend/data/` volume (`history.db` and the admin-edited `weights.json`) are all untouched by an update.
 
 If you ever suspect a container is still serving stale code after an update (rare, but Docker's build cache can occasionally miss a change), force a clean rebuild instead:
 
@@ -82,8 +81,8 @@ docker compose up -d
 |---|---|
 | ⚡ **Parallel queries** | All CTI sources are queried simultaneously — no waiting in line |
 | 🎴 **Per-engine cards** | Each source renders its result independently as soon as it responds |
-| 📊 **Summary section** | GeoIP, ASN, ISP and Tor-exit status aggregated across all engines with consensus count |
-| 🎯 **Knowledge + Risk scores** | Two gauges (0 – 10): how much is known about the indicator, and how risky it is according to the sources that issued a verdict — plus a quadrant reading (Confirmed malicious · Isolated signal · Known benign · Known, low-level signals · Known, no verdict · Unknown) |
+| 📊 **Summary section** | Cross-source aggregates: which sources flagged the indicator (with their risk subscores) and which gave a clean verdict, malware families (merged across aliases, using a built-in table plus MITRE ATT&CK software aliases) and noise-filtered tags (actor names found in tags move to the actors list), threat actors & campaigns (actors link to a threat-actor lookup), first/last seen across all sources, plus GeoIP, ASN, ISP and Tor-exit status with consensus count |
+| 🎯 **Knowledge + Risk scores** | Risk gauge (semicircle, 0 – 10) with a Knowledge bar (0 – 10) underneath: how risky the indicator is according to the sources that issued a verdict, and how much is known about it — plus a quadrant reading (Confirmed malicious · Isolated signal · Known benign · Known, low-level signals · Known, no verdict · Unknown) |
 | 🗺️ **Verdict matrix** | *View matrix* plots Knowledge (X) × Risk (Y) and replays, step by step from (0, 0), how each source moved both scores — knowledge only ever climbs, risk can rise or fall |
 | 🧮 **Weighted verdict** | Per-engine risk and knowledge weights, editable from the **Admin** page, with a full contribution breakdown for each score (*How is this calculated?*) |
 | 🏷️ **Per-engine score badges** | Every card shows its own 0–10 score, keeping "checked & clean" visually distinct from "no signal" and from "error" |
@@ -93,6 +92,8 @@ docker compose up -d
 | 🔗 **Deep links** | Every card links straight to the indicator's page on the original tool |
 | 🔍 **Raw JSON viewer** | Per-card `{ RAW }` button opens a syntax-highlighted modal with copy & download |
 | 🛠️ **Actionable errors** | Failed sources show the exact reason (invalid key, rate limit, timeout…) |
+| 📖 **In-app docs** | Header → **Docs**: how to read a lookup, the formulas, quadrants and every Admin setting, with this deployment's live weights and thresholds |
+| 🌐 **English / Español** | Language selector in the header (EN / ES) for the whole interface, docs included; remembered per browser, defaults to the browser language |
 | 🌗 **Dark / Light mode** | Full theme support — syntax highlighter adapts automatically |
 
 ---
@@ -154,12 +155,13 @@ Every lookup produces **two independent scores** and a reading of both together.
 ### Knowledge Score (0–10) — how much is known about the indicator
 Good or bad doesn't matter here — it measures how much of the available intel coverage has information on the indicator. Every **configured and enabled** source that supports the indicator type counts in the total; sources without an API key or disabled by the analyst are left out.
 
-Knowledge **only grows**: each source *adds* its share, and a source with no record — or one that failed to answer (timeout, rate limit…) — simply adds nothing. No single source can reach 10 on its own; 10 means every source has a rich record. A failing source does lower the ceiling of what's knowable for that lookup, which is the honest reading: with a source down, we know less.
+Knowledge **only grows**: each source *adds* its share, and a source with no record simply adds nothing. It **saturates**: once a configurable share of the available weight has a record (*Knowledge saturation* in Admin, 70 % by default), Knowledge is already 10 — an indicator doesn't need *every* source to know it to be well known. A source that fails for a **temporary** reason (rate limit, timeout, network, service unavailable) is left out of the total, since an API hiccup says nothing about the indicator; a persistent failure (invalid key, forbidden) still counts with depth 0.
 
 Each source rates its own **depth of record**: `None` (0, no record), `Basic` (0.5, a generic profile, a single pulse/scan) or `Rich` (1, multiple reports, samples, verdicts, vulns…). Sources that answer for almost anything (IPinfo, RIPEstat) or only say yes/no (Tor exit list, Safe Browsing) carry low knowledge weights, so they can't inflate the score on their own.
 
 ```
-knowledge = round(10 × Σ(knowledge_weight × depth) / Σ(knowledge_weight of every configured, enabled source for that type))
+coverage  = Σ(knowledge_weight × depth) / Σ(knowledge_weight of every counted source for that type)
+knowledge = round(10 × min(1, coverage ÷ knowledge_full_at))      # knowledge_full_at = 70 % by default
 ```
 
 ### Risk Score (0–10) — how risky it is, according to sources that issued a verdict
@@ -185,7 +187,7 @@ Default thresholds: knowledge ≥ 4, risk ≥ 5.
 ### Verdict matrix
 The **View matrix** button in the summary opens a Knowledge (X) × Risk (Y) chart with the quadrant regions and threshold lines. Starting from (0, 0), it adds one source at a time — in the same order as the result cards — and draws the staircase of how each one moved the two scores: knowledge only climbs (a source with no record or an error adds nothing), while risk is the running weighted average and can go up or down. The side list shows each step's Δ; hovering a step highlights it on the chart. It is rebuilt from the saved contributions, so it works the same for archived history entries.
 
-Every weight and threshold is explained in detail in [docs/admin.md](docs/admin.md).
+Every weight and threshold is explained in detail in [docs/admin.md](docs/admin.md), and in the app itself on the **Docs** page (header → Docs, `/docs`), which also shows the deployment's live weights, thresholds and source coverage.
 
 ### Weights & the Admin page
 Each engine has a **risk weight** and a **knowledge weight** (plus optional per-indicator-type knowledge overrides — e.g. RIPEstat counts 1 for IPs but 6 for ASNs). Both are always visible: as `R`/`K` chips on the home page's source list and on every result card (the `K` chip also shows that source's depth for the current result). The **Admin** page (header → Admin) edits every weight — MISP instances included — and the quadrant thresholds; changes are saved to `backend/data/weights.json` and apply to the next lookup. *Reset to defaults* restores the built-in values. The Admin page has no authentication, consistent with the rest of the app being an internal tool.
@@ -228,7 +230,7 @@ The lookup currently on screen never counts itself — on a live results page it
 
 ## 🚀 Quick Start
 
-Three steps: set your keys, drop in your logo (optional), run one command.
+Two steps: set your keys, run one command.
 
 ```bash
 git clone <repo-url>
@@ -236,10 +238,6 @@ cd IntelChecker
 
 cp backend/.env.example backend/.env
 # Edit backend/.env and fill in your API keys
-
-# Optional: replace logo/light.png and logo/dark.png (repo root) with your own —
-# if you leave them out or delete them, the UI just renders without a logo, no
-# broken image. The right one is shown automatically based on the active theme.
 
 # Optional: 8080 or 8000 already taken by something else? cp .env.example .env
 # and change FRONTEND_PORT / BACKEND_PORT there — nothing else to edit.
@@ -258,8 +256,7 @@ The frontend container serves the built SPA via nginx and reverse-proxies `/api/
 docker compose down
 ```
 
-> Re-run `docker compose up --build -d` any time you change `.env`, the logo, or the code — it rebuilds only what changed.
-> `logo/light.png` and `logo/dark.png` live at the repo root so they're the first thing a deployer sees — `frontend/public/logo` is just a symlink to that folder, kept for local (non-Docker) dev. Missing either file? The build doesn't fail and the UI silently renders without it, per theme.
+> Re-run `docker compose up --build -d` any time you change `.env` or the code — it rebuilds only what changed.
 > Verdict weights are edited from the **Admin** page and saved to `backend/data/weights.json` (same volume as the history DB) — no rebuild needed, changes apply to the next lookup.
 > Query history needs no setup — `docker compose up` creates `backend/data/history.db` on first run and it persists across restarts/rebuilds via the volume mount in `docker-compose.yml`.
 > `.env` (repo root) sets `FRONTEND_PORT` / `BACKEND_PORT` — Docker Compose loads it automatically for variable substitution in `docker-compose.yml`. It's a different file from `backend/.env` (API keys) and doesn't get passed into any container. No file present? Compose falls back to `8080` / `8000`.
@@ -368,25 +365,23 @@ IntelChecker/
 │   └── requirements.txt
 ├── frontend/
 │   ├── public/
-│   │   ├── app-logo.png          # IntelChecker logo (header) · favicon.png · apple-touch-icon.png
-│   │   └── logo/                 # Symlink → ../../logo/ (for local `npm run dev`)
+│   │   └── app-logo.png          # IntelChecker logo (header) · favicon.png · apple-touch-icon.png
 │   ├── src/
 │   │   ├── components/results/  # Per-engine cards, ScoreBadge, WeightBadge, SearchFrequencyCard, RawJsonModal, VerdictExplainerModal, MatrixModal, shared MISPCard
-│   │   ├── pages/                # HomePage · ResultsPage · HistoryPage · HistoryDetailPage · AdminPage
+│   │   ├── pages/                # HomePage · ResultsPage · HistoryPage · HistoryDetailPage · AdminPage · DocsPage
 │   │   ├── registry.tsx          # Static (build-time) engine registry
 │   │   ├── verdictEngine.ts      # Per-engine subscores + depth, Knowledge/Risk scores, quadrant
 │   │   ├── trajectory.ts         # Step-by-step replay of the verdict for the matrix view
 │   │   ├── quadrants.ts          # Quadrant / outcome labels and styles
 │   │   ├── EnginesContext.tsx    # Merges static engines with backend-discovered MISP instances
+│   │   ├── i18n/                 # EN/ES dictionaries (messages/<area>.ts), Docs content, useI18n, rich()
+│   │   ├── intelAggregates.ts    # Summary: tags/families, actors, first/last seen, flagged-by
 │   │   └── summaryRegistry.ts    # Summary field extractors per engine+type
 │   ├── Dockerfile               # Multi-stage build → nginx serving the SPA
 │   └── nginx.conf                # Serves the SPA + proxies /api/* to the backend
 ├── docs/
 │   ├── admin.md                  # Admin page guide: every weight/threshold and its effect
 │   └── logo.png
-├── logo/
-│   ├── light.png                 # ← Replace with your org's logo, light theme (optional, PNG)
-│   └── dark.png                  # ← Replace with your org's logo, dark theme (optional, PNG)
 ├── .env                          # ← FRONTEND_PORT / BACKEND_PORT — gitignored, default 8080 / 8000
 ├── .env.example                  # Template for the above
 ├── docker-compose.yml

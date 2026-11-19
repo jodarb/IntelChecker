@@ -3,6 +3,8 @@ import { Loader2, CheckCircle2, ShieldX, ChevronDown, FileCode2, ExternalLink } 
 import RawJsonModal from './RawJsonModal'
 import ScoreBadge from './ScoreBadge'
 import WeightBadge, { type CardWeight } from './WeightBadge'
+import { useI18n } from '@/i18n/useI18n'
+import { apiErrorText } from '@/i18n/errors'
 
 interface URLHausPayload {
   filename?: string | null
@@ -53,18 +55,19 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 function StatusBadge({ found, count }: { found: boolean; count?: number }) {
+  const { t } = useI18n()
   if (!found) {
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-semibold text-green-400 bg-green-500/10 border-green-500/30">
         <CheckCircle2 className="h-3 w-3" />
-        Clean
+        {t('card.clean')}
       </span>
     )
   }
   return (
     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-semibold text-red-400 bg-red-500/10 border-red-500/30">
       <ShieldX className="h-3 w-3" />
-      {count && count > 1 ? `${count} URLs Found` : 'Listed in URLhaus'}
+      {count && count > 1 ? t('urlhaus.urlsFound', { n: count }) : t('urlhaus.listed')}
     </span>
   )
 }
@@ -82,6 +85,7 @@ function TagList({ tags }: { tags: string[] }) {
 }
 
 function UrlRow({ record }: { record: URLHausUrlRecord }) {
+  const { t, locale } = useI18n()
   return (
     <div className="rounded-md border border-border bg-muted/20 px-4 py-3 flex flex-col gap-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -98,18 +102,18 @@ function UrlRow({ record }: { record: URLHausUrlRecord }) {
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-1.5 text-xs">
         <div>
-          <span className="text-muted-foreground uppercase tracking-wide">Threat</span>
+          <span className="text-muted-foreground uppercase tracking-wide">{t('f.threat')}</span>
           <p className="text-foreground font-medium mt-0.5">{record.threat ?? '—'}</p>
         </div>
         <div>
-          <span className="text-muted-foreground uppercase tracking-wide">Date Added</span>
+          <span className="text-muted-foreground uppercase tracking-wide">{t('f.dateAdded')}</span>
           <p className="text-foreground font-medium mt-0.5">
-            {record.date_added ? new Date(record.date_added).toLocaleString() : '—'}
+            {record.date_added ? new Date(record.date_added).toLocaleString(locale) : '—'}
           </p>
         </div>
         {record.tags && record.tags.length > 0 && (
           <div className="col-span-2 sm:col-span-3">
-            <span className="text-muted-foreground uppercase tracking-wide">Tags</span>
+            <span className="text-muted-foreground uppercase tracking-wide">{t('f.tags')}</span>
             <div className="mt-0.5"><TagList tags={record.tags} /></div>
           </div>
         )}
@@ -121,7 +125,7 @@ function UrlRow({ record }: { record: URLHausUrlRecord }) {
           rel="noreferrer"
           className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit"
         >
-          <ExternalLink className="h-3 w-3" /> View on URLhaus
+          <ExternalLink className="h-3 w-3" /> {t('card.viewOn', { source: 'URLhaus' })}
         </a>
       )}
     </div>
@@ -129,6 +133,8 @@ function UrlRow({ record }: { record: URLHausUrlRecord }) {
 }
 
 export default function URLHausCard({ loading, error, data, score = null, weight = null }: Props) {
+  const i18n = useI18n()
+  const { t, locale } = i18n
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.error ?? null
@@ -151,7 +157,7 @@ export default function URLHausCard({ loading, error, data, score = null, weight
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border text-xs font-medium text-muted-foreground bg-muted/30 hover:bg-muted/70 hover:text-foreground transition-colors"
-              title="View raw JSON"
+              title={t('raw.buttonTitle')}
             >
               <FileCode2 className="h-3 w-3" />
               RAW
@@ -163,29 +169,29 @@ export default function URLHausCard({ loading, error, data, score = null, weight
 
       {open && (
         <div className="px-4 py-4 flex flex-col gap-3">
-          {loading && <p className="text-sm text-muted-foreground">Querying URLhaus...</p>}
+          {loading && <p className="text-sm text-muted-foreground">{t('card.querying', { source: 'URLhaus' })}</p>}
 
           {!loading && (error || apiError) && (
-            <p className="text-sm text-red-400">{error ?? apiError?.message}</p>
+            <p className="text-sm text-red-400">{error ?? apiErrorText(i18n, apiError, 'URLhaus')}</p>
           )}
 
           {!loading && noResults && (
-            <p className="text-sm text-muted-foreground">No matches found in URLhaus.</p>
+            <p className="text-sm text-muted-foreground">{t('card.noMatches', { source: 'URLhaus' })}</p>
           )}
 
           {!loading && isSingleUrl && (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
-                <Field label="Status" value={<StatusBadge found={true} />} />
-                <Field label="URL Status" value={data?.url_status} />
-                <Field label="Threat" value={data?.threat} />
-                <Field label="Host" value={data?.host} />
+                <Field label={t('f.status')} value={<StatusBadge found={true} />} />
+                <Field label={t('f.urlStatus')} value={data?.url_status} />
+                <Field label={t('f.threat')} value={data?.threat} />
+                <Field label={t('f.host')} value={data?.host} />
                 <Field
-                  label="Date Added"
-                  value={data?.date_added ? new Date(data.date_added).toLocaleString() : undefined}
+                  label={t('f.dateAdded')}
+                  value={data?.date_added ? new Date(data.date_added).toLocaleString(locale) : undefined}
                 />
                 <Field
-                  label="Reference"
+                  label={t('f.reference')}
                   value={data?.urlhaus_reference && (
                     <a href={data.urlhaus_reference} target="_blank" rel="noreferrer" className="text-primary hover:underline break-all">
                       {data.urlhaus_reference}
@@ -197,16 +203,16 @@ export default function URLHausCard({ loading, error, data, score = null, weight
               {data?.payloads && data.payloads.length > 0 && (
                 <div className="flex flex-col gap-2">
                   <span className="text-xs text-muted-foreground uppercase tracking-wide">
-                    Payloads ({data.payloads.length})
+                    {t('urlhaus.payloads', { n: data.payloads.length })}
                   </span>
                   {data.payloads.map((p, i) => (
                     <div
                       key={i}
                       className="rounded-md border border-border bg-muted/20 px-4 py-3 grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2"
                     >
-                      <Field label="Filename" value={p.filename} />
-                      <Field label="File Type" value={p.file_type} />
-                      <Field label="Signature" value={p.signature} />
+                      <Field label={t('f.fileName')} value={p.filename} />
+                      <Field label={t('f.fileType')} value={p.file_type} />
+                      <Field label={t('f.signature')} value={p.signature} />
                     </div>
                   ))}
                 </div>

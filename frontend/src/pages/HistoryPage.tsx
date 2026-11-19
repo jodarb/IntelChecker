@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useFetchJson } from '@/hooks/useFetchJson'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ChevronRight, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Layout from '@/components/Layout'
 import ScoreBadge from '@/components/results/ScoreBadge'
-import { QUADRANT_META } from '@/quadrants'
+import { QUADRANT_META, quadrantLabel } from '@/quadrants'
 import type { Quadrant } from '@/verdictEngine'
+import { useI18n } from '@/i18n/useI18n'
+import type { IndicatorType } from '@/registry'
 
 interface HistoryListEntry {
   id: number
@@ -17,38 +19,21 @@ interface HistoryListEntry {
   quadrant: Quadrant | null
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  ip: 'IP Address',
-  domain: 'Domain',
-  url: 'URL',
-  hash: 'File Hash',
-  asn: 'ASN',
-  'threat-actor': 'Threat Actor',
-}
-
 const BACKEND = '/api'
 
-function formatTimestamp(ts: string): string {
+function formatTimestamp(ts: string, locale: string): string {
   // Backend stores UTC as "YYYY-MM-DD HH:MM:SS" (SQLite datetime('now')) — mark it
   // explicitly as UTC so the browser converts it to the analyst's local time.
-  return new Date(ts.replace(' ', 'T') + 'Z').toLocaleString()
+  return new Date(ts.replace(' ', 'T') + 'Z').toLocaleString(locale)
 }
 
 export default function HistoryPage() {
   const [searchParams] = useSearchParams()
   const indicator = searchParams.get('indicator') ?? ''
-  const [entries, setEntries] = useState<HistoryListEntry[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    setEntries(null)
-    setError(null)
-    const query = indicator ? `?indicator=${encodeURIComponent(indicator)}` : ''
-    fetch(`${BACKEND}/history${query}`)
-      .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json() })
-      .then(setEntries)
-      .catch(() => setError('Could not reach the backend. Is it running?'))
-  }, [indicator])
+  const { t, tn, locale } = useI18n()
+  const query = indicator ? `?indicator=${encodeURIComponent(indicator)}` : ''
+  const { data: entries, failed } = useFetchJson<HistoryListEntry[]>(`${BACKEND}/history${query}`)
+  const error = failed ? t('common.backendDown') : null
 
   return (
     <Layout>
@@ -57,26 +42,26 @@ export default function HistoryPage() {
           <Button variant="ghost" size="sm" asChild className="shrink-0">
             <Link to="/">
               <ArrowLeft className="h-4 w-4 mr-1" />
-              Back
+              {t('common.back')}
             </Link>
           </Button>
-          <h2 className="text-xl font-semibold text-foreground">Query History</h2>
+          <h2 className="text-xl font-semibold text-foreground">{t('history.title')}</h2>
         </div>
 
         {indicator && (
           <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border bg-muted/20 text-sm">
-            <span className="text-muted-foreground">Filtered to</span>
+            <span className="text-muted-foreground">{t('history.filteredTo')}</span>
             <span className="font-mono text-foreground font-medium break-all">{indicator}</span>
             {entries && (
               <span className="text-muted-foreground">
-                — {entries.length} search{entries.length === 1 ? '' : 'es'} total
+                {tn('history.total', entries.length)}
               </span>
             )}
             <Link
               to="/history"
               className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground ml-auto shrink-0"
             >
-              <X className="h-3 w-3" /> Clear filter
+              <X className="h-3 w-3" /> {t('history.clearFilter')}
             </Link>
           </div>
         )}
@@ -84,12 +69,12 @@ export default function HistoryPage() {
         {error && <p className="text-sm text-red-400">{error}</p>}
 
         {!error && entries === null && (
-          <p className="text-sm text-muted-foreground">Loading...</p>
+          <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
         )}
 
         {entries && entries.length === 0 && (
           <p className="text-sm text-muted-foreground">
-            {indicator ? `No queries logged yet for ${indicator}.` : 'No queries have been logged yet.'}
+            {indicator ? t('history.emptyFor', { indicator }) : t('history.empty')}
           </p>
         )}
 
@@ -106,23 +91,23 @@ export default function HistoryPage() {
                     {entry.indicator}
                   </span>
                   <span className="text-xs text-muted-foreground uppercase tracking-wide shrink-0">
-                    {TYPE_LABELS[entry.type] ?? entry.type}
+                    {t(`type.${entry.type as IndicatorType}`)}
                   </span>
                 </div>
                 <div className="flex items-center gap-4 shrink-0">
-                  <span className="text-xs text-muted-foreground">{formatTimestamp(entry.timestamp)}</span>
+                  <span className="text-xs text-muted-foreground">{formatTimestamp(entry.timestamp, locale)}</span>
                   {entry.quadrant && (
                     <span className={`hidden md:inline-flex px-2 py-0.5 rounded-full border text-xs font-medium ${QUADRANT_META[entry.quadrant].className}`}>
-                      {QUADRANT_META[entry.quadrant].label}
+                      {quadrantLabel(entry.quadrant, t)}
                     </span>
                   )}
-                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title="Knowledge Score">
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title={t('history.knowledgeTitle')}>
                     K
                     <span className="inline-flex px-2 py-0.5 rounded-full border border-border bg-muted/30 font-semibold text-foreground">
                       {entry.knowledge_score ?? '—'}
                     </span>
                   </span>
-                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title="Risk Score">
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title={t('history.riskTitle')}>
                     R <ScoreBadge score={entry.score} />
                   </span>
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />

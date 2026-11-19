@@ -3,6 +3,8 @@ import { Loader2, ChevronDown, FileCode2, ExternalLink, ShieldAlert } from 'luci
 import RawJsonModal from './RawJsonModal'
 import ScoreBadge from './ScoreBadge'
 import WeightBadge, { type CardWeight } from './WeightBadge'
+import { useI18n } from '@/i18n/useI18n'
+import { apiErrorText } from '@/i18n/errors'
 
 interface ThreatMatch {
   threatType: string
@@ -38,6 +40,8 @@ function MatchRow({ match }: { match: ThreatMatch }) {
 }
 
 export default function SafeBrowsingCard({ loading, error, data, score = null, weight = null, indicator }: Props) {
+  const i18n = useI18n()
+  const { t } = i18n
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.error ?? null
@@ -60,7 +64,7 @@ export default function SafeBrowsingCard({ loading, error, data, score = null, w
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border text-xs font-medium text-muted-foreground bg-muted/30 hover:bg-muted/70 hover:text-foreground transition-colors"
-              title="View raw JSON"
+              title={t('raw.buttonTitle')}
             >
               <FileCode2 className="h-3 w-3" />
               RAW
@@ -73,21 +77,21 @@ export default function SafeBrowsingCard({ loading, error, data, score = null, w
       {open && (
         <div className="px-4 py-4 flex flex-col gap-3">
           {loading && (
-            <p className="text-sm text-muted-foreground">Querying Google Safe Browsing...</p>
+            <p className="text-sm text-muted-foreground">{t('card.querying', { source: 'Google Safe Browsing' })}</p>
           )}
 
           {!loading && isRealError && (
-            <p className="text-sm text-red-400">{error ?? apiError?.message}</p>
+            <p className="text-sm text-red-400">{error ?? apiErrorText(i18n, apiError, 'Google Safe Browsing')}</p>
           )}
 
           {!loading && hasChecked && matches.length === 0 && (
-            <p className="text-sm text-muted-foreground">Not found on any Google Safe Browsing threat list.</p>
+            <p className="text-sm text-muted-foreground">{t('gsb.none')}</p>
           )}
 
           {!loading && matches.length > 0 && (
             <div className="flex flex-col gap-2">
               <span className="text-xs text-muted-foreground uppercase tracking-wide">
-                Threat Matches ({matches.length})
+                {t('gsb.matches', { n: matches.length })}
               </span>
               {matches.map((m, i) => <MatchRow key={i} match={m} />)}
             </div>
@@ -100,7 +104,7 @@ export default function SafeBrowsingCard({ loading, error, data, score = null, w
               rel="noreferrer"
               className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit"
             >
-              <ExternalLink className="h-3 w-3" /> View on Google Transparency Report
+              <ExternalLink className="h-3 w-3" /> {t('card.viewOn', { source: 'Google Transparency Report' })}
             </a>
           )}
         </div>

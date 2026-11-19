@@ -3,6 +3,8 @@ import { Loader2, ChevronDown, FileCode2, ExternalLink } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
 import ScoreBadge from './ScoreBadge'
 import WeightBadge, { type CardWeight } from './WeightBadge'
+import { useI18n } from '@/i18n/useI18n'
+import { apiErrorText } from '@/i18n/errors'
 
 interface ShodanFacetEntry {
   value: string
@@ -56,6 +58,8 @@ function formatFacets(entries?: ShodanFacetEntry[]) {
 }
 
 export default function ShodanCard({ loading, error, data, score = null, weight = null }: Props) {
+  const i18n = useI18n()
+  const { t, locale } = i18n
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.error ?? null
@@ -83,7 +87,7 @@ export default function ShodanCard({ loading, error, data, score = null, weight 
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border text-xs font-medium text-muted-foreground bg-muted/30 hover:bg-muted/70 hover:text-foreground transition-colors"
-              title="View raw JSON"
+              title={t('raw.buttonTitle')}
             >
               <FileCode2 className="h-3 w-3" />
               RAW
@@ -96,35 +100,35 @@ export default function ShodanCard({ loading, error, data, score = null, weight 
       {open && (
         <div className="px-4 py-4">
           {loading && (
-            <p className="text-sm text-muted-foreground">Querying Shodan...</p>
+            <p className="text-sm text-muted-foreground">{t('card.querying', { source: 'Shodan' })}</p>
           )}
 
           {!loading && isRealError && (
-            <p className="text-sm text-red-400">{error ?? apiError?.message}</p>
+            <p className="text-sm text-red-400">{error ?? apiErrorText(i18n, apiError, 'Shodan')}</p>
           )}
 
           {!loading && isNotFound && (
-            <p className="text-sm text-muted-foreground">{apiError?.message}</p>
+            <p className="text-sm text-muted-foreground">{apiErrorText(i18n, apiError, 'Shodan')}</p>
           )}
 
           {!loading && isHost && (
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
-                <Field label="Organization" value={data?.org} />
-                <Field label="ISP" value={data?.isp} />
-                <Field label="ASN" value={data?.asn} />
-                <Field label="Country" value={data?.country_name} />
-                <Field label="City" value={data?.city} />
-                <Field label="Operating System" value={data?.os} />
+                <Field label={t('f.organization')} value={data?.org} />
+                <Field label={t('f.isp')} value={data?.isp} />
+                <Field label={t('f.asn')} value={data?.asn} />
+                <Field label={t('f.country')} value={data?.country_name} />
+                <Field label={t('f.city')} value={data?.city} />
+                <Field label={t('f.os')} value={data?.os} />
                 <Field
-                  label="Last Update"
-                  value={data?.last_update ? new Date(data.last_update).toLocaleString() : undefined}
+                  label={t('f.lastUpdate')}
+                  value={data?.last_update ? new Date(data.last_update).toLocaleString(locale) : undefined}
                 />
               </div>
-              {portCount > 0 && <Field label="Open Ports" value={data!.ports!.join(', ')} />}
-              {vulnCount > 0 && <Field label="Vulnerabilities (CVEs)" value={data!.vulns!.join(', ')} />}
+              {portCount > 0 && <Field label={t('f.openPorts')} value={data!.ports!.join(', ')} />}
+              {vulnCount > 0 && <Field label={t('f.vulns')} value={data!.vulns!.join(', ')} />}
               {(data?.hostnames?.length ?? 0) > 0 && (
-                <Field label="Hostnames" value={data!.hostnames!.join(', ')} />
+                <Field label={t('f.hostnames')} value={data!.hostnames!.join(', ')} />
               )}
               {data?.ip_str && (
                 <a
@@ -133,7 +137,7 @@ export default function ShodanCard({ loading, error, data, score = null, weight 
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit"
                 >
-                  <ExternalLink className="h-3 w-3" /> View on Shodan
+                  <ExternalLink className="h-3 w-3" /> {t('card.viewOn', { source: 'Shodan' })}
                 </a>
               )}
             </div>
@@ -141,15 +145,15 @@ export default function ShodanCard({ loading, error, data, score = null, weight 
 
           {!loading && isAsnSummary && (
             <div className="flex flex-col gap-4">
-              <Field label="Total Hosts Found" value={data?.total} />
+              <Field label={t('f.totalHosts')} value={data?.total} />
               {formatFacets(data?.facets?.org) && (
-                <Field label="Top Organizations" value={formatFacets(data?.facets?.org)} />
+                <Field label={t('f.topOrgs')} value={formatFacets(data?.facets?.org)} />
               )}
               {formatFacets(data?.facets?.port) && (
-                <Field label="Top Ports" value={formatFacets(data?.facets?.port)} />
+                <Field label={t('f.topPorts')} value={formatFacets(data?.facets?.port)} />
               )}
               {formatFacets(data?.facets?.country) && (
-                <Field label="Top Countries" value={formatFacets(data?.facets?.country)} />
+                <Field label={t('f.topCountries')} value={formatFacets(data?.facets?.country)} />
               )}
             </div>
           )}

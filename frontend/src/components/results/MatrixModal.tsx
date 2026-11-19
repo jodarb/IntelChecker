@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { X } from 'lucide-react'
 import type { VerdictResult, VerdictThresholds } from '@/verdictEngine'
 import { computeTrajectory, type TrajectoryStep } from '@/trajectory'
-import { OUTCOME_META, QUADRANT_META, depthLabel } from '@/quadrants'
+import { OUTCOME_META, QUADRANT_META, depthLabel, outcomeLabel, quadrantLabel } from '@/quadrants'
+import { useI18n } from '@/i18n/useI18n'
+import { rich } from '@/i18n/rich'
 
 interface Props {
   open: boolean
@@ -58,15 +60,16 @@ function Tooltip({ step, index }: { step: TrajectoryStep; index: number }) {
   const h = 58
   const tx = x + 16 + w > PAD_L + W ? x - 16 - w : x + 16
   const ty = Math.min(Math.max(y - h / 2, PAD_T), PAD_T + H - h)
-  const riskTxt = step.to.risk == null ? 'no verdict yet' : `${delta(step.from.risk, step.to.risk)} → ${fmt(step.to.risk)}`
+  const { t } = useI18n()
+  const riskTxt = step.to.risk == null ? t('matrix.noVerdictYet') : `${delta(step.from.risk, step.to.risk)} → ${fmt(step.to.risk)}`
   return (
     <g pointerEvents="none">
       <rect x={tx} y={ty} width={w} height={h} rx="6" fill="var(--color-background)" stroke="currentColor" strokeOpacity="0.3" />
       <text x={tx + 10} y={ty + 17} fontSize="11" fontWeight="700" fill="currentColor">{index + 1}. {step.label}</text>
       <text x={tx + 10} y={ty + 33} fontSize="10" fill="currentColor" opacity="0.8">
-        Knowledge {delta(step.from.knowledge, step.to.knowledge)} → {fmt(step.to.knowledge)}
+        {t('matrix.tooltipKnowledge', { delta: delta(step.from.knowledge, step.to.knowledge), value: fmt(step.to.knowledge) })}
       </text>
-      <text x={tx + 10} y={ty + 48} fontSize="10" fill="currentColor" opacity="0.8">Risk {riskTxt}</text>
+      <text x={tx + 10} y={ty + 48} fontSize="10" fill="currentColor" opacity="0.8">{t('matrix.tooltipRisk', { text: riskTxt })}</text>
     </g>
   )
 }
@@ -80,22 +83,23 @@ function Chart({
   active: number | null
   setActive: (i: number | null) => void
 }) {
+  const { t } = useI18n()
   const tk = px(thresholds.knowledge)
   const tr = py(thresholds.risk)
   const last = steps.at(-1)?.to
 
   return (
-    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-full h-auto select-none" role="img" aria-label="Knowledge versus risk trajectory">
+    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-full h-auto select-none" role="img" aria-label={t('matrix.aria')}>
       {/* Quadrant regions */}
       <rect x={PAD_L} y={PAD_T} width={tk - PAD_L} height={tr - PAD_T} fill="#fb923c" opacity="0.08" />
       <rect x={tk} y={PAD_T} width={PAD_L + W - tk} height={tr - PAD_T} fill="#f87171" opacity="0.10" />
       <rect x={PAD_L} y={tr} width={tk - PAD_L} height={PAD_T + H - tr} fill="#94a3b8" opacity="0.06" />
       <rect x={tk} y={tr} width={PAD_L + W - tk} height={PAD_T + H - tr} fill="#4ade80" opacity="0.07" />
       <g fontSize="10" fill="currentColor" opacity="0.55">
-        <text x={PAD_L + 6} y={PAD_T + 14}>Isolated signal · Verify</text>
-        <text x={PAD_L + W - 6} y={PAD_T + 14} textAnchor="end">Malicious · Confirmed</text>
-        <text x={PAD_L + 6} y={tr + 14}>Unknown</text>
-        <text x={PAD_L + W - 6} y={tr + 14} textAnchor="end">Known · Benign / Low-level signals</text>
+        <text x={PAD_L + 6} y={PAD_T + 14}>{t('matrix.region.isolated')}</text>
+        <text x={PAD_L + W - 6} y={PAD_T + 14} textAnchor="end">{t('matrix.region.confirmed')}</text>
+        <text x={PAD_L + 6} y={tr + 14}>{t('matrix.region.unknown')}</text>
+        <text x={PAD_L + W - 6} y={tr + 14} textAnchor="end">{t('matrix.region.known')}</text>
       </g>
 
       {/* Grid + axes */}
@@ -123,8 +127,8 @@ function Chart({
           </g>
         ))}
       </g>
-      <text x={PAD_L + W / 2} y={SIZE - 8} textAnchor="middle" fontSize="11" fill="currentColor" opacity="0.8">Knowledge →</text>
-      <text x={14} y={PAD_T + H / 2} textAnchor="middle" fontSize="11" fill="currentColor" opacity="0.8" transform={`rotate(-90 14 ${PAD_T + H / 2})`}>Risk →</text>
+      <text x={PAD_L + W / 2} y={SIZE - 8} textAnchor="middle" fontSize="11" fill="currentColor" opacity="0.8">{t('matrix.axisKnowledge')}</text>
+      <text x={14} y={PAD_T + H / 2} textAnchor="middle" fontSize="11" fill="currentColor" opacity="0.8" transform={`rotate(-90 14 ${PAD_T + H / 2})`}>{t('matrix.axisRisk')}</text>
 
       {/* Staircase: per engine, horizontal (knowledge) then vertical (risk).
           Two layers — every line first, every point on top — so later steps never hide earlier points. */}
@@ -146,7 +150,7 @@ function Chart({
 
       {/* Start */}
       <circle cx={px(0)} cy={py(0)} r={4} fill="currentColor" opacity="0.7" pointerEvents="none" />
-      <text x={px(0) + 8} y={py(0) - 8} fontSize="10" fill="currentColor" opacity="0.7" pointerEvents="none">Start (0,0)</text>
+      <text x={px(0) + 8} y={py(0) - 8} fontSize="10" fill="currentColor" opacity="0.7" pointerEvents="none">{t('matrix.start')}</text>
 
       {steps.map((s, i) => {
         const x1 = px(s.to.knowledge)
@@ -179,7 +183,7 @@ function Chart({
             textAnchor={px(last.knowledge) > PAD_L + W - 110 ? 'end' : 'start'}
             fontSize="11" fontWeight="700" fill="currentColor"
           >
-            Final · K {final.knowledge ?? 'N/A'} · R {final.risk ?? 'No data'}
+            {t('matrix.final', { k: final.knowledge ?? t('score.na'), r: final.risk ?? t('score.noData') })}
           </text>
         </g>
       )}
@@ -194,7 +198,8 @@ function Chart({
 export default function MatrixModal({ open, onClose, verdict, thresholds }: Props) {
   const [active, setActive] = useState<number | null>(null)
   const steps = useMemo(() => computeTrajectory(verdict.contributions), [verdict.contributions])
-  const t = thresholds ?? { knowledge: 4, risk: 5 }
+  const th = thresholds ?? { knowledge: 4, risk: 5 }
+  const { t } = useI18n()
 
   useEffect(() => {
     if (!open) return
@@ -204,7 +209,7 @@ export default function MatrixModal({ open, onClose, verdict, thresholds }: Prop
   }, [open, onClose])
 
   if (!open) return null
-  const quadrant = verdict.quadrant ? QUADRANT_META[verdict.quadrant] : null
+  const q = verdict.quadrant
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
@@ -214,14 +219,14 @@ export default function MatrixModal({ open, onClose, verdict, thresholds }: Prop
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/40 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
-            <span className="text-sm font-semibold text-foreground">Knowledge × Risk matrix</span>
-            {quadrant && (
-              <span className={`hidden sm:inline-flex px-2 py-0.5 rounded-full border text-xs font-medium ${quadrant.className}`}>
-                {quadrant.label}
+            <span className="text-sm font-semibold text-foreground">{t('matrix.title')}</span>
+            {q && (
+              <span className={`hidden sm:inline-flex px-2 py-0.5 rounded-full border text-xs font-medium ${QUADRANT_META[q].className}`}>
+                {quadrantLabel(q, t)}
               </span>
             )}
           </div>
-          <button onClick={onClose} className="p-1 rounded hover:bg-muted/60 transition-colors text-muted-foreground hover:text-foreground">
+          <button onClick={onClose} aria-label={t('common.close')} className="p-1 rounded hover:bg-muted/60 transition-colors text-muted-foreground hover:text-foreground">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -229,25 +234,21 @@ export default function MatrixModal({ open, onClose, verdict, thresholds }: Prop
         <div className="overflow-auto flex-1 p-4 grid grid-cols-1 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] gap-5">
           <div className="flex flex-col gap-2 text-foreground">
             {steps.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No source with a non-zero weight has answered yet.</p>
+              <p className="text-sm text-muted-foreground">{t('matrix.empty')}</p>
             ) : (
-              <Chart steps={steps} thresholds={t} final={{ knowledge: verdict.knowledge, risk: verdict.risk }} active={active} setActive={setActive} />
+              <Chart steps={steps} thresholds={th} final={{ knowledge: verdict.knowledge, risk: verdict.risk }} active={active} setActive={setActive} />
             )}
             <p className="text-xs text-muted-foreground">
-              Starting at (0,0), sources are added one at a time in card order (risk weight, then knowledge weight).
-              Each step moves <span className="text-foreground">horizontally</span> by the knowledge that source adds
-              (knowledge only grows: sources with no record or that failed add nothing),
-              then <span className="text-foreground">vertically</span> by how it moves the risk (up or down). Dashed lines and hollow points:
-              no risk verdict yet. Dashed guides: quadrant thresholds (knowledge ≥ {t.knowledge}, risk ≥ {t.risk}).
+              {rich(t('matrix.explanation', { k: th.knowledge, r: th.risk }))}
             </p>
           </div>
 
           <div className="flex flex-col gap-2 min-w-0">
             <div className="grid grid-cols-[1.5rem_1fr_auto_auto] gap-x-3 px-2 text-xs text-muted-foreground uppercase tracking-wide font-medium">
               <span>#</span>
-              <span>Source</span>
-              <span className="w-24 text-right">Knowledge</span>
-              <span className="w-24 text-right">Risk</span>
+              <span>{t('explainer.source')}</span>
+              <span className="w-24 text-right">{t('score.knowledge')}</span>
+              <span className="w-24 text-right">{t('score.risk')}</span>
             </div>
             {steps.map((s, i) => (
               <div
@@ -267,8 +268,8 @@ export default function MatrixModal({ open, onClose, verdict, thresholds }: Prop
                 <div className="flex flex-col min-w-0">
                   <span className="text-foreground font-medium truncate">{s.label}</span>
                   <span className="text-xs text-muted-foreground truncate">
-                    <span className={OUTCOME_META[s.outcome].className}>{OUTCOME_META[s.outcome].label}</span>
-                    {s.knowledgeWeight > 0 && <> · K {s.knowledgeWeight} × {depthLabel(s.depth)}</>}
+                    <span className={OUTCOME_META[s.outcome].className}>{outcomeLabel(s.outcome, t)}</span>
+                    {s.knowledgeWeight > 0 && <> · K {s.knowledgeWeight} × {depthLabel(s.depth, t)}</>}
                     {s.riskWeight > 0 && s.subscore != null && <> · R {s.riskWeight} × {fmt(s.subscore)}</>}
                   </span>
                 </div>
@@ -284,10 +285,12 @@ export default function MatrixModal({ open, onClose, verdict, thresholds }: Prop
             ))}
             {steps.length > 0 && (
               <p className="text-xs text-muted-foreground px-1 pt-1">
-                Final (rounded): Knowledge <span className="text-foreground font-semibold">{verdict.knowledge ?? 'N/A'}</span> ·
-                Risk <span className="text-foreground font-semibold">{verdict.risk ?? 'No data'}</span>.
-                {' '}Sources without an API key, disabled, or with weight 0 in both scores don't appear
-                ({verdict.responded} of {verdict.queried} sources answered).
+                {rich(t('matrix.final.rounded', {
+                  k: verdict.knowledge ?? t('score.na'),
+                  r: verdict.risk ?? t('score.noData'),
+                  responded: verdict.responded,
+                  queried: verdict.queried,
+                }))}
               </p>
             )}
           </div>

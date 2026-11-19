@@ -23,16 +23,18 @@ Every source that is queried ends up in one of five states:
 Sources **without an API key**, **disabled** by the analyst, or that **don't support** the indicator type are not part of the lookup at all and never appear in either score.
 
 ### Knowledge Score (0–10) — *how much of our coverage has information*
-Every configured, enabled source that supports the indicator type counts in the total. Each one adds its knowledge weight × its **depth of record** (`None` = 0, `Basic` = 0.5, `Rich` = 1). Sources with *No record* or *No answer* add 0.
+Every configured, enabled source that supports the indicator type counts in the total — except those that failed for a temporary reason (see below). Each one adds its knowledge weight × its **depth of record** (`None` = 0, `Basic` = 0.5, `Rich` = 1). Sources with *No record* add 0.
 
 ```
-knowledge = round( 10 × Σ(knowledge_weight × depth) / Σ(knowledge_weight of every configured, enabled source for that type) )
+coverage  = Σ(knowledge_weight × depth) / Σ(knowledge_weight of every counted source for that type)
+knowledge = round( 10 × min(1, coverage ÷ knowledge_full_at) )      knowledge_full_at = 70 % by default
 ```
 
 Consequences:
 - Knowledge **only grows** as sources contribute — a source can never lower it by not knowing the indicator.
-- **No single source can reach 10** on its own; 10 means every source has a rich record.
-- A source that **fails** adds nothing but still counts in the total: with a source down, we genuinely know less. Several failures can drop an indicator below the "known" threshold.
+- It **saturates**: once `knowledge_full_at` % of the counted weight has a record, Knowledge is 10 — an indicator doesn't need *every* source to know it (see 2.5). With 100 % there is no saturation and 10 means every source has a rich record.
+- A source that fails for a **temporary** reason — rate limit, timeout, network error, service unavailable / HTTP error, or the app couldn't reach the backend — is **left out of the total**: an API hiccup says nothing about the indicator. The breakdown shows it as *temporary error — not counted*.
+- A **persistent** failure (invalid API key, forbidden) and a source **still loading** count in the total with depth 0, so knowledge only grows while results stream in.
 - Knowledge only shows once at least one source has answered.
 
 ### Risk Score (0–10) — *how risky, according to sources that issued a verdict*
@@ -48,11 +50,11 @@ If no source issued a verdict — or nothing at all is known about the indicator
 
 ## 2. What you can change
 
-The page has three blocks: an explanation box (read-only), **Quadrant thresholds**, and the **per-source weights** table. A bar at the bottom holds **Save**, **Discard changes** and **Reset to defaults**.
+The page has four blocks: an explanation box (read-only), **Quadrant thresholds**, **Knowledge saturation**, and the **per-source weights** table. A bar at the bottom holds **Save**, **Discard changes** and **Reset to defaults**.
 
 ### 2.1 Risk weight (per source)
 
-*Column **Risk**. Range 0–100.*
+*Column **Risk**. Range 0–10 (slider or number; the page won't accept values outside the range).*
 
 How much that source's 0–10 risk subscore counts in the Risk Score, **relative to the other sources that issued a verdict on the same lookup**. Only the ratio between weights matters: setting every weight to 10 or every weight to 1 gives the same result.
 
@@ -66,18 +68,18 @@ How much that source's 0–10 risk subscore counts in the Risk Score, **relative
 
 | Source | Risk weight | Subscore |
 |---|:-:|:-:|
-| Recorded Future | **25** | 1.0 |
+| Recorded Future | **10** | 1.0 |
 | AbuseIPDB | 7 | 2.1 |
 | AlienVault OTX | 6 | 4.0 |
 | TweetFeed | 4 | 7.0 |
 
-`risk = round((25×1.0 + 7×2.1 + 6×4.0 + 4×7.0) / 42) = round(2.18) = 2`. Lowering Recorded Future's risk weight to **10** gives `round(76.7 / 27) = 3`. The strong TweetFeed signal is diluted less.
+`risk = round((10×1.0 + 7×2.1 + 6×4.0 + 4×7.0) / 27) = round(2.84) = 3`. Setting Recorded Future's risk weight to **0** gives `round(66.7 / 17) = round(3.92) = 4`. The strong TweetFeed signal is diluted less.
 
 **Risk weight has no effect on purely contextual sources** — Shodan, IPinfo, RIPEstat and MITRE ATT&CK never return a risk subscore, so raising their risk weight changes nothing. Their value lies in the Knowledge Score.
 
 ### 2.2 Knowledge weight (per source)
 
-*Column **Knowledge**. Range 0–100.*
+*Column **Knowledge**. Range 0–10 (slider or number; the page won't accept values outside the range).*
 
 The share of the Knowledge Score that source can contribute: its weight divided by the total knowledge weight of all configured, enabled sources for the indicator type.
 
@@ -94,7 +96,7 @@ The share of the Knowledge Score that source can contribute: its weight divided 
 Lets a source have a different knowledge weight for a specific indicator type (IP, Domain, URL, Hash, ASN, Actor). Only the types the source supports are shown.
 
 - **Blank** → the general Knowledge value is used for that type.
-- **A number** → that number replaces the general value for that type only.
+- **A number** (0–10) → that number replaces the general value for that type only.
 
 The built-in example is **RIPEstat**: knowledge weight 1 for IPs (it answers for any routed IP, so it says little), but **6 for ASNs**, where it is one of the very few sources available. Overrides only apply to the Knowledge Score — the risk weight is always the same for every type.
 
@@ -135,11 +137,26 @@ The thresholds only change the **label** — the two numbers are never affected 
 
 ---
 
+### 2.5 Knowledge saturation
+
+*Block **Knowledge saturation**. Range 10–100 %, default 70 %.*
+
+The share of the counted knowledge weight (weighted by depth) at which the Knowledge Score reaches 10. Without it, a well-documented indicator that three broad sources simply don't have (e.g. AbuseIPDB, URLhaus, Shodan for a C2 IP) would stay around 5 even when the strongest sources know it in depth.
+
+| If you… | Effect |
+|---|---|
+| Raise it | Harder to reach high knowledge: more of your sources must know the indicator. **100 %** = no saturation (the original linear formula). |
+| Lower it | Fewer sources are enough to call something well known. Very low values make *Isolated signal* rarer. |
+
+Example (real lookup): 29.5 of 54 counted weight → coverage 0.546 → `round(10 × min(1, 0.546 ÷ 0.70)) = 8` (it was 5 before saturation and with the rate-limited VirusTotal still counted).
+
+Archived history entries keep the value in force when they were run; entries saved before this setting existed replay with 100 %.
+
 ## 3. Buttons
 
 | Button | What it does |
 |---|---|
-| **Save** | Validates and stores every weight and both thresholds. Enabled only when there are unsaved changes. Out-of-range values are rejected with a message (weights 0–100, thresholds 0–10) and nothing is saved. |
+| **Save** | Validates and stores every weight and both thresholds. Enabled only when there are unsaved changes. Every weight and threshold is limited to 0–10 (Knowledge saturation to 10–100 %): the inputs clamp to that range, and the backend rejects anything outside it with a message, saving nothing. |
 | **Discard changes** | Throws away unsaved edits and shows the stored values again. |
 | **Reset to defaults** | After a confirmation, deletes all admin changes and goes back to the built-in values (table below). Cannot be undone. |
 
@@ -157,6 +174,7 @@ The thresholds only change the **label** — the two numbers are never affected 
 
 ## 5. Where the values live
 
+- **0–10 scale.** All weights use the 0–10 range. A `weights.json` saved by an older version with values above 10 (or a `MISP_<N>_*WEIGHT` above 10 in `.env`) is clamped to 10 when loaded, so review those rows and **Save** once.
 - Saved values are stored in **`backend/data/weights.json`** — the same Docker volume as the query history — so they survive restarts, rebuilds and updates.
 - Saving stores the **full set** of values shown on the page. After the first save, a future release that changes a *default* for an existing source won't override your saved value; use **Reset to defaults** to pick up new defaults. Sources added in a future release get their default weights automatically.
 - **MISP instances** take their *initial* weights from `backend/.env` (`MISP_<N>_WEIGHT`, default 0, and `MISP_<N>_KNOWLEDGE_WEIGHT`, default 9). Once saved from Admin, the Admin value wins. Changing the `.env` value later has no effect until you **Reset to defaults**.
@@ -169,7 +187,7 @@ The thresholds only change the **label** — the two numbers are never affected 
 
 | Source | Risk | Knowledge | Notes |
 |---|:-:|:-:|---|
-| Recorded Future | 25 | 9 | |
+| Recorded Future | 10 | 9 | |
 | MITRE ATT&CK | 0 | 9 | context only |
 | MISP (each instance) | `.env` (0) | `.env` (9) | |
 | VirusTotal | 8 | 8 | |

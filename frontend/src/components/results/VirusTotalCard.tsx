@@ -3,6 +3,8 @@ import { Loader2, CheckCircle2, ShieldX, ShieldAlert, ChevronDown, FileCode2, Ex
 import RawJsonModal from './RawJsonModal'
 import ScoreBadge from './ScoreBadge'
 import WeightBadge, { type CardWeight } from './WeightBadge'
+import { useI18n } from '@/i18n/useI18n'
+import { apiErrorText } from '@/i18n/errors'
 
 interface AnalysisStats {
   malicious: number
@@ -45,6 +47,7 @@ interface Props {
 const VT_TYPE_SLUG: Record<string, string> = { ip: 'ip-address', domain: 'domain', url: 'url', hash: 'file' }
 
 function DetectionBadge({ stats }: { stats: AnalysisStats }) {
+  const { t } = useI18n()
   const total = stats.malicious + stats.suspicious + stats.harmless + stats.undetected + stats.timeout
   const flagged = stats.malicious + stats.suspicious
 
@@ -52,7 +55,7 @@ function DetectionBadge({ stats }: { stats: AnalysisStats }) {
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-semibold text-red-400 bg-red-500/10 border-red-500/30">
         <ShieldX className="h-3 w-3" />
-        {stats.malicious}/{total} · Malicious
+        {stats.malicious}/{total} · {t('card.malicious')}
       </span>
     )
   }
@@ -60,14 +63,14 @@ function DetectionBadge({ stats }: { stats: AnalysisStats }) {
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-semibold text-yellow-400 bg-yellow-500/10 border-yellow-500/30">
         <ShieldAlert className="h-3 w-3" />
-        {flagged}/{total} · Suspicious
+        {flagged}/{total} · {t('card.suspicious')}
       </span>
     )
   }
   return (
     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-semibold text-green-400 bg-green-500/10 border-green-500/30">
       <CheckCircle2 className="h-3 w-3" />
-      0/{total} · Clean
+      0/{total} · {t('card.clean')}
     </span>
   )
 }
@@ -82,6 +85,8 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 export default function VirusTotalCard({ loading, error, data, score = null, weight = null, type }: Props) {
+  const i18n = useI18n()
+  const { t, locale } = i18n
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.error ?? null
@@ -107,7 +112,7 @@ export default function VirusTotalCard({ loading, error, data, score = null, wei
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border text-xs font-medium text-muted-foreground bg-muted/30 hover:bg-muted/70 hover:text-foreground transition-colors"
-              title="View raw JSON"
+              title={t('raw.buttonTitle')}
             >
               <FileCode2 className="h-3 w-3" />
               RAW
@@ -120,35 +125,35 @@ export default function VirusTotalCard({ loading, error, data, score = null, wei
       {open && (
         <div className="px-4 py-4">
           {loading && (
-            <p className="text-sm text-muted-foreground">Querying VirusTotal...</p>
+            <p className="text-sm text-muted-foreground">{t('card.querying', { source: 'VirusTotal' })}</p>
           )}
 
           {!loading && isRealError && (
-            <p className="text-sm text-red-400">{error ?? apiError?.message}</p>
+            <p className="text-sm text-red-400">{error ?? apiErrorText(i18n, apiError, 'VirusTotal')}</p>
           )}
 
           {!loading && isNotFound && (
-            <p className="text-sm text-muted-foreground">{apiError?.message}</p>
+            <p className="text-sm text-muted-foreground">{apiErrorText(i18n, apiError, 'VirusTotal')}</p>
           )}
 
           {!loading && attrs && (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
               <Field
-                label="Detection"
+                label={t('f.detection')}
                 value={<DetectionBadge stats={attrs.last_analysis_stats} />}
               />
-              <Field label="Malicious Engines" value={attrs.last_analysis_stats.malicious} />
-              <Field label="Suspicious Engines" value={attrs.last_analysis_stats.suspicious} />
-              <Field label="Community Reputation" value={attrs.reputation} />
-              <Field label="Country" value={attrs.country} />
-              <Field label="AS Owner" value={attrs.as_owner} />
-              <Field label="ASN" value={attrs.asn ? `AS${attrs.asn}` : null} />
-              <Field label="Network" value={attrs.network} />
+              <Field label={t('f.maliciousEngines')} value={attrs.last_analysis_stats.malicious} />
+              <Field label={t('f.suspiciousEngines')} value={attrs.last_analysis_stats.suspicious} />
+              <Field label={t('f.communityReputation')} value={attrs.reputation} />
+              <Field label={t('f.country')} value={attrs.country} />
+              <Field label={t('f.asOwner')} value={attrs.as_owner} />
+              <Field label={t('f.asn')} value={attrs.asn ? `AS${attrs.asn}` : null} />
+              <Field label={t('f.network')} value={attrs.network} />
               <Field
-                label="Last Analysis"
+                label={t('f.lastAnalysis')}
                 value={
                   attrs.last_analysis_date
-                    ? new Date(attrs.last_analysis_date * 1000).toLocaleString()
+                    ? new Date(attrs.last_analysis_date * 1000).toLocaleString(locale)
                     : '—'
                 }
               />
@@ -162,7 +167,7 @@ export default function VirusTotalCard({ loading, error, data, score = null, wei
               rel="noreferrer"
               className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit mt-3"
             >
-              <ExternalLink className="h-3 w-3" /> View on VirusTotal
+              <ExternalLink className="h-3 w-3" /> {t('card.viewOn', { source: 'VirusTotal' })}
             </a>
           )}
         </div>

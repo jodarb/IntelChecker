@@ -3,6 +3,8 @@ import { Loader2, ChevronDown, FileCode2, ExternalLink } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
 import ScoreBadge from './ScoreBadge'
 import WeightBadge, { type CardWeight } from './WeightBadge'
+import { useI18n } from '@/i18n/useI18n'
+import { apiErrorText } from '@/i18n/errors'
 
 interface RIPEstatResponse {
   // type=ip
@@ -32,6 +34,8 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 export default function RIPEstatCard({ loading, error, data, score = null, weight = null, indicator }: Props) {
+  const i18n = useI18n()
+  const { t } = i18n
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.error ?? null
@@ -60,7 +64,7 @@ export default function RIPEstatCard({ loading, error, data, score = null, weigh
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border text-xs font-medium text-muted-foreground bg-muted/30 hover:bg-muted/70 hover:text-foreground transition-colors"
-              title="View raw JSON"
+              title={t('raw.buttonTitle')}
             >
               <FileCode2 className="h-3 w-3" />
               RAW
@@ -73,25 +77,25 @@ export default function RIPEstatCard({ loading, error, data, score = null, weigh
       {open && (
         <div className="px-4 py-4">
           {loading && (
-            <p className="text-sm text-muted-foreground">Querying RIPEstat...</p>
+            <p className="text-sm text-muted-foreground">{t('card.querying', { source: 'RIPEstat' })}</p>
           )}
 
           {!loading && isRealError && (
-            <p className="text-sm text-red-400">{error ?? apiError?.message}</p>
+            <p className="text-sm text-red-400">{error ?? apiErrorText(i18n, apiError, 'RIPEstat')}</p>
           )}
 
           {!loading && isIp && (
             <div className="flex flex-col gap-4">
               {hasRoute ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
-                  <Field label="ASN" value={data?.network_info?.asns?.map(a => `AS${a}`).join(', ')} />
-                  <Field label="Prefix" value={data?.network_info?.prefix} />
+                  <Field label={t('f.asn')} value={data?.network_info?.asns?.map(a => `AS${a}`).join(', ')} />
+                  <Field label={t('f.prefix')} value={data?.network_info?.prefix} />
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">No announced route found for this IP in the RIPE routing registry.</p>
+                <p className="text-sm text-muted-foreground">{t('ripe.noRoute')}</p>
               )}
               {abuseContacts.length > 0 && (
-                <Field label="Abuse Contacts" value={abuseContacts.join(', ')} />
+                <Field label={t('f.abuseContacts')} value={abuseContacts.join(', ')} />
               )}
               {indicator && (
                 <a
@@ -100,7 +104,7 @@ export default function RIPEstatCard({ loading, error, data, score = null, weigh
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit"
                 >
-                  <ExternalLink className="h-3 w-3" /> View on RIPEstat
+                  <ExternalLink className="h-3 w-3" /> {t('card.viewOn', { source: 'RIPEstat' })}
                 </a>
               )}
             </div>
@@ -109,12 +113,12 @@ export default function RIPEstatCard({ loading, error, data, score = null, weigh
           {!loading && isAsn && (
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
-                <Field label="Resource" value={data?.as_overview?.resource ? `AS${data.as_overview.resource}` : undefined} />
-                <Field label="Holder" value={data?.as_overview?.holder} />
-                <Field label="Announced" value={data?.as_overview?.announced ? 'Yes' : 'No'} />
+                <Field label={t('f.resource')} value={data?.as_overview?.resource ? `AS${data.as_overview.resource}` : undefined} />
+                <Field label={t('f.holder')} value={data?.as_overview?.holder} />
+                <Field label={t('f.announced')} value={data?.as_overview?.announced ? t('common.yes') : t('common.no')} />
               </div>
               {abuseContacts.length > 0 && (
-                <Field label="Abuse Contacts" value={abuseContacts.join(', ')} />
+                <Field label={t('f.abuseContacts')} value={abuseContacts.join(', ')} />
               )}
               {indicator && (
                 <a
@@ -123,7 +127,7 @@ export default function RIPEstatCard({ loading, error, data, score = null, weigh
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit"
                 >
-                  <ExternalLink className="h-3 w-3" /> View on RIPEstat
+                  <ExternalLink className="h-3 w-3" /> {t('card.viewOn', { source: 'RIPEstat' })}
                 </a>
               )}
             </div>

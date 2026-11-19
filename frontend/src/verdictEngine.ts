@@ -6,9 +6,12 @@ import type { EngineConfig, IndicatorType, QueryResult } from '@/registry'
 //  * Knowledge Score (0-10): how much of the available intel coverage has
 //    information on the indicator, regardless of whether it's good or bad.
 //    Each source adds  knowledgeWeight × depth  (depth ∈ {0, 0.5, 1}) out of the
-//    total knowledge weight of every configured, enabled source for that type —
-//    so knowledge only ever grows as sources contribute, no single source can max
-//    it out, and a source that fails simply contributes nothing.
+//    total knowledge weight of every configured, enabled source for that type.
+//    The ratio saturates: reaching `knowledge_full_at` % of that total already
+//    gives 10, so an indicator doesn't need *every* source to know it. Sources
+//    that fail for a temporary reason (rate limit, timeout, network…) are left
+//    out of the total instead of counting as "doesn't know it"; persistent
+//    failures (bad key, forbidden) and sources still loading stay in it.
 //  * Risk Score (0-10): weighted average of the maliciousness subscores, using
 //    only engines that returned an actual verdict (hit or explicit clean).
 //
@@ -27,9 +30,34 @@ export interface VerdictThresholds {
   risk: number
 }
 
+export interface VerdictScoring {
+  /** % (10–100) of the available knowledge weight at which Knowledge reaches 10 */
+  knowledge_full_at: number
+}
+
 export interface VerdictConfig {
   engines: Record<string, EngineWeight>
   thresholds: VerdictThresholds
+  /** Optional for older backends; missing → DEFAULT_SCORING */
+  scoring?: VerdictScoring
+}
+
+export const DEFAULT_SCORING: VerdictScoring = { knowledge_full_at: 70 }
+
+/**
+ * Error codes that say nothing about the indicator, only about the moment:
+ * a source failing for one of these reasons is left out of the knowledge total.
+ * `result.error` (the frontend couldn't reach the backend) counts as transient too.
+ */
+export const TRANSIENT_ERROR_CODES = new Set([
+  'RateLimitExceeded', 'Timeout', 'NetworkError', 'ServiceUnavailable', 'HttpError',
+])
+
+/** Knowledge Score from the weighted sum, the counted total and the saturation %. Unrounded. */
+export function knowledgeFromSums(num: number, total: number, fullAtPct: number): number {
+  if (total <= 0) return 0
+  const ratio = num / total
+  return Math.min(10, (10 * ratio) / (fullAtPct / 100))
 }
 
 /**
@@ -62,6 +90,8 @@ export interface KnowledgeContribution {
   weight: number
   depth: number
   outcome: EngineOutcome
+  /** false = failed for a temporary reason, left out of the knowledge total. Missing = true. */
+  inTotal?: boolean
 }
 
 export type Quadrant =
@@ -75,6 +105,8 @@ export type Quadrant =
 export interface VerdictContributions {
   risk: RiskContribution[]
   knowledge: KnowledgeContribution[]
+  /** Saturation % in force when the verdict was computed. Missing (older history) = 100, i.e. no saturation. */
+  knowledgeFullAt?: number
 }
 
 export interface VerdictResult {
@@ -537,6 +569,13 @@ function classify(
   return anyClean && !anyRelevantHit ? 'known_benign' : 'known_low_signals'
 }
 
+function isTransientFailure(result: QueryResult | undefined): boolean {
+  if (!result || result.loading) return false
+  if (result.error) return true
+  const code = (result.data as { error?: { code?: string } } | null)?.error?.code
+  return !!code && TRANSIENT_ERROR_CODES.has(code)
+}
+
 export function computeVerdict(
   config: VerdictConfig,
   engines: EngineConfig[],
@@ -561,9 +600,12 @@ export function computeVerdict(
     const kw = knowledgeWeightOf(config, engine.id, type)
     if (kw > 0) {
       const depth = a.outcome === 'excluded' ? 0 : (a.depth ?? 0)
-      knowledge.push({ engineId: engine.id, label: engine.label, weight: kw, depth, outcome: a.outcome })
-      knowledgeDenominator += kw
-      knowledgeNumerator += kw * depth
+      const inTotal = !isTransientFailure(results[engine.id])
+      knowledge.push({ engineId: engine.id, label: engine.label, weight: kw, depth, outcome: a.outcome, ...(inTotal ? {} : { inTotal }) })
+      if (inTotal) {
+        knowledgeDenominator += kw
+        knowledgeNumerator += kw * depth
+      }
     }
 
     if (a.outcome === 'excluded') continue
@@ -577,8 +619,9 @@ export function computeVerdict(
 
   // Until at least one source answers (e.g. everything still loading) there is no
   // knowledge reading yet — not a knowledge of 0.
+  const fullAt = config.scoring?.knowledge_full_at ?? DEFAULT_SCORING.knowledge_full_at
   const knowledgeScore = knowledgeDenominator > 0 && responded > 0
-    ? Math.round((10 * knowledgeNumerator) / knowledgeDenominator)
+    ? Math.round(knowledgeFromSums(knowledgeNumerator, knowledgeDenominator, fullAt))
     : null
 
   // Nothing known at all → no risk verdict either ("No data", never a clean 0).
@@ -595,7 +638,7 @@ export function computeVerdict(
     risk: riskScore,
     knowledge: knowledgeScore,
     quadrant,
-    contributions: { risk, knowledge },
+    contributions: { risk, knowledge, knowledgeFullAt: fullAt },
     responded,
     queried,
   }

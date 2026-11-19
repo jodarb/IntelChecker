@@ -3,6 +3,8 @@ import { Loader2, CheckCircle2, ShieldX, ChevronDown, FileCode2, ExternalLink } 
 import RawJsonModal from './RawJsonModal'
 import ScoreBadge from './ScoreBadge'
 import WeightBadge, { type CardWeight } from './WeightBadge'
+import { useI18n } from '@/i18n/useI18n'
+import { apiErrorText } from '@/i18n/errors'
 
 interface Pulse {
   id: string
@@ -46,18 +48,19 @@ interface Props {
 const OTX_TYPE_SLUG: Record<string, string> = { ip: 'ip', domain: 'domain', url: 'url', hash: 'file' }
 
 function PulseBadge({ count }: { count: number }) {
+  const { t, tn } = useI18n()
   if (count === 0) {
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-semibold text-green-400 bg-green-500/10 border-green-500/30">
         <CheckCircle2 className="h-3 w-3" />
-        No Pulses
+        {t('otx.noPulses')}
       </span>
     )
   }
   return (
     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-semibold text-red-400 bg-red-500/10 border-red-500/30">
       <ShieldX className="h-3 w-3" />
-      {count} Pulse{count > 1 ? 's' : ''}
+      {tn('otx.pulses', count)}
     </span>
   )
 }
@@ -72,12 +75,13 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 function PulseRow({ pulse }: { pulse: Pulse }) {
+  const { t, locale } = useI18n()
   return (
     <div className="rounded-md border border-border bg-muted/20 px-4 py-3 flex flex-col gap-2">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <span className="text-sm text-foreground font-medium">{pulse.name}</span>
         <span className="text-xs text-muted-foreground shrink-0">
-          {new Date(pulse.created).toLocaleDateString()}
+          {new Date(pulse.created).toLocaleDateString(locale)}
         </span>
       </div>
       {pulse.description && (
@@ -85,11 +89,11 @@ function PulseRow({ pulse }: { pulse: Pulse }) {
       )}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
         <span className="text-muted-foreground">
-          by <span className="text-foreground">{pulse.author_name}</span>
+          {t('otx.by')} <span className="text-foreground">{pulse.author_name}</span>
         </span>
         {pulse.adversary && (
           <span className="text-muted-foreground">
-            adversary: <span className="text-foreground">{pulse.adversary}</span>
+            {t('otx.adversary')} <span className="text-foreground">{pulse.adversary}</span>
           </span>
         )}
         {pulse.tags && pulse.tags.length > 0 && (
@@ -111,13 +115,15 @@ function PulseRow({ pulse }: { pulse: Pulse }) {
         rel="noreferrer"
         className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit"
       >
-        <ExternalLink className="h-3 w-3" /> View on OTX
+        <ExternalLink className="h-3 w-3" /> {t('card.viewOn', { source: 'OTX' })}
       </a>
     </div>
   )
 }
 
 export default function AlienVaultCard({ loading, error, data, score = null, weight = null, indicator, type }: Props) {
+  const i18n = useI18n()
+  const { t, locale } = i18n
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.error ?? null
@@ -147,7 +153,7 @@ export default function AlienVaultCard({ loading, error, data, score = null, wei
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border text-xs font-medium text-muted-foreground bg-muted/30 hover:bg-muted/70 hover:text-foreground transition-colors"
-              title="View raw JSON"
+              title={t('raw.buttonTitle')}
             >
               <FileCode2 className="h-3 w-3" />
               RAW
@@ -160,25 +166,27 @@ export default function AlienVaultCard({ loading, error, data, score = null, wei
       {open && (
         <div className="px-4 py-4 flex flex-col gap-4">
           {loading && (
-            <p className="text-sm text-muted-foreground">Querying AlienVault OTX...</p>
+            <p className="text-sm text-muted-foreground">{t('card.querying', { source: 'AlienVault OTX' })}</p>
           )}
 
           {!loading && isRealError && (
-            <p className="text-sm text-red-400">{error ?? apiError?.message}</p>
+            <p className="text-sm text-red-400">{error ?? apiErrorText(i18n, apiError, 'AlienVault OTX')}</p>
           )}
 
           {!loading && isNotFound && (
-            <p className="text-sm text-muted-foreground">{apiError?.message}</p>
+            <p className="text-sm text-muted-foreground">{apiErrorText(i18n, apiError, 'AlienVault OTX')}</p>
           )}
 
           {!loading && isPulseSearch && (
             <div className="flex flex-col gap-2">
               {searchCount === 0 && (
-                <p className="text-sm text-muted-foreground">No pulses reference this threat actor.</p>
+                <p className="text-sm text-muted-foreground">{t('otx.noActorPulses')}</p>
               )}
               {searchResults!.length > 0 && (
                 <span className="text-xs text-muted-foreground uppercase tracking-wide">
-                  Threat Pulses ({searchCount.toLocaleString()}{searchResults!.length < searchCount ? `, showing ${searchResults!.length}` : ''})
+                  {searchResults!.length < searchCount
+                    ? t('otx.threatPulsesShowing', { n: searchCount.toLocaleString(locale), shown: searchResults!.length })
+                    : t('otx.threatPulses', { n: searchCount.toLocaleString(locale) })}
                 </span>
               )}
               {searchResults!.map(pulse => (
@@ -190,17 +198,17 @@ export default function AlienVaultCard({ loading, error, data, score = null, wei
           {!loading && !isPulseSearch && data && !apiError && (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
-                <Field label="Pulses" value={pulseInfo ? <PulseBadge count={pulseCount} /> : '—'} />
-                <Field label="Reputation" value={data.reputation ?? '—'} />
-                <Field label="Country" value={data.country_name} />
-                <Field label="City" value={data.city} />
-                <Field label="ASN" value={data.asn} />
+                <Field label={t('f.pulses')} value={pulseInfo ? <PulseBadge count={pulseCount} /> : '—'} />
+                <Field label={t('f.reputation')} value={data.reputation ?? '—'} />
+                <Field label={t('f.country')} value={data.country_name} />
+                <Field label={t('f.city')} value={data.city} />
+                <Field label={t('f.asn')} value={data.asn} />
               </div>
 
               {pulseInfo && pulseInfo.pulses.length > 0 && (
                 <div className="flex flex-col gap-2">
                   <span className="text-xs text-muted-foreground uppercase tracking-wide">
-                    Threat Pulses ({pulseCount})
+                    {t('otx.threatPulses', { n: pulseCount })}
                   </span>
                   {pulseInfo.pulses.map(pulse => (
                     <PulseRow key={pulse.id} pulse={pulse} />
@@ -215,7 +223,7 @@ export default function AlienVaultCard({ loading, error, data, score = null, wei
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit"
                 >
-                  <ExternalLink className="h-3 w-3" /> View on OTX
+                  <ExternalLink className="h-3 w-3" /> {t('card.viewOn', { source: 'OTX' })}
                 </a>
               )}
             </>

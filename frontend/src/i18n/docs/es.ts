@@ -1,0 +1,268 @@
+import type { DocsContent } from './en'
+
+// Spanish version of the in-app documentation. Same shape as en.ts (enforced by
+// the DocsContent type) — keep both in sync.
+export const docsEs: DocsContent = {
+  title: 'Documentación',
+  intro: 'Cómo consulta IntelChecker las fuentes, cómo convierte sus respuestas en un Knowledge Score, un Risk Score y un cuadrante, y cómo lo ajustan los administradores. Las tablas marcadas como **en vivo** muestran los valores actuales de este despliegue.',
+  live: 'en vivo',
+  toc: {
+    analysts: 'Para analistas',
+    admins: 'Para administradores',
+    lookup: 'Hacer una consulta',
+    results: 'Leer los resultados',
+    outcomes: 'Resultados por fuente',
+    knowledge: 'Knowledge Score',
+    risk: 'Risk Score',
+    quadrants: 'Cuadrantes',
+    summary: 'Panel de resumen',
+    matrix: 'Matriz y desglose',
+    history: 'Historial y frecuencia',
+    adminPage: 'La página Admin',
+    weights: 'Pesos actuales',
+    subscores: 'Reglas de subpuntuación',
+    depth: 'Reglas de profundidad',
+    config: 'Configuración',
+  },
+  partAnalysts: {
+    title: 'Para analistas',
+    intro: 'Todo lo necesario para hacer una consulta e interpretar bien el veredicto.',
+  },
+  partAdmins: {
+    title: 'Para administradores',
+    intro: 'Cómo ajustar el veredicto, qué hace cada valor y dónde está la configuración.',
+  },
+
+  lookup: {
+    title: 'Hacer una consulta',
+    p1: 'En la página de inicio, escribe un indicador, elige su tipo y pulsa **Analizar**. Todas las fuentes que admiten ese tipo se consultan **en paralelo** y cada tarjeta de resultado aparece en cuanto responde su fuente — una fuente lenta nunca bloquea a las demás.',
+    head: ['Tipo', 'Ejemplos'],
+    types: [
+      ['Dirección IP', '`185.220.101.1`'],
+      ['Dominio', '`example.com`'],
+      ['URL', '`https://example.com/login.php`'],
+      ['Hash de fichero', 'MD5, SHA-1 o SHA-256'],
+      ['ASN', '`AS13335`'],
+      ['Actor de amenaza', '`APT28`, `Kimsuky` (nombres y alias)'],
+    ],
+    list: [
+      'Usa el interruptor junto a una fuente para desactivarla; las fuentes desactivadas no se consultan y no cuentan en ninguna puntuación. La elección se recuerda solo en este navegador.',
+      'Cada fuente muestra dos etiquetas: **R** (su peso Risk) y **K** (su peso Knowledge). Las fuentes se ordenan por peso Risk y luego por peso Knowledge.',
+      'Las fuentes sin API key aparecen en **Sin configurar** y quedan totalmente fuera de la consulta.',
+      'Las consultas son siempre en vivo — no se cachea nada. Cada consulta completada se guarda en el [Historial](/history).',
+      'El selector **EN / ES** de la cabecera cambia el idioma de la interfaz; la elección se recuerda en este navegador.',
+    ],
+  },
+
+  results: {
+    title: 'Leer los resultados',
+    p1: 'La página de resultados tiene tres partes, de arriba abajo:',
+    list: [
+      '**Frecuencia de búsqueda** — cuántas *otras* veces se ha consultado este indicador recientemente (ver [Historial y frecuencia](#history)).',
+      '**Resumen** — la etiqueta del cuadrante, el indicador de **Risk** (semicírculo), la barra de **Knowledge** y los datos agregados de todas las fuentes (ver [Panel de resumen](#summary)).',
+      '**Resultados por fuente** — una tarjeta por fuente con sus datos, un enlace al indicador en la herramienta original y un botón `RAW` con el JSON exacto que devolvió.',
+    ],
+    p2: 'Cada tarjeta lleva un distintivo que separa tres situaciones muy distintas:',
+    head: ['Distintivo', 'Significado'],
+    badges: {
+      score: 'Píldora sólida (verde → rojo): un veredicto de riesgo real de 0 a 10 de esa fuente. El 0 es un “evaluado y limpio” explícito, una afirmación más fuerte que “sin datos”.',
+      noResults: 'La fuente no tiene registro del indicador. La ausencia de pruebas no es prueba de ausencia.',
+      noScore: 'La fuente devolvió datos reales, pero nada que puntuar (p. ej. puertos de Shodan, geolocalización de IPinfo).',
+      error: 'La propia consulta falló. La tarjeta indica por qué: API key no válida, límite de peticiones, tiempo de espera agotado, servicio no disponible…',
+    },
+  },
+
+  outcomes: {
+    title: 'Resultados por fuente',
+    p1: 'Antes de puntuar, la respuesta de cada fuente se clasifica en uno de cinco resultados:',
+    head: ['Resultado', 'Significado', 'Ejemplo', 'Knowledge', 'Risk'],
+    rows: {
+      hit: ['Devolvió una señal de maliciosidad', 'Detecciones de VirusTotal, un atributo IDS de MISP', '✓', '✓'],
+      clean: ['Lo evaluó explícitamente como benigno', 'Escaneo de fichero en VT 0/70, GreyNoise RIOT, lista blanca de AbuseIPDB', '✓', '✓'],
+      context: ['Tiene datos, pero ningún veredicto de riesgo', 'Puertos abiertos en Shodan, geolocalización de IPinfo', '✓', '—'],
+      no_data: ['Respondió, pero no lo conoce (“no encontrado”)', 'OTX con 0 pulses', 'suma 0', '—'],
+      excluded: ['La consulta falló o aún está cargando', 'Clave no válida, límite de peticiones, tiempo agotado', 'suma 0', '—'],
+    },
+    note: '**“No encontrado” nunca es “limpio”.** Una fuente que nunca ha visto un indicador no ha respondido por él, así que queda fuera del Risk Score. Solo una evaluación benigna explícita cuenta como limpio.',
+  },
+
+  knowledge: {
+    title: 'Knowledge Score (0–10) — cuánto se sabe',
+    p1: 'No dice si el indicador es bueno o malo — solo cuánta de tu cobertura de inteligencia tiene información sobre él. Cada fuente valora la **profundidad de su registro**: **Ninguna** = 0 (sin registro), **Básica** = 0,5 (un perfil genérico, un único reporte) o **Rica** = 1 (varios reportes, muestras, veredictos…).',
+    formula: 'cobertura = Σ(peso_knowledge × profundidad) / Σ(peso_knowledge de todas las fuentes contadas para el tipo)\nknowledge = round( 10 × min(1, cobertura ÷ full_at) )          full_at = {fa}% (Admin)',
+    list: [
+      '**Solo crece** a medida que responden las fuentes: una fuente sin registro no suma nada, nunca resta.',
+      '**Satura**: en cuanto el {fa}% del peso contado tiene registro, el Knowledge ya es 10 — un indicador no necesita que lo conozcan *todas* las fuentes para estar bien conocido. Se ajusta en Admin → *Saturación del Knowledge* (100% = sin saturación).',
+      'Una fuente que falla por un motivo **temporal** (límite de peticiones, tiempo agotado, red, servicio no disponible) **queda fuera del total**: un fallo puntual de una API no dice nada del indicador. Un fallo persistente (API key no válida, acceso denegado) o una fuente que aún está cargando cuenta en el total con profundidad 0.',
+      'Muestra **N/D** hasta que responde al menos una fuente. La marca vertical de la barra es el umbral actual de “conocido” ({tk}).',
+    ],
+    example: '**Ejemplo (consulta real, full_at 70%).** Recorded Future, OTX y ThreatFox con registro rico, MISP y TweetFeed básico, AbuseIPDB / URLhaus / Shodan sin registro y VirusTotal con límite de peticiones (fuera del total): 29,5 de 54 de peso contado.',
+    exampleFormula: 'cobertura = 29,5 / 54 = 0,546   →   knowledge = round( 10 × min(1, 0,546 ÷ 0,70) ) = round(7,8) = 8',
+  },
+
+  risk: {
+    title: 'Risk Score (0–10) — cuánto riesgo, según las fuentes con veredicto',
+    p1: 'Una media ponderada de las subpuntuaciones de riesgo (0–10), usando **solo** las fuentes cuyo resultado es *Señal de riesgo* o *Evaluado limpio*. Las fuentes sin registro o solo con contexto quedan fuera.',
+    formula: 'risk = round( Σ(peso_risk × subpuntuación) / Σ(peso_risk) )',
+    list: [
+      'Si ninguna fuente emitió veredicto — o no se sabe nada — muestra **Sin datos**, nunca un 0 limpio.',
+      'Solo importa la **proporción** entre pesos: todos a 10 o todos a 1 dan el mismo resultado.',
+      'Una fuente con mucho peso arrastra la media hacia su propia subpuntuación en **ambos** sentidos — también hacia abajo, si reporta una señal débil o limpio.',
+    ],
+    example: '**Ejemplo.** Recorded Future (R 10, subpuntuación 1,0), AbuseIPDB (R 7, 2,1), OTX (R 6, 4,0), TweetFeed (R 4, 7,0):',
+    exampleFormula: 'risk = round( (10×1,0 + 7×2,1 + 6×4,0 + 4×7,0) / (10 + 7 + 6 + 4) ) = round(76,7 / 27) = round(2,84) = 3',
+  },
+
+  quadrants: {
+    title: 'Cuadrantes',
+    p1: 'Las dos puntuaciones se combinan en una etiqueta, usando los umbrales definidos en Admin — ahora mismo, **en vivo**: **Knowledge ≥ {tk}** es “conocido” y **Risk ≥ {tr}** es “riesgo alto”. Los umbrales se comparan con las puntuaciones redondeadas y son inclusivos.',
+    riskBelow: 'Risk < {tr}',
+    riskAbove: 'Risk ≥ {tr}',
+    knowledgeAbove: 'Knowledge ≥ {tk}',
+    knowledgeBelow: 'Knowledge < {tk}',
+    head: ['Etiqueta', 'Cuándo', 'Qué hacer'],
+    rows: {
+      confirmed_malicious: ['Bien conocido y con riesgo alto.', 'Actúa.'],
+      isolated_signal: ['Riesgo alto, pero pocas fuentes lo conocen.', 'Corrobóralo antes de actuar — una sola fuente puede equivocarse.'],
+      known_benign: ['Bien conocido, riesgo por debajo de {tr}, al menos una fuente lo evaluó explícitamente como limpio y ninguna fuente sola llegó a ≥ {tr}.', 'Probablemente benigno.'],
+      known_low_signals: ['Bien conocido, riesgo medio por debajo del umbral, pero formado por señales de riesgo (o una señal fuerte quedó diluida).', 'No es una confirmación de benigno — revisa las fuentes que lo marcan.'],
+      known_no_verdict: ['Las fuentes tienen contexto pero ninguna emitió veredicto de riesgo.', 'No es una confirmación de benigno.'],
+      unknown: ['Poca o ninguna información.', 'La ausencia de datos no demuestra que sea seguro.'],
+    },
+  },
+
+  summary: {
+    title: 'Panel de resumen',
+    p1: 'Además de las puntuaciones, el Resumen junta lo que dijo cada fuente en unos pocos bloques. Los bloques sin datos se ocultan.',
+    head: ['Bloque', 'Qué muestra'],
+    rows: [
+      ['Marcado por', 'Cuántas de las fuentes que respondieron devolvieron una señal de riesgo, cada una con su subpuntuación (de mayor a menor), y las fuentes que dieron un veredicto limpio. Las fuentes con peso Risk 0 aparecen con borde discontinuo: lo marcaron pero no cuentan en el Risk Score.'],
+      ['Familias de malware', 'Familias sacadas de campos estructurados (ThreatFox, MalwareBazaar, OTX, galaxias de MISP, VirusTotal, Hybrid Analysis, ANY.RUN, TweetFeed). Los alias se fusionan — p. ej. Qbot / QakBot / Pinkslipbot — con una tabla integrada más los alias de software de MITRE ATT&CK. ×N = número de fuentes.'],
+      ['Etiquetas', 'Etiquetas de texto libre, sin duplicados y filtradas: se eliminan nombres de ASN/ISP, palabras genéricas, nombres de sensores honeypot, etiquetas de clasificación de MISP (tlp:, pap:…), autores de pulses y listas de palabras extraídas automáticamente; los sinónimos (c2 / c&c / botnet_cc) se fusionan.'],
+      ['Actores de amenaza y campañas', 'Actores de OTX, MISP y MITRE, más nombres de actores encontrados entre las etiquetas (comparados con los grupos y alias de MITRE ATT&CK). Pulsa un actor para buscarlo. Las campañas vienen de TweetFeed.'],
+      ['Ventana de actividad', 'La primera fecha en que se vio y la última, entre todas las fuentes, con la fuente de cada una.'],
+      ['GeoIP · ASN · ISP · Tor · Puertos', 'Contexto de red, con cuántas fuentes coinciden en cada valor.'],
+    ],
+    note: 'Pasa el ratón por una etiqueta para ver qué fuentes la reportaron.',
+  },
+
+  matrix: {
+    title: 'Vista de matriz y “¿Cómo se calcula?”',
+    list: [
+      '**Ver matriz** representa Knowledge (X) × Risk (Y) con las regiones de cuadrante y las líneas de umbral, y reproduce el veredicto fuente a fuente desde (0, 0) en el mismo orden que las tarjetas. El Knowledge solo sube; el riesgo es la media ponderada acumulada y puede subir o bajar. Pasa el ratón por un paso para resaltarlo.',
+      '**¿Cómo se calcula?** muestra la contribución exacta de cada fuente a ambas puntuaciones (peso, profundidad, subpuntuación) y las fórmulas con los números de esta consulta.',
+      'Ambas se reconstruyen a partir de las contribuciones guardadas, así que funcionan igual con las entradas archivadas del Historial.',
+    ],
+  },
+
+  history: {
+    title: 'Historial y frecuencia de búsqueda',
+    p1: 'Cada consulta completada se guarda con una **instantánea congelada**: ambas puntuaciones, el cuadrante, la contribución de cada fuente y su respuesta en bruto. Al abrir una entrada del Historial se ve el resultado tal como fue — los cambios posteriores en los pesos nunca reescriben el historial. Las entradas anteriores al modelo de dos puntuaciones solo tienen Risk Score.',
+    p2: 'La tarjeta de **Frecuencia de búsqueda** cuenta cuántas *otras* veces se consultó el mismo indicador (la consulta actual nunca se cuenta a sí misma). Su color es el de la ventana más grave:',
+    head: ['Nivel', '24 h', '72 h', '30 d'],
+    levels: ['Gris — sin otra actividad', 'Verde — solo actividad antigua', 'Amarillo', 'Naranja', 'Rojo'],
+    p3: 'Cualquier coincidencia en las últimas 72 h es al menos amarilla. **Ver todo** abre el Historial filtrado por ese indicador.',
+  },
+
+  adminPage: {
+    title: 'La página Admin',
+    p1: '[Admin](/admin) controla cuánto cuenta la respuesta de cada fuente — no qué fuentes se consultan ni qué devuelven. Cada peso y umbral va en una escala de **0 a 10**; usa el control deslizante o escribe el número, no se aceptan valores fuera del rango.',
+    head: ['Ajuste', 'Qué hace', 'Si lo subes…', 'Si lo pones a 0…'],
+    rows: [
+      ['Peso Risk', 'Cuánto cuenta la subpuntuación de la fuente en el Risk Score, en relación con las demás fuentes con veredicto en la misma consulta.', 'Su veredicto arrastra más la media — hacia arriba con amenazas, hacia abajo con limpio o señales débiles.', 'Se sigue consultando y mostrando, pero nunca afecta al riesgo.'],
+      ['Peso Knowledge', 'La parte del Knowledge Score que puede aportar la fuente (su peso sobre el total del tipo).', 'Suma más cuando conoce el indicador, pero también agranda el total, así que la parte de las demás se reduce y un fallo cuesta más.', 'Nunca afecta al Knowledge (tampoco cuenta en el total).'],
+      ['Peso por tipo', 'Un peso Knowledge distinto para un tipo de indicador. Vacío = usar el valor general.', 'P. ej. RIPEstat: 1 para IPs, 6 para ASNs, donde hay pocas fuentes.', '—'],
+      ['Saturación del Knowledge', 'Parte del peso Knowledge contado con la que el Knowledge llega a 10 (ahora {fa}%, rango 10–100).', 'Cuesta más llegar a 10: más fuentes deben conocer el indicador.', '— (mínimo 10%; 100% = sin saturación)'],
+      ['Knowledge ≥', 'A partir de este Knowledge Score, el indicador es “conocido” (ahora {tk}).', 'Hace falta más corroboración: más Desconocido / Señal aislada.', 'Todo cuenta como conocido.'],
+      ['Risk ≥', 'A partir de este Risk Score, es “riesgo alto” (ahora {tr}). También es el nivel que debe alcanzar una sola fuente para impedir “Conocido · Benigno”.', 'Menos alertas, menos falsos positivos.', 'Todo es riesgo alto.'],
+    ],
+    list: [
+      '**El peso Risk no hace nada en fuentes solo de contexto** (Shodan, IPinfo, RIPEstat, MITRE ATT&CK): nunca devuelven subpuntuación. Su valor está en el Knowledge.',
+      'Mantén **bajos los pesos Knowledge de las fuentes que responden a casi todo** (IPinfo, RIPEstat) o que solo dicen sí/no (lista de salida Tor, Safe Browsing), para que no inflen el Knowledge.',
+      '**Cuidado con un peso Risk dominante**: también amplifica las subpuntuaciones *bajas* de esa fuente y diluye las señales fuertes de las demás.',
+      'Los umbrales solo cambian la **etiqueta**, nunca las dos puntuaciones.',
+    ],
+    buttonsHead: ['Botón', 'Efecto'],
+    buttons: [
+      ['Guardar', 'Valida y guarda todos los pesos y ambos umbrales. Los valores fuera de rango se rechazan y no se guarda nada.'],
+      ['Descartar cambios', 'Deshace las ediciones sin guardar.'],
+      ['Restablecer valores por defecto', 'Tras confirmar, borra todos los cambios de administración y restaura los valores integrados. No se puede deshacer.'],
+    ],
+    note: 'Los cambios se aplican a las **nuevas consultas**; una página de resultados abierta mantiene los valores que cargó (recárgala). Las entradas del Historial conservan los pesos vigentes cuando se hicieron. El orden de la página de inicio y de los resultados también sigue los nuevos pesos. La página Admin **no tiene autenticación** — restringe el acceso a nivel de red/VPN.',
+  },
+
+  weights: {
+    title: 'Pesos actuales',
+    p1: '**En vivo** — los pesos de este despliegue y los tipos de indicador que admite cada fuente. Las filas en gris son fuentes sin configurar (sin API key).',
+    notConfigured: '(sin configurar)',
+    overrideTitle: 'Peso Knowledge específico para este tipo',
+    sourceCol: 'Fuente',
+  },
+
+  subscores: {
+    title: 'Reglas de subpuntuación de riesgo (0–10)',
+    p1: 'Cómo se convierte la respuesta de cada fuente en una subpuntuación. “Sin veredicto” significa que la fuente queda fuera del Risk Score en esa consulta. Estas reglas están fijas en el código; Admin solo cambia cuánto cuenta cada resultado.',
+    head: ['Fuente', 'Regla'],
+    rows: [
+      ['VirusTotal', 'detecciones maliciosas + sospechosas: 0 → limpio (0), 1–2 → 3, 3–5 → 6, >5 → 10. Para IPs y dominios, 0 detecciones sin votos ni etiquetas → sin veredicto.'],
+      ['AbuseIPDB', 'confianza de abuso ÷ 10. Confianza 0 y 0 reportes → sin veredicto; en lista blanca → limpio.'],
+      ['AlienVault OTX', 'pulses: 0 → sin veredicto, 1–2 → 4, 3–5 → 7, >5 → 10.'],
+      ['ThreatFox', 'coincidencia → 7 + (confianza ÷ 100 × 3); sin coincidencia → sin veredicto.'],
+      ['URLhaus', 'URL activa → 9, inactiva → 6; sin coincidencia → sin veredicto.'],
+      ['MalwareBazaar', 'muestra registrada → 10; si no, sin veredicto.'],
+      ['Recorded Future', 'puntuación de riesgo ÷ 9,9; puntuación 0 sin reglas de riesgo → sin veredicto.'],
+      ['urlscan.io', 'escaneos previos: 0 → sin veredicto, 1–2 → 3, 3–5 → 5, >5 → 6.'],
+      ['PhishTank', 'verificado → 10, sin verificar → 5, marcado como no válido → limpio; no está en la BD → sin veredicto.'],
+      ['ANY.RUN', 'nivel de amenaza 2 (malicioso) → 9, 1 (sospechoso) → 5, 0 → limpio; sin registro → sin veredicto.'],
+      ['GreyNoise', 'malicioso → 9, escaneando sin clasificar → 4, benigno o RIOT → limpio; no observado → sin veredicto.'],
+      ['Hybrid Analysis', 'malicioso → 9, sospechoso → 5, en lista blanca / sin amenaza específica → limpio; en otro caso, sin veredicto.'],
+      ['Safe Browsing', 'en una lista de amenazas → 9; no listado → limpio (una comprobación en tiempo real).'],
+      ['Lista de salida Tor', 'nodo de salida → 7; si no, sin veredicto.'],
+      ['MISP', 'atributo marcado to_ids (IDS) → 9; las coincidencias sin to_ids son solo contexto; sin coincidencia → sin veredicto.'],
+      ['TweetFeed', '1 reportante → 5, 2 → 6, ≥3 o una familia/campaña → 7 (limitado: los reportes no están verificados); nunca limpio.'],
+      ['Shodan, IPinfo, RIPEstat, MITRE ATT&CK', 'solo contexto — nunca dan subpuntuación.'],
+    ],
+  },
+
+  depth: {
+    title: 'Reglas de profundidad del registro (Knowledge)',
+    head: ['Fuente', 'Ninguna (0)', 'Básica (0,5)', 'Rica (1)'],
+    rows: [
+      ['Recorded Future', 'no encontrado', 'registro sin reglas de riesgo', '≥1 regla de riesgo'],
+      ['MISP', '0 atributos', '1–2 atributos', '≥3 atributos o ≥2 eventos'],
+      ['MITRE ATT&CK', 'no encontrado', 'perfil sin técnicas', 'técnicas o software'],
+      ['VirusTotal', 'no encontrado', 'sin detecciones, votos ni etiquetas', 'detecciones, votos o etiquetas'],
+      ['AlienVault OTX', '0 pulses', '1–2 pulses', '≥3 pulses'],
+      ['MalwareBazaar', 'sin muestra', '—', 'muestra registrada'],
+      ['AbuseIPDB', '0 reportes', '1–9 reportes', '≥10 reportes o en lista blanca'],
+      ['ThreatFox', 'sin coincidencia', '—', '≥1 IOC'],
+      ['URLhaus', 'sin coincidencia', '1 URL relacionada', '≥2 URLs, o la URL con payloads'],
+      ['ANY.RUN', 'sin registro', 'nivel de amenaza 0', 'nivel de amenaza ≥1'],
+      ['Shodan', 'no encontrado / ASN con 0 hosts', '1–2 puertos, sin vulns ni etiquetas', '≥3 puertos, vulns o etiquetas; ASN con hosts'],
+      ['Hybrid Analysis', 'sin resultados', 'solo “sin veredicto”', 'cualquier veredicto'],
+      ['urlscan.io', '0 escaneos', '1–2 escaneos', '≥3 escaneos'],
+      ['GreyNoise', 'no observado', 'escaneando, sin clasificar', 'clasificado o RIOT'],
+      ['PhishTank', 'no está en la BD', 'sin verificar', 'verificado'],
+      ['TweetFeed', 'no reportado', '1 reportante, 1 tweet', '≥2 reportantes, ≥2 tweets o una campaña'],
+      ['Safe Browsing', 'no listado', '—', 'listado'],
+      ['Lista de salida Tor', 'no es nodo de salida', '—', 'nodo de salida'],
+      ['IPinfo', 'bogon', 'cualquier respuesta', '—'],
+      ['RIPEstat', 'sin ruta anunciada', 'prefijo anunciado (IP)', 'titular del ASN encontrado (ASN)'],
+    ],
+  },
+
+  config: {
+    title: 'Configuración',
+    head: ['Qué', 'Dónde', 'Notas'],
+    rows: [
+      ['API keys', '`backend/.env`', 'Copia `backend/.env.example`. Una fuente sin su clave aparece como sin configurar y queda fuera de ambas puntuaciones. Reconstruye tras los cambios: `docker compose up --build -d`.'],
+      ['Instancias MISP', '`MISP_<N>_*`', 'Las que quieras: `_NAME`, `_URL`, `_KEY`, `_VERIFY_SSL`. `_WEIGHT` / `_KNOWLEDGE_WEIGHT` (0–10, por defecto 0 / 9) son solo los pesos iniciales — un valor guardado en Admin tiene prioridad. Para TLS mutuo, pon el certificado en `backend/certs/` y define `_CLIENT_CERT` / `_CLIENT_KEY`.'],
+      ['Pesos y umbrales', '`backend/data/weights.json`', 'Lo escribe Admin; sobrevive a reinicios y reconstrucciones (volumen de Docker). Los valores mayores que 10 de versiones antiguas se recortan a 10 al cargar. Restablecer valores por defecto lo borra.'],
+      ['Historial', '`backend/data/history.db`', 'SQLite, en el mismo volumen. Se crea automáticamente en el primer arranque.'],
+      ['Puertos', '`.env` (raíz del repo)', '`FRONTEND_PORT` / `BACKEND_PORT`. Es un fichero distinto de `backend/.env`.'],
+      ['Datos de MITRE ATT&CK', 'los descarga el backend', 'El dataset de ~50 MB se descarga de GitHub y se guarda 24 h. Alimenta las consultas de actores y la detección de actores/alias del Resumen; sin internet, se usa solo la tabla de familias integrada.'],
+      ['Idioma de la interfaz', 'cabecera → EN / ES', 'Se guarda por navegador. Los datos de las fuentes (JSON en bruto, etiquetas, títulos de reportes) se muestran tal como los devuelve cada fuente.'],
+    ],
+    note: 'Las consultas nunca se cachean: solo se guardan el historial y los pesos. IntelChecker no tiene autenticación en ninguna parte — está pensado para una red interna o VPN.',
+  },
+}

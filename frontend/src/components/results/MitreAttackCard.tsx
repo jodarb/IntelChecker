@@ -3,6 +3,8 @@ import { Loader2, ChevronDown, FileCode2 } from 'lucide-react'
 import RawJsonModal from './RawJsonModal'
 import ScoreBadge from './ScoreBadge'
 import WeightBadge, { type CardWeight } from './WeightBadge'
+import { useI18n } from '@/i18n/useI18n'
+import { apiErrorText } from '@/i18n/errors'
 
 interface MitreItem {
   attack_id: string
@@ -38,6 +40,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 function TagList({ items, max = 10 }: { items: string[]; max?: number }) {
+  const { t } = useI18n()
   return (
     <div className="flex flex-wrap gap-1">
       {items.slice(0, max).map(item => (
@@ -46,13 +49,15 @@ function TagList({ items, max = 10 }: { items: string[]; max?: number }) {
         </span>
       ))}
       {items.length > max && (
-        <span className="px-1.5 py-0.5 text-xs text-muted-foreground">+{items.length - max} more</span>
+        <span className="px-1.5 py-0.5 text-xs text-muted-foreground">{t('common.more', { n: items.length - max })}</span>
       )}
     </div>
   )
 }
 
 export default function MitreAttackCard({ loading, error, data, score = null, weight = null }: Props) {
+  const i18n = useI18n()
+  const { t } = i18n
   const [open, setOpen] = useState(false)
   const [rawOpen, setRawOpen] = useState(false)
   const apiError = data?.error ?? null
@@ -79,7 +84,7 @@ export default function MitreAttackCard({ loading, error, data, score = null, we
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border text-xs font-medium text-muted-foreground bg-muted/30 hover:bg-muted/70 hover:text-foreground transition-colors"
-              title="View raw JSON"
+              title={t('raw.buttonTitle')}
             >
               <FileCode2 className="h-3 w-3" />
               RAW
@@ -92,27 +97,27 @@ export default function MitreAttackCard({ loading, error, data, score = null, we
       {open && (
         <div className="px-4 py-4 flex flex-col gap-4">
           {loading && (
-            <p className="text-sm text-muted-foreground">Querying MITRE ATT&CK...</p>
+            <p className="text-sm text-muted-foreground">{t('card.querying', { source: 'MITRE ATT&CK' })}</p>
           )}
 
           {!loading && isRealError && (
-            <p className="text-sm text-red-400">{error ?? apiError?.message}</p>
+            <p className="text-sm text-red-400">{error ?? apiErrorText(i18n, apiError, 'MITRE ATT&CK')}</p>
           )}
 
           {!loading && isNotFound && (
-            <p className="text-sm text-muted-foreground">{apiError?.message}</p>
+            <p className="text-sm text-muted-foreground">{apiErrorText(i18n, apiError, 'MITRE ATT&CK')}</p>
           )}
 
           {!loading && found && (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
-                <Field label="ATT&CK ID" value={data?.attack_id} />
-                <Field label="Name" value={data?.name} />
-                <Field label="Techniques" value={techCount} />
-                <Field label="Software" value={softCount} />
+                <Field label={t('f.attackId')} value={data?.attack_id} />
+                <Field label={t('f.name')} value={data?.name} />
+                <Field label={t('f.techniques')} value={techCount} />
+                <Field label={t('f.software')} value={softCount} />
                 {data?.url && (
                   <Field
-                    label="Reference"
+                    label={t('f.reference')}
                     value={
                       <a href={data.url} target="_blank" rel="noreferrer" className="text-primary hover:underline">
                         attack.mitre.org
@@ -129,7 +134,7 @@ export default function MitreAttackCard({ loading, error, data, score = null, we
               {otherAliases.length > 0 && (
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground uppercase tracking-wide">
-                    Aliases ({otherAliases.length})
+                    {t('mitre.aliases', { n: otherAliases.length })}
                   </span>
                   <TagList items={otherAliases} />
                 </div>
@@ -138,7 +143,7 @@ export default function MitreAttackCard({ loading, error, data, score = null, we
               {techCount > 0 && (
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground uppercase tracking-wide">
-                    Techniques ({techCount})
+                    {t('mitre.techniques', { n: techCount })}
                   </span>
                   <TagList items={data!.techniques!.map(t => `${t.attack_id} ${t.name}`)} max={12} />
                 </div>
@@ -147,7 +152,7 @@ export default function MitreAttackCard({ loading, error, data, score = null, we
               {softCount > 0 && (
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground uppercase tracking-wide">
-                    Software ({softCount})
+                    {t('mitre.software', { n: softCount })}
                   </span>
                   <TagList items={data!.software!.map(s => s.name)} max={12} />
                 </div>

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import type { VerdictResult, VerdictThresholds } from '@/verdictEngine'
-import { OUTCOME_META, QUADRANT_META, depthLabel } from '@/quadrants'
+import { OUTCOME_META, depthLabel, outcomeLabel, quadrantHint, quadrantLabel } from '@/quadrants'
+import { useI18n } from '@/i18n/useI18n'
 
 interface Props {
   open: boolean
@@ -22,27 +23,26 @@ function Formula({ children }: { children: React.ReactNode }) {
 
 function KnowledgeTab({ verdict }: { verdict: VerdictResult }) {
   const rows = verdict.contributions.knowledge
-  const totalWeight = rows.reduce((s, c) => s + c.weight, 0)
-  const sum = rows.reduce((s, c) => s + c.weight * c.depth, 0)
+  const counted = rows.filter(c => c.inTotal !== false)
+  const totalWeight = counted.reduce((s, c) => s + c.weight, 0)
+  const sum = counted.reduce((s, c) => s + c.weight * c.depth, 0)
+  const fullAt = verdict.contributions.knowledgeFullAt ?? 100
+  const { t } = useI18n()
   return (
     <>
       <p className="text-sm text-muted-foreground">
-        How much of the available intel coverage has information on this indicator, good or bad.
-        Every configured and enabled source for this indicator type counts in the total; each one adds
-        its weight × depth of record (None = 0, Basic = 0.5, Rich = 1). Sources with no record — or that
-        failed to answer — add nothing, so knowledge only grows as sources contribute and no single
-        source can reach 10 on its own. Sources without an API key or disabled are left out.
+        {t('explainer.knowledgeIntro')}
       </p>
       {rows.length === 0 ? (
-        <p className="text-sm text-foreground font-medium">No configured source has a knowledge weight for this indicator type — showing N/A.</p>
+        <p className="text-sm text-foreground font-medium">{t('explainer.knowledgeEmpty')}</p>
       ) : (
         <>
           <div className="flex flex-col gap-2">
             <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 text-xs text-muted-foreground uppercase tracking-wide font-medium px-1">
-              <span>Source</span>
-              <span className="text-right w-14">Weight</span>
-              <span className="text-right w-14">Depth</span>
-              <span className="text-right w-24">Outcome</span>
+              <span>{t('explainer.source')}</span>
+              <span className="text-right w-14">{t('explainer.weight')}</span>
+              <span className="text-right w-14">{t('explainer.depth')}</span>
+              <span className="text-right w-24">{t('explainer.outcome')}</span>
             </div>
             {rows.map(c => (
               <div
@@ -50,18 +50,21 @@ function KnowledgeTab({ verdict }: { verdict: VerdictResult }) {
                 className="grid grid-cols-[1fr_auto_auto_auto] gap-3 items-center rounded-md border border-border bg-muted/20 px-3 py-2 text-sm"
               >
                 <span className="text-foreground font-medium truncate">{c.label}</span>
-                <span className="text-right text-muted-foreground w-14">{c.weight}</span>
-                <span className="text-right text-foreground font-medium w-14">{depthLabel(c.depth)}</span>
+                <span className={`text-right text-muted-foreground w-14 ${c.inTotal === false ? 'line-through opacity-60' : ''}`}>{c.weight}</span>
+                <span className="text-right text-foreground font-medium w-14">{depthLabel(c.depth, t)}</span>
                 <span className={`text-right text-xs w-24 ${OUTCOME_META[c.outcome].className}`}>
-                  {OUTCOME_META[c.outcome].label}
+                  {c.inTotal === false ? t('explainer.notInTotal') : outcomeLabel(c.outcome, t)}
                 </span>
               </div>
             ))}
           </div>
           <Formula>
-            knowledge = round(10 × Σ(weight × depth) / Σ(weight)) = round(10 × {sum.toFixed(1)} / {totalWeight}) ={' '}
+            {fullAt < 100
+              ? <>knowledge = round(10 × min(1, Σ(weight × depth) / Σ(weight) ÷ {fullAt}%)) = round(10 × min(1, {sum.toFixed(1)} / {totalWeight} ÷ {(fullAt / 100).toFixed(2)})) ={' '}</>
+              : <>knowledge = round(10 × Σ(weight × depth) / Σ(weight)) = round(10 × {sum.toFixed(1)} / {totalWeight}) ={' '}</>}
             <span className="text-foreground font-semibold">{verdict.knowledge}/10</span>
           </Formula>
+          {fullAt < 100 && <p className="text-xs text-muted-foreground">{t('explainer.saturation', { pct: fullAt })}</p>}
         </>
       )}
     </>
@@ -72,25 +75,24 @@ function RiskTab({ verdict }: { verdict: VerdictResult }) {
   const rows = verdict.contributions.risk
   const totalWeight = rows.reduce((s, c) => s + c.weight, 0)
   const sum = rows.reduce((s, c) => s + c.weight * c.subscore, 0)
+  const { t } = useI18n()
   return (
     <>
       <p className="text-sm text-muted-foreground">
-        Weighted average of the sources that issued an actual verdict — a risk signal or an explicit
-        clean evaluation. Sources with no record, or with only context (e.g. Shodan, IPinfo), are left
-        out: not knowing an indicator is not the same as confirming it's benign.
+        {t('explainer.riskIntro')}
       </p>
       {verdict.risk == null ? (
         <p className="text-sm text-foreground font-medium">
-          No source issued a risk verdict for this indicator — showing "No data", not a clean 0.
+          {t('explainer.riskEmpty')}
         </p>
       ) : (
         <>
           <div className="flex flex-col gap-2">
             <div className="grid grid-cols-4 gap-2 text-xs text-muted-foreground uppercase tracking-wide font-medium px-1">
-              <span>Source</span>
-              <span className="text-right">Weight</span>
-              <span className="text-right">Subscore</span>
-              <span className="text-right">Share</span>
+              <span>{t('explainer.source')}</span>
+              <span className="text-right">{t('explainer.weight')}</span>
+              <span className="text-right">{t('explainer.subscore')}</span>
+              <span className="text-right">{t('explainer.share')}</span>
             </div>
             {rows.map(c => (
               <div
@@ -116,6 +118,7 @@ function RiskTab({ verdict }: { verdict: VerdictResult }) {
 
 export default function VerdictExplainerModal({ open, onClose, verdict, thresholds }: Props) {
   const [tab, setTab] = useState<Tab>('knowledge')
+  const { t } = useI18n()
 
   useEffect(() => {
     if (!open) return
@@ -126,7 +129,7 @@ export default function VerdictExplainerModal({ open, onClose, verdict, threshol
 
   if (!open) return null
 
-  const quadrant = verdict.quadrant ? QUADRANT_META[verdict.quadrant] : null
+  const q = verdict.quadrant
 
   return (
     <div
@@ -138,9 +141,10 @@ export default function VerdictExplainerModal({ open, onClose, verdict, threshol
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/40 shrink-0">
-          <span className="text-sm font-semibold text-foreground">Verdict · How it's calculated</span>
+          <span className="text-sm font-semibold text-foreground">{t('explainer.title')}</span>
           <button
             onClick={onClose}
+            aria-label={t('common.close')}
             className="p-1 rounded hover:bg-muted/60 transition-colors text-muted-foreground hover:text-foreground"
           >
             <X className="h-4 w-4" />
@@ -148,15 +152,17 @@ export default function VerdictExplainerModal({ open, onClose, verdict, threshol
         </div>
 
         <div className="flex border-b border-border shrink-0">
-          {(['knowledge', 'risk'] as Tab[]).map(t => (
+          {(['knowledge', 'risk'] as Tab[]).map(id => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={id}
+              onClick={() => setTab(id)}
               className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
-                tab === t ? 'text-foreground border-b-2 border-primary' : 'text-muted-foreground hover:text-foreground'
+                tab === id ? 'text-foreground border-b-2 border-primary' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              {t === 'knowledge' ? `Knowledge · ${verdict.knowledge ?? 'N/A'}` : `Risk · ${verdict.risk ?? 'No data'}`}
+              {id === 'knowledge'
+                ? `${t('score.knowledge')} · ${verdict.knowledge ?? t('score.na')}`
+                : `${t('score.risk')} · ${verdict.risk ?? t('score.noData')}`}
             </button>
           ))}
         </div>
@@ -164,12 +170,12 @@ export default function VerdictExplainerModal({ open, onClose, verdict, threshol
         <div className="overflow-auto flex-1 px-4 py-4 flex flex-col gap-4">
           {tab === 'knowledge' ? <KnowledgeTab verdict={verdict} /> : <RiskTab verdict={verdict} />}
 
-          {quadrant && (
+          {q && (
             <div className="rounded-md border border-border bg-muted/10 px-3 py-2 text-xs text-muted-foreground">
-              <span className="text-foreground font-semibold">{quadrant.label}</span> — {quadrant.hint}
+              <span className="text-foreground font-semibold">{quadrantLabel(q, t)}</span> — {quadrantHint(q, t)}
               {thresholds && (
                 <span className="block mt-1">
-                  Thresholds: knowledge ≥ {thresholds.knowledge} is "known", risk ≥ {thresholds.risk} is "high risk" (editable in Admin).
+                  {t('explainer.thresholds', { k: thresholds.knowledge, r: thresholds.risk })}
                 </span>
               )}
             </div>
