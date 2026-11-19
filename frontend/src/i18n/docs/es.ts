@@ -137,13 +137,12 @@ export const docsEs: DocsContent = {
     head: ['Bloque', 'Qué muestra'],
     rows: [
       ['Marcado por', 'Cuántas de las fuentes que respondieron devolvieron una señal de riesgo, cada una con su subpuntuación (de mayor a menor), y las fuentes que dieron un veredicto limpio. Las fuentes con peso Risk 0 aparecen con borde discontinuo: lo marcaron pero no cuentan en el Risk Score.'],
-      ['Familias de malware', 'Familias sacadas de campos estructurados (ThreatFox, MalwareBazaar, OTX, galaxias de MISP, VirusTotal, Hybrid Analysis, ANY.RUN, TweetFeed). Los alias se fusionan — p. ej. Qbot / QakBot / Pinkslipbot — con una tabla integrada más los alias de software de MITRE ATT&CK. ×N = número de fuentes.'],
-      ['Etiquetas', 'Etiquetas de texto libre, sin duplicados y filtradas: se eliminan nombres de ASN/ISP, palabras genéricas, nombres de sensores honeypot, etiquetas de clasificación de MISP (tlp:, pap:…), autores de pulses y listas de palabras extraídas automáticamente; los sinónimos (c2 / c&c / botnet_cc) se fusionan.'],
-      ['Actores de amenaza y campañas', 'Actores de OTX, MISP y MITRE, más nombres de actores encontrados entre las etiquetas (comparados con los grupos y alias de MITRE ATT&CK). Pulsa un actor para buscarlo. Las campañas vienen de TweetFeed.'],
+      ['Familias de malware', 'Solo familias de campos estructurados (ThreatFox, MalwareBazaar, OTX, galaxias de MISP, VirusTotal, Hybrid Analysis, ANY.RUN, TweetFeed). Los alias se fusionan — p. ej. Qbot / QakBot / Pinkslipbot — con una tabla integrada más los alias de software de MITRE ATT&CK. Las familias que solo vienen de **pulses masivos de OTX** (resúmenes semanales, feeds con ≥ 100 indicadores) se descartan: describen el informe, no este indicador.'],
+      ['Relación con actores de amenaza', 'Una fila por actor con **todas las fuentes que relacionan el indicador con él**: adversarios de pulses de OTX y el resumen de adversarios relacionados de OTX, galaxias de actor de MISP y nombres de actores encontrados en las etiquetas de cualquier fuente (comparados con los grupos y alias de MITRE ATT&CK). Las reglas “Linked to APT” de Recorded Future aparecen como relación sin nombre. Si las fuentes respondieron y ninguna lo relaciona con un actor, el bloque lo indica. Las campañas (TweetFeed) se listan debajo.'],
       ['Ventana de actividad', 'La primera fecha en que se vio y la última, entre todas las fuentes, con la fuente de cada una.'],
       ['GeoIP · ASN · ISP · Tor · Puertos', 'Contexto de red, con cuántas fuentes coinciden en cada valor.'],
     ],
-    note: 'Pasa el ratón por una etiqueta para ver qué fuentes la reportaron.',
+    note: 'Cada familia muestra las fuentes que la reportaron. **Púlsala** para ver exactamente de dónde sale: fuente, campo (p. ej. *familia de malware del IOC*), el valor tal como lo escribió la fuente y el pulse o evento de MISP donde se encontró.',
   },
 
   matrix: {

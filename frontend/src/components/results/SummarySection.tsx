@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Info, Grid2x2, Users } from 'lucide-react'
+import { Info, Grid2x2, Users, ExternalLink } from 'lucide-react'
 import type { EngineConfig, QueryResult, IndicatorType } from '@/registry'
 import {
   SUMMARY_REGISTRY,
@@ -137,42 +137,93 @@ function FlaggedBlock({ intel, weighted }: { intel: IntelSummary; weighted: Set<
   )
 }
 
+const shortEngine = (label: string) => label.split(' · ')[0]
+
+const CTX_KEY: Record<string, 'summary.ctx.pulse' | 'summary.ctx.event' | 'summary.ctx.sample' | 'summary.ctx.scan'> = {
+  otx: 'summary.ctx.pulse', misp: 'summary.ctx.event', hybrid: 'summary.ctx.sample', urlscan: 'summary.ctx.scan',
+}
+
+function ProvenancePanel({ item }: { item: AggregatedValue }) {
+  const { t, tn } = useI18n()
+  return (
+    <div className="rounded-md border border-border bg-background/60 px-3 py-2.5 flex flex-col gap-2 text-xs">
+      <span className="text-muted-foreground uppercase tracking-wide font-medium">{t('summary.provTitle', { value: item.value })}</span>
+      <ul className="flex flex-col gap-1.5">
+        {item.sources.map((src, i) => {
+          const ctxKey = CTX_KEY[src.field.split('.')[0]]
+          return (
+            <li key={i} className="flex flex-col gap-0.5">
+              <span className="text-muted-foreground">
+                <span className="text-foreground font-medium">{src.engine}</span>
+                {' — '}{t(`prov.${src.field}`)}
+                {src.raw !== item.value && <> {t('summary.provAs', { raw: src.raw })}</>}
+              </span>
+              {src.context && (
+                <span className="text-muted-foreground pl-3 break-words">
+                  {ctxKey && <>{t(ctxKey)}: </>}
+                  <span className="text-foreground/90">{src.context}</span>
+                  {src.size != null && <> · {tn('summary.indicators', src.size)}</>}
+                </span>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
+const CHIP_STYLES = {
+  plain: 'border-border bg-muted/30 text-foreground',
+  strong: 'border-red-500/30 bg-red-500/10 text-red-400 font-medium',
+} as const
+
+// Chips with their sources inline; clicking one opens its provenance underneath.
 function ChipList({
-  items, max = 12, render, variant = 'plain',
+  items, max = 12, variant = 'plain',
 }: {
   items: AggregatedValue[]
   max?: number
-  render?: (item: AggregatedValue, chip: React.ReactNode) => React.ReactNode
-  variant?: 'plain' | 'strong'
+  variant?: keyof typeof CHIP_STYLES
 }) {
   const [expanded, setExpanded] = useState(false)
+  const [selected, setSelected] = useState<string | null>(null)
   const { t } = useI18n()
   const shown = expanded ? items : items.slice(0, max)
+  const current = items.find(i => i.value === selected)
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {shown.map(item => {
-        const chip = (
-          <span
-            title={item.engines.join(', ')}
-            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs ${variant === 'strong'
-              ? 'border-red-500/30 bg-red-500/10 text-red-400 font-medium'
-              : 'border-border bg-muted/30 text-foreground'}`}
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap gap-1.5">
+        {shown.map(item => {
+          const names = item.engines.map(shortEngine)
+          const isOpen = selected === item.value
+          return (
+            <button
+              key={item.value}
+              type="button"
+              aria-expanded={isOpen}
+              title={t('summary.clickSource')}
+              onClick={() => setSelected(isOpen ? null : item.value)}
+              className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-xs transition-colors hover:brightness-125 ${CHIP_STYLES[variant]} ${isOpen ? 'ring-1 ring-primary/60' : ''}`}
+            >
+              {item.value}
+              <span className="font-normal text-muted-foreground">
+                · {names.slice(0, 2).join(', ')}{names.length > 2 ? ` +${names.length - 2}` : ''}
+              </span>
+            </button>
+          )
+        })}
+        {items.length > max && (
+          <button
+            type="button"
+            onClick={() => setExpanded(e => !e)}
+            className="px-2 py-0.5 text-xs text-primary hover:underline"
           >
-            {item.value}
-            {item.engines.length > 1 && <span className="text-muted-foreground">×{item.engines.length}</span>}
-          </span>
-        )
-        return <span key={item.value}>{render ? render(item, chip) : chip}</span>
-      })}
-      {items.length > max && (
-        <button
-          type="button"
-          onClick={() => setExpanded(e => !e)}
-          className="px-2 py-0.5 text-xs text-primary hover:underline"
-        >
-          {expanded ? t('common.showLess') : t('common.more', { n: items.length - max })}
-        </button>
-      )}
+            {expanded ? t('common.showLess') : t('common.more', { n: items.length - max })}
+          </button>
+        )}
+      </div>
+      {current && <ProvenancePanel item={current} />}
     </div>
   )
 }
@@ -188,40 +239,63 @@ function FamiliesBlock({ intel }: { intel: IntelSummary }) {
   )
 }
 
-function TagsBlock({ intel }: { intel: IntelSummary }) {
-  const { t } = useI18n()
-  if (intel.tags.length === 0) return null
-  return (
-    <div className="flex flex-col gap-1.5">
-      <BlockTitle>{t('summary.tags')}</BlockTitle>
-      <ChipList items={intel.tags} max={8} />
-    </div>
-  )
-}
+const CTX_PREFIX: Record<string, 'summary.ctx.pulse' | 'summary.ctx.event'> = { otx: 'summary.ctx.pulse', misp: 'summary.ctx.event' }
 
-function ActorsBlock({ intel, indicator }: { intel: IntelSummary; indicator: string }) {
+// One row per actor with every source that relates the indicator to it, visible
+// without clicking; plus sources that link it to an unnamed APT. When sources
+// answered and none relates it to an actor, say so explicitly.
+function ActorsBlock({ intel, indicator, type }: { intel: IntelSummary; indicator: string; type: IndicatorType }) {
   const { t } = useI18n()
   const actors = intel.actors.filter(a => a.value.toLowerCase() !== indicator.toLowerCase())
-  if (actors.length === 0 && intel.campaigns.length === 0) return null
+  const isActorLookup = type === 'threat-actor'
+  const none = actors.length === 0 && intel.unnamedActorLinks.length === 0
+  if (intel.responded === 0 || (isActorLookup && none && intel.campaigns.length === 0)) return null
   return (
     <div className="flex flex-col gap-1.5">
-      <BlockTitle>{t('summary.actors')}</BlockTitle>
-      {actors.length > 0 && (
-        <ChipList
-          items={actors}
-          render={(item, chip) => (
-            <Link
-              to={`/results?indicator=${encodeURIComponent(item.value)}&type=threat-actor`}
-              title={t('summary.lookupActor', { name: item.value, sources: item.engines.join(', ') })}
-              className="inline-flex hover:opacity-80 [&>span]:border-primary/40 [&>span]:text-primary"
-            >
-              {chip}
-            </Link>
-          )}
-        />
+      <BlockTitle>{t('summary.actorRelations')}</BlockTitle>
+      {none && !isActorLookup && (
+        <span className="text-sm text-muted-foreground">
+          {intel.loading ? t('summary.loading') : t('summary.noActorRelation')}
+        </span>
       )}
+      {actors.map(actor => (
+        <div key={actor.value} className="flex flex-col gap-1 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-primary">{actor.value}</span>
+            <Link
+              to={`/results?indicator=${encodeURIComponent(actor.value)}&type=threat-actor`}
+              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              <ExternalLink className="h-3 w-3" /> {t('summary.lookupThisActor', { name: actor.value })}
+            </Link>
+          </div>
+          <ul className="flex flex-col gap-0.5 text-xs text-muted-foreground">
+            {actor.sources.map((src, i) => {
+              const ctxKey = CTX_PREFIX[src.field.split('.')[0]]
+              return (
+                <li key={i}>
+                  <span className="text-foreground font-medium">{src.engine}</span>
+                  {' — '}{t(`prov.${src.field}`)}
+                  {src.raw !== actor.value && <> {t('summary.provAs', { raw: src.raw })}</>}
+                  {src.context && <>{' · '}{ctxKey && <>{t(ctxKey)}: </>}<span className="text-foreground/90">{src.context}</span></>}
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      ))}
+      {intel.unnamedActorLinks.map((link, i) => (
+        <div key={i} className="flex flex-col gap-0.5 rounded-md border border-border bg-muted/20 px-3 py-2 text-xs" title={link.evidence}>
+          <span>
+            <span className="text-foreground font-medium">{link.engine}</span>
+            <span className="text-muted-foreground"> — {link.rule}</span>
+          </span>
+          <span className="text-muted-foreground">{t('summary.unnamedActor')}</span>
+          {link.evidence && <span className="text-muted-foreground/80 line-clamp-2">{link.evidence}</span>}
+        </div>
+      ))}
       {intel.campaigns.length > 0 && (
-        <div className="flex items-start gap-2">
+        <div className="flex items-start gap-2 mt-1">
           <Users className="h-3.5 w-3.5 mt-1 shrink-0 text-muted-foreground" />
           <ChipList items={intel.campaigns} max={6} />
         </div>
@@ -432,8 +506,7 @@ export default function SummarySection({ type, indicator = '', engines, results,
         <div className="flex flex-col gap-4 min-w-0">
           <FlaggedBlock intel={intel} weighted={weighted} />
           <FamiliesBlock intel={intel} />
-          <TagsBlock intel={intel} />
-          <ActorsBlock intel={intel} indicator={indicator} />
+          <ActorsBlock intel={intel} indicator={indicator} type={type} />
           <SeenBlock intel={intel} />
           {SUMMARY_FIELDS.map(field => (
             <SummaryItem
