@@ -1,7 +1,6 @@
 const en = {
   // Login
   'auth.signInTitle': 'Sign in',
-  'auth.signInSubtitle': 'Use the account your IntelChecker administrator gave you.',
   'auth.username': 'Username',
   'auth.password': 'Password',
   'auth.signIn': 'Sign in',
@@ -19,6 +18,7 @@ const en = {
   'auth.passwordMismatch': 'The two new passwords don’t match.',
   'auth.changePassword': 'Change password',
   'auth.passwordChanged': 'Password changed. Your other sessions have been signed out.',
+  'auth.defaultPasswordWarning': 'You are using the default **admin / admin** password. Change it in [My account](/account) before going to production.',
 
   // Account page
   'auth.accountTitle': 'My account',
@@ -84,7 +84,6 @@ const en = {
 }
 const es: Record<keyof typeof en, string> = {
   'auth.signInTitle': 'Iniciar sesión',
-  'auth.signInSubtitle': 'Usa la cuenta que te ha dado tu administrador de IntelChecker.',
   'auth.username': 'Usuario',
   'auth.password': 'Contraseña',
   'auth.signIn': 'Entrar',
@@ -101,6 +100,7 @@ const es: Record<keyof typeof en, string> = {
   'auth.passwordMismatch': 'Las dos contraseñas nuevas no coinciden.',
   'auth.changePassword': 'Cambiar contraseña',
   'auth.passwordChanged': 'Contraseña cambiada. Se han cerrado tus otras sesiones.',
+  'auth.defaultPasswordWarning': 'Estás usando la contraseña por defecto **admin / admin**. Cámbiala en [Mi cuenta](/account) antes de pasar a producción.',
 
   'auth.accountTitle': 'Mi cuenta',
   'auth.accountSubtitle': 'Sesión iniciada como **{username}** · {role}',

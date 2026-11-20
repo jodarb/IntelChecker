@@ -73,7 +73,7 @@ cp .env.example .env                     # optional: change FRONTEND_PORT / BACK
 docker compose up --build -d
 ```
 
-Open `http://<host>:8080` (or your `FRONTEND_PORT`) and sign in. On the first start the backend creates an admin from `ADMIN_USERNAME` / `ADMIN_PASSWORD` in `backend/.env`; if you leave the password empty, a temporary one is printed by `docker compose logs backend`. Users, weights and thresholds are managed from the **Admin** page; query history, users and weights persist in the `backend/data/` volume.
+Open `http://<host>:8080` (or your `FRONTEND_PORT`) and sign in. On the first start the backend creates the admin **`admin` / `admin`** (a warning is shown until you change that password — do it before going to production); set `ADMIN_USERNAME` / `ADMIN_PASSWORD` in `backend/.env` to start with your own instead. Users, weights and thresholds are managed from the **Admin** page; query history, users and weights persist in the `backend/data/` volume.
 
 **Update to a new version**
 

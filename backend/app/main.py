@@ -106,6 +106,7 @@ def _me(user: dict) -> dict:
         "username": user["username"],
         "role": user["role"],
         "must_change_password": user["must_change_password"],
+        "default_password": auth.uses_default_password(user["id"]),
         "permissions": sorted(auth.PERMISSIONS.get(user["role"], set())),
     }
 

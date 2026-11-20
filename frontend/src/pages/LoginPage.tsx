@@ -8,7 +8,9 @@ import { useAuth } from '@/auth/context'
 import { useI18n } from '@/i18n/useI18n'
 import { authErrorText } from '@/i18n/errors'
 
-function AuthShell({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
+function AuthShell({ title, subtitle, hideTitle, children }: {
+  title: string; subtitle?: string; hideTitle?: boolean; children: ReactNode
+}) {
   const { t } = useI18n()
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -29,10 +31,15 @@ function AuthShell({ title, subtitle, children }: { title: string; subtitle: str
             </span>
           </div>
           <section className="rounded-lg border border-border bg-muted/20 p-6 flex flex-col gap-4">
-            <div>
-              <h1 className="text-lg font-semibold text-foreground">{title}</h1>
-              <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
-            </div>
+            {hideTitle ? (
+              // Not shown, but keeps a page heading for screen readers.
+              <h1 className="sr-only">{title}</h1>
+            ) : (
+              <div>
+                <h1 className="text-lg font-semibold text-foreground">{title}</h1>
+                {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
+              </div>
+            )}
             {children}
           </section>
         </div>
@@ -65,7 +72,7 @@ export function LoginPage() {
   }
 
   return (
-    <AuthShell title={t('auth.signInTitle')} subtitle={t('auth.signInSubtitle')}>
+    <AuthShell title={t('auth.signInTitle')} hideTitle>
       <form onSubmit={submit} className="flex flex-col gap-3">
         <label className="flex flex-col gap-1 text-sm text-foreground">
           {t('auth.username')}

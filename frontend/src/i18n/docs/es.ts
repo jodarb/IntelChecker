@@ -261,7 +261,7 @@ export const docsEs: DocsContent = {
       ['Pesos y umbrales', '`backend/data/weights.json`', 'Lo escribe Admin; sobrevive a reinicios y reconstrucciones (volumen de Docker). Los valores mayores que 10 de versiones antiguas se recortan a 10 al cargar. Restablecer valores por defecto lo borra.'],
       ['Historial', '`backend/data/history.db`', 'SQLite, en el mismo volumen. Se crea automáticamente en el primer arranque.'],
       ['Usuarios y sesiones', '`backend/data/users.db`', 'SQLite, en el mismo volumen. Se gestiona desde Admin → Usuarios. Las contraseñas se guardan como hashes scrypt.'],
-      ['Admin inicial', '`ADMIN_USERNAME` / `ADMIN_PASSWORD`', 'En `backend/.env`; solo se usan en el primer arranque, cuando aún no hay usuarios. Sin `ADMIN_PASSWORD` se imprime una contraseña temporal en el log del backend (`docker compose logs backend`).'],
+      ['Admin inicial', '`ADMIN_USERNAME` / `ADMIN_PASSWORD`', 'En `backend/.env`; solo se usan en el primer arranque, cuando aún no hay usuarios. Por defecto `admin` / `admin`: se muestra un aviso hasta que se cambia esa contraseña — cámbiala antes de pasar a producción.'],
       ['Sesiones', '`SESSION_TTL_HOURS` / `SESSION_COOKIE_SECURE`', 'Duración de la sesión (12 h por defecto). Pon la cookie en `true` cuando la app se sirva por HTTPS.'],
       ['Puertos', '`.env` (raíz del repo)', '`FRONTEND_PORT` / `BACKEND_PORT`. Es un fichero distinto de `backend/.env`.'],
       ['Datos de MITRE ATT&CK', 'los descarga el backend', 'El dataset de ~50 MB se descarga de GitHub y se guarda 24 h. Alimenta las consultas de actores y la detección de actores/alias del Resumen; sin internet, se usa solo la tabla de familias integrada.'],

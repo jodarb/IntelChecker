@@ -261,7 +261,7 @@ export const docsEn = {
       ['Weights & thresholds', '`backend/data/weights.json`', 'Written by Admin; survives restarts and rebuilds (Docker volume). Values above 10 from older versions are clamped to 10 on load. Reset to defaults deletes it.'],
       ['History', '`backend/data/history.db`', 'SQLite, same volume. Created automatically on first run.'],
       ['Users & sessions', '`backend/data/users.db`', 'SQLite, same volume. Managed from Admin → Users. Passwords are stored as scrypt hashes.'],
-      ['Initial admin', '`ADMIN_USERNAME` / `ADMIN_PASSWORD`', 'In `backend/.env`, used only on the first start, when there are no users yet. Without `ADMIN_PASSWORD` a temporary password is printed in the backend log (`docker compose logs backend`).'],
+      ['Initial admin', '`ADMIN_USERNAME` / `ADMIN_PASSWORD`', 'In `backend/.env`, used only on the first start, when there are no users yet. Default `admin` / `admin`: a warning is shown until that password is changed — change it before going to production.'],
       ['Sessions', '`SESSION_TTL_HOURS` / `SESSION_COOKIE_SECURE`', 'Session length (default 12 h). Set the cookie flag to `true` when the app is served over HTTPS.'],
       ['Ports', '`.env` (repo root)', '`FRONTEND_PORT` / `BACKEND_PORT`. Different file from `backend/.env`.'],
       ['MITRE ATT&CK data', 'downloaded by the backend', 'The ~50 MB dataset is fetched from GitHub and cached 24 h. It powers actor lookups and the actor/alias detection in the Summary; without internet those fall back to the built-in family table.'],

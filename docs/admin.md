@@ -20,7 +20,7 @@ Every page and API call requires signing in. There are three roles:
 
 Readers don't see the home page search: they land on History. Every new History entry records the user who ran it.
 
-**First admin.** On the very first start (no users yet) the backend creates an admin from `ADMIN_USERNAME` / `ADMIN_PASSWORD` in `backend/.env` (username defaults to `admin`). If `ADMIN_PASSWORD` is empty, a temporary password is printed in the backend log — `docker compose logs backend` — and must be changed on first sign-in. Those variables are ignored once any user exists.
+**First admin.** On the very first start (no users yet) the backend creates an admin from `ADMIN_USERNAME` / `ADMIN_PASSWORD` in `backend/.env` (username defaults to `admin`). If `ADMIN_PASSWORD` is empty, the password is **`admin`**, so a fresh deployment signs in with `admin` / `admin`. It isn't forced to change, but a warning is shown on every page until the password is changed (**My account**) — do it before going to production. Those variables are ignored once any user exists.
 
 **Admin → Users** tab:
 

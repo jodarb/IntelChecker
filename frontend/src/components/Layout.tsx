@@ -1,9 +1,10 @@
-import { History, SlidersHorizontal, BookOpen, LogOut, UserRound } from 'lucide-react'
+import { History, SlidersHorizontal, BookOpen, LogOut, UserRound, TriangleAlert } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import HeaderControls from '@/components/HeaderControls'
 import { useAuth } from '@/auth/context'
 import { useI18n } from '@/i18n/useI18n'
+import { rich } from '@/i18n/rich'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -67,6 +68,12 @@ export default function Layout({ children }: LayoutProps) {
           )}
         </div>
       </header>
+      {user?.default_password && (
+        <div role="alert" className="flex items-center gap-2 px-6 py-2.5 border-b border-yellow-500/40 bg-yellow-500/10 text-sm text-yellow-700 dark:text-yellow-300">
+          <TriangleAlert className="h-4 w-4 shrink-0" />
+          <span>{rich(t('auth.defaultPasswordWarning'))}</span>
+        </div>
+      )}
       {children}
     </div>
   )

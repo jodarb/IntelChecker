@@ -10,6 +10,8 @@ export interface AuthUser {
   username: string
   role: Role
   must_change_password: boolean
+  /** Still signed in with the built-in admin / admin password: the header shows a warning. */
+  default_password: boolean
   permissions: Permission[]
 }
 

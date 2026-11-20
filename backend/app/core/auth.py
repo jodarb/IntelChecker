@@ -44,6 +44,9 @@ COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "false").strip().lower()
 
 USERNAME_RE = re.compile(r"^[A-Za-z0-9._@-]{3,64}$")
 PASSWORD_MIN = 8
+# First-start admin password when ADMIN_PASSWORD is unset. Shorter than PASSWORD_MIN
+# on purpose: no user can set it again, so "still uses it" means "never changed it".
+DEFAULT_ADMIN_PASSWORD = "admin"
 PASSWORD_MAX = 256
 
 # scrypt cost: ~16 MiB / ~50 ms per hash — fine for a login endpoint.
@@ -155,23 +158,24 @@ def init_db() -> None:
 
 def _bootstrap_admin(conn: sqlite3.Connection) -> None:
     """First start: create the initial admin from ADMIN_USERNAME / ADMIN_PASSWORD,
-    or with a random password printed to the logs (which must be changed on first
-    login). Never runs again once any user exists."""
+    defaulting to admin / admin. The default password is not forced to change, but
+    the UI warns while it is still in use (see uses_default_password). Never runs
+    again once any user exists."""
     username = os.environ.get("ADMIN_USERNAME", "").strip() or "admin"
     password = os.environ.get("ADMIN_PASSWORD", "")
-    generated = not password
-    if generated:
-        password = secrets.token_urlsafe(12)
+    default = not password
+    if default:
+        password = DEFAULT_ADMIN_PASSWORD
     elif len(password) < PASSWORD_MIN:
         raise RuntimeError(f"ADMIN_PASSWORD must be at least {PASSWORD_MIN} characters long.")
     conn.execute(
         "INSERT INTO users (username, password_hash, role, must_change_password) VALUES (?, ?, 'admin', ?)",
-        (username, hash_password(password), int(generated)),
+        (username, hash_password(password), 0),
     )
-    if generated:
+    if default:
         log.warning(
-            "No users found — created initial admin '%s' with temporary password: %s "
-            "(it must be changed on first login)", username, password,
+            "No users found — created initial admin '%s' with the default password '%s'. "
+            "Change it before going to production.", username, DEFAULT_ADMIN_PASSWORD,
         )
     else:
         log.warning("No users found — created initial admin '%s' from ADMIN_USERNAME/ADMIN_PASSWORD.", username)
@@ -312,6 +316,14 @@ def login(username: str, password: str) -> tuple[str, dict]:
                      (_token_hash(token), row["id"], int(now) + SESSION_TTL_SECONDS))
         conn.execute("UPDATE users SET last_login = datetime('now') WHERE id = ?", (row["id"],))
         return token, _public(conn.execute(f"SELECT {_USER_COLUMNS} FROM users WHERE id = ?", (row["id"],)).fetchone())
+
+
+def uses_default_password(user_id: int) -> bool:
+    """True while the account still has DEFAULT_ADMIN_PASSWORD (the UI shows a warning).
+    One scrypt verification, only run on /auth/me, login and password change."""
+    with _connect() as conn:
+        row = conn.execute("SELECT password_hash FROM users WHERE id = ?", (user_id,)).fetchone()
+    return row is not None and verify_password(DEFAULT_ADMIN_PASSWORD, row["password_hash"])
 
 
 def logout(token: str) -> None:
