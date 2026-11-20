@@ -15,6 +15,7 @@ import { useVerdictWeights } from '@/hooks/useVerdictWeights'
 import type { IndicatorType, QueryResult } from '@/registry'
 import { useI18n } from '@/i18n/useI18n'
 import { BACKEND_DOWN } from '@/i18n/errors'
+import DisconnectedCard from '@/components/results/DisconnectedCard'
 
 interface StoredEngineResult {
   label: string
@@ -163,6 +164,9 @@ export default function HistoryDetailPage() {
               const engine = engines.find(e => e.id === engineId)
               if (!engine) {
                 return <UnknownEngineCard key={engineId} label={stored.label} data={stored.data} />
+              }
+              if ((stored.data as { error?: { code?: string } } | null)?.error?.code === 'MissingApiKey') {
+                return <DisconnectedCard key={engineId} label={stored.label} reason="missing-key" />
               }
               const Component = engine.component
               const assessment = assessments[engineId]

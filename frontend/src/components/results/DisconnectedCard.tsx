@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, Unplug, PowerOff } from 'lucide-react'
+import { ChevronDown, PowerOff } from 'lucide-react'
 import { useI18n } from '@/i18n/useI18n'
 import { rich } from '@/i18n/rich'
 
@@ -22,7 +22,7 @@ export default function DisconnectedCard({ label, reason = 'missing-key' }: Prop
         <span className="font-semibold text-sm text-muted-foreground">{label}</span>
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-border text-xs font-medium text-muted-foreground bg-muted/30">
-            {isDisabled ? <PowerOff className="h-3 w-3" /> : <Unplug className="h-3 w-3" />}
+            <PowerOff className="h-3 w-3" />
             {isDisabled ? t('disconnected.disabled') : t('disconnected.missingKey')}
           </span>
           <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />

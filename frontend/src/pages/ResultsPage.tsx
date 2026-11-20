@@ -124,12 +124,14 @@ export default function ResultsPage() {
   const type = (searchParams.get('type') ?? 'auto') as IndicatorType
   const { t } = useI18n()
 
-  const { engines: allEngines, loading: enginesLoading } = useEngines()
+  const { engines: allEngines, status, loading: enginesLoading } = useEngines()
   const engines = useMemo(() => getEnginesForType(allEngines, type), [allEngines, type])
   const { disabled } = useEngineToggles()
+  // Sources without their API key are shown as switched off and never queried.
+  const isUnconfigured = (id: string) => status?.[id]?.connected === false
   const activeEngines = useMemo(
-    () => engines.filter(e => !disabled.has(e.id)),
-    [engines, disabled],
+    () => engines.filter(e => !disabled.has(e.id) && status?.[e.id]?.connected !== false),
+    [engines, disabled, status],
   )
   const results = useAllEngineQueries(activeEngines, indicator, type, !enginesLoading)
   const config = useVerdictWeights()
@@ -222,7 +224,9 @@ export default function ResultsPage() {
           <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">{t('results.byEngine')}</p>
           <div className="grid grid-cols-1 gap-4">
             {sortedEngines.map(engine => (
-              disabled.has(engine.id)
+              isUnconfigured(engine.id)
+                ? <DisconnectedCard key={engine.id} label={engine.label} reason="missing-key" />
+                : disabled.has(engine.id)
                 ? <DisconnectedCard key={engine.id} label={engine.label} reason="disabled" />
                 : (
                   <EngineCard
