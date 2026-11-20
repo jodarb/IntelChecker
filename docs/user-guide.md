@@ -10,7 +10,7 @@ Type an indicator on the home page, pick its type (IP, Domain, URL, File Hash, A
 
 - The source list under the search box shows which sources are connected. Its switch turns a source off for that browser; disabled sources aren't queried and don't count in any score.
 - Each source shows its **R** (risk) and **K** (knowledge) weight. Sources are sorted by risk weight, then knowledge weight.
-- Sources without an API key are listed as **Not configured** and are left out of the lookup.
+- Sources without an API key are listed as **Not configured** and are left out of the lookup. On the results page they appear as a greyed-out **Off · not configured** card, never as an error.
 - Lookups are always live — nothing is cached.
 
 ## 2. The two scores
@@ -72,8 +72,8 @@ Default thresholds: knowledge ≥ 4, risk ≥ 5 (both editable in Admin). The pe
 
 ### Summary
 
-- **Quadrant label**, the **Risk** gauge (semicircle) and the **Knowledge** bar (its vertical mark is the "known" threshold).
-- **Flagged by** — how many responding sources returned a risk signal, each with its subscore, and which gave a clean verdict. Sources with risk weight 0 are shown dashed (they flagged it but don't count in Risk).
+- **Score panel** (right) — a card bordered and lit in the quadrant's colour, with the **quadrant label**, the **Risk** gauge (semicircle, green → red gradient, with a tick on the "high risk" threshold), the **Knowledge** bar (its vertical mark, labelled underneath, is the "known" threshold), how many sources answered, and the **View matrix** / **How is this calculated?** buttons.
+- **Flagged by** — reads "**N** sources flag it as malicious · M responded · K not configured": N sources returned a risk signal (each with its subscore), M answered, and K support the type but have no API key (shown only when K > 0). Sources that gave a clean verdict are listed underneath. Sources with risk weight 0 are shown dashed (they flagged it but don't count in Risk).
 - **Malware families** — from structured fields only (ThreatFox, MalwareBazaar, OTX, MISP galaxies, VirusTotal, Hybrid Analysis, ANY.RUN, TweetFeed), with aliases merged (Qbot / QakBot / Pinkslipbot) using a built-in table plus MITRE ATT&CK software aliases. Families that only come from bulk OTX pulses (weekly roundups, feeds with ≥ 100 indicators) are ignored. Click a family to see exactly where it comes from: source, field, raw value and pulse / MISP event.
 - **Threat actor relations** — one row per actor with every source that relates the indicator to it (OTX pulse adversaries, MISP threat-actor galaxies, actor names found in any source's tags, matched against MITRE ATT&CK). Recorded Future "Linked to APT" rules appear as unnamed relations. If sources answered and none relates it to an actor, the block says so. Campaigns (TweetFeed) are listed underneath.
 - **Activity window** — earliest first-seen and latest last-seen across all sources.
@@ -86,7 +86,7 @@ Default thresholds: knowledge ≥ 4, risk ≥ 5 (both editable in Admin). The pe
 
 ### Per-source cards
 
-Each card links to the indicator on the original tool and has a `RAW` button with the exact JSON it returned. Its badge keeps three situations apart:
+Each card links to the indicator on the original tool and has a `RAW` button with the exact JSON it returned. Its badge keeps these situations apart:
 
 | Badge | Meaning |
 |---|---|
@@ -94,6 +94,7 @@ Each card links to the indicator on the original tool and has a `RAW` button wit
 | `No results` (soft, yellow) | The source has no record of the indicator. |
 | `No score` (soft, yellow) | Real data, but nothing to score (Shodan host, IPinfo geolocation). |
 | `Error` (soft, red) | The lookup failed; the card says why (invalid key, rate limit, timeout…). |
+| `Off · not configured` / `Disabled` (grey, power icon) | Not part of the lookup: no API key in `backend/.env`, or switched off on the home page. Not queried, not counted in either score. History entries show it the same way. |
 
 ## 4. History and search frequency
 

@@ -59,16 +59,17 @@ export const docsEs: DocsContent = {
     p1: 'La página de resultados tiene tres partes, de arriba abajo:',
     list: [
       '**Frecuencia de búsqueda** — cuántas *otras* veces se ha consultado este indicador recientemente (ver [Historial y frecuencia](#history)).',
-      '**Resumen** — la etiqueta del cuadrante, el indicador de **Risk** (semicírculo), la barra de **Knowledge** y los datos agregados de todas las fuentes (ver [Panel de resumen](#summary)).',
+      '**Resumen** — a la derecha, el panel de puntuaciones: una tarjeta con el borde y el brillo del color del cuadrante, con la etiqueta del cuadrante, el indicador de **Risk** (semicírculo, verde → rojo, con una marca en el umbral de “riesgo alto” {tr}), la barra de **Knowledge**, cuántas fuentes han respondido y los botones *Ver matriz* / *¿Cómo se calcula?*. A la izquierda, los datos agregados de todas las fuentes (ver [Panel de resumen](#summary)).',
       '**Resultados por fuente** — una tarjeta por fuente con sus datos, un enlace al indicador en la herramienta original y un botón `RAW` con el JSON exacto que devolvió.',
     ],
-    p2: 'Cada tarjeta lleva un distintivo que separa tres situaciones muy distintas:',
+    p2: 'Cada tarjeta lleva un distintivo que separa estas situaciones muy distintas:',
     head: ['Distintivo', 'Significado'],
     badges: {
       score: 'Píldora sólida (verde → rojo): un veredicto de riesgo real de 0 a 10 de esa fuente. El 0 es un “evaluado y limpio” explícito, una afirmación más fuerte que “sin datos”.',
       noResults: 'La fuente no tiene registro del indicador. La ausencia de pruebas no es prueba de ausencia.',
       noScore: 'La fuente devolvió datos reales, pero nada que puntuar (p. ej. puertos de Shodan, geolocalización de IPinfo).',
       error: 'La propia consulta falló. La tarjeta indica por qué: API key no válida, límite de peticiones, tiempo de espera agotado, servicio no disponible…',
+      off: 'Tarjeta en gris con el icono de apagado: la fuente no forma parte de esta consulta. **Apagada · sin configurar** — no tiene API key en `backend/.env` (nunca se muestra como error); **Desactivada** — la apagaste en la página de inicio. No se consulta y no cuenta en ninguna puntuación. Las entradas del Historial la muestran igual.',
     },
   },
 
@@ -94,7 +95,7 @@ export const docsEs: DocsContent = {
       '**Solo crece** a medida que responden las fuentes: una fuente sin registro no suma nada, nunca resta.',
       '**Satura**: en cuanto el {fa}% del peso contado tiene registro, el Knowledge ya es 10 — un indicador no necesita que lo conozcan *todas* las fuentes para estar bien conocido. Se ajusta en Admin → *Saturación del Knowledge* (100% = sin saturación).',
       'Una fuente que falla por un motivo **temporal** (límite de peticiones, tiempo agotado, red, servicio no disponible) **queda fuera del total**: un fallo puntual de una API no dice nada del indicador. Un fallo persistente (API key no válida, acceso denegado) o una fuente que aún está cargando cuenta en el total con profundidad 0.',
-      'Muestra **N/D** hasta que responde al menos una fuente. La marca vertical de la barra es el umbral actual de “conocido” ({tk}).',
+      'Muestra **N/D** hasta que responde al menos una fuente. La marca vertical de la barra es el umbral actual de “conocido” ({tk}), con su etiqueta debajo.',
     ],
     example: '**Ejemplo (consulta real, full_at 70%).** Recorded Future, OTX y ThreatFox con registro rico, MISP y TweetFeed básico, AbuseIPDB / URLhaus / Shodan sin registro y VirusTotal con límite de peticiones (fuera del total): 29,5 de 54 de peso contado.',
     exampleFormula: 'cobertura = 29,5 / 54 = 0,546   →   knowledge = round( 10 × min(1, 0,546 ÷ 0,70) ) = round(7,8) = 8',
@@ -136,7 +137,7 @@ export const docsEs: DocsContent = {
     p1: 'Además de las puntuaciones, el Resumen junta lo que dijo cada fuente en unos pocos bloques. Los bloques sin datos se ocultan.',
     head: ['Bloque', 'Qué muestra'],
     rows: [
-      ['Marcado por', 'Cuántas de las fuentes que respondieron devolvieron una señal de riesgo, cada una con su subpuntuación (de mayor a menor), y las fuentes que dieron un veredicto limpio. Las fuentes con peso Risk 0 aparecen con borde discontinuo: lo marcaron pero no cuentan en el Risk Score.'],
+      ['Marcado por', 'Dice “**N** fuentes lo marcan como malicioso · M han respondido · K sin configurar”: N fuentes devolvieron una señal de riesgo (cada una con su subpuntuación, de mayor a menor), M fuentes respondieron y K fuentes que admiten este tipo no tienen API key (solo aparece si hay alguna). Debajo se listan las fuentes que dieron un veredicto limpio. Las fuentes con peso Risk 0 aparecen con borde discontinuo: lo marcaron pero no cuentan en el Risk Score.'],
       ['Familias de malware', 'Solo familias de campos estructurados (ThreatFox, MalwareBazaar, OTX, galaxias de MISP, VirusTotal, Hybrid Analysis, ANY.RUN, TweetFeed). Los alias se fusionan — p. ej. Qbot / QakBot / Pinkslipbot — con una tabla integrada más los alias de software de MITRE ATT&CK. Las familias que solo vienen de **pulses masivos de OTX** (resúmenes semanales, feeds con ≥ 100 indicadores) se descartan: describen el informe, no este indicador.'],
       ['Relación con actores de amenaza', 'Una fila por actor con **todas las fuentes que relacionan el indicador con él**: adversarios de pulses de OTX y el resumen de adversarios relacionados de OTX, galaxias de actor de MISP y nombres de actores encontrados en las etiquetas de cualquier fuente (comparados con los grupos y alias de MITRE ATT&CK). Las reglas “Linked to APT” de Recorded Future aparecen como relación sin nombre. Si las fuentes respondieron y ninguna lo relaciona con un actor, el bloque lo indica. Las campañas (TweetFeed) se listan debajo.'],
       ['Ventana de actividad', 'La primera fecha en que se vio y la última, entre todas las fuentes, con la fuente de cada una.'],

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, BookOpen, ShieldCheck, Users } from 'lucide-react'
+import { ArrowLeft, BookOpen, PowerOff, ShieldCheck, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Layout from '@/components/Layout'
 import { useEngines } from '@/EnginesContext'
@@ -189,7 +189,7 @@ export default function DocsPage() {
 
           <Section id="results" title={d.results.title}>
             <P>{d.results.p1}</P>
-            <List items={d.results.list} />
+            <List items={d.results.list.map(th)} />
             <P>{d.results.p2}</P>
             <Table
               head={d.results.head}
@@ -198,6 +198,7 @@ export default function DocsPage() {
                 [<span className="inline-flex px-2 py-0.5 rounded-full border text-xs font-medium text-yellow-400 bg-yellow-500/10 border-yellow-500/30 whitespace-nowrap">{t('badge.noResults')}</span>, d.results.badges.noResults],
                 [<span className="inline-flex px-2 py-0.5 rounded-full border text-xs font-medium text-yellow-400 bg-yellow-500/10 border-yellow-500/30 whitespace-nowrap">{t('badge.noScore')}</span>, d.results.badges.noScore],
                 [<span className="inline-flex px-2 py-0.5 rounded-full border text-xs font-semibold text-red-400 bg-red-500/10 border-red-500/30">{t('badge.error')}</span>, d.results.badges.error],
+                [<span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-border text-xs font-medium text-muted-foreground bg-muted/30 whitespace-nowrap"><PowerOff className="h-3 w-3" />{t('disconnected.missingKey')}</span>, d.results.badges.off],
               ]}
             />
           </Section>
