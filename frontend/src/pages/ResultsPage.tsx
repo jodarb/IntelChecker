@@ -217,6 +217,7 @@ export default function ResultsPage() {
           results={results}
           verdict={verdict}
           thresholds={config?.thresholds ?? null}
+          unconfigured={engines.filter(e => isUnconfigured(e.id)).length}
         />
 
         {/* Engine results */}

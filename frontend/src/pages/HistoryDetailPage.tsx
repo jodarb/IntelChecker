@@ -149,6 +149,8 @@ export default function HistoryDetailPage() {
           results={resultsForSummary}
           verdict={verdict}
           thresholds={config?.thresholds ?? null}
+          unconfigured={Object.values(entry.results)
+            .filter(r => (r.data as { error?: { code?: string } } | null)?.error?.code === 'MissingApiKey').length}
         />
 
         {isLegacy && (
