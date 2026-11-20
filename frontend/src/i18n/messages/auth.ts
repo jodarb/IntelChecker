@@ -34,8 +34,7 @@ const en = {
   'role.reader.desc': 'Browses history only.',
 
   // Users panel (Admin)
-  'admin.tabWeights': 'Verdict weights',
-  'admin.tabUsers': 'Users',
+  'users.pageSubtitle': 'List, create and delete users and change their role. Only admins can see this page.',
   'users.title': 'Users',
   'users.subtitle': 'Only admins can create users. New users and reset passwords are temporary: the user must choose their own on first sign-in.',
   'users.loadError': 'Could not load the user list.',
@@ -113,8 +112,7 @@ const es: Record<keyof typeof en, string> = {
   'role.analyst.desc': 'Lanza análisis y consulta el historial.',
   'role.reader.desc': 'Solo consulta el historial.',
 
-  'admin.tabWeights': 'Pesos del veredicto',
-  'admin.tabUsers': 'Usuarios',
+  'users.pageSubtitle': 'Lista, crea y elimina usuarios y cambia su rol. Solo los administradores ven esta página.',
   'users.title': 'Usuarios',
   'users.subtitle': 'Solo los administradores pueden crear usuarios. Las contraseñas de usuarios nuevos y las restablecidas son temporales: el usuario debe elegir la suya al entrar por primera vez.',
   'users.loadError': 'No se pudo cargar la lista de usuarios.',

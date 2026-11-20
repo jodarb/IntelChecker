@@ -1,4 +1,4 @@
-import { History, SlidersHorizontal, BookOpen, LogOut, UserRound, TriangleAlert } from 'lucide-react'
+import { History, SlidersHorizontal, BookOpen, LogOut, UserRound, TriangleAlert, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import HeaderControls from '@/components/HeaderControls'
@@ -36,12 +36,20 @@ export default function Layout({ children }: LayoutProps) {
             </Link>
           </Button>
           {can('admin') && (
-            <Button variant="ghost" size="sm" asChild className="gap-1.5">
-              <Link to="/admin">
-                <SlidersHorizontal className="h-4 w-4" />
-                {t('layout.admin')}
-              </Link>
-            </Button>
+            <>
+              <Button variant="ghost" size="sm" asChild className="gap-1.5">
+                <Link to="/admin">
+                  <SlidersHorizontal className="h-4 w-4" />
+                  {t('layout.admin')}
+                </Link>
+              </Button>
+              <Button variant="ghost" size="sm" asChild className="gap-1.5">
+                <Link to="/users">
+                  <Users className="h-4 w-4" />
+                  {t('layout.users')}
+                </Link>
+              </Button>
+            </>
           )}
           <Button variant="ghost" size="sm" asChild className="gap-1.5">
             <Link to="/docs">

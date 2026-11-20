@@ -22,7 +22,7 @@ Readers don't see the home page search: they land on History. Every new History 
 
 **First admin.** On the very first start (no users yet) the backend creates an admin from `ADMIN_USERNAME` / `ADMIN_PASSWORD` in `backend/.env` (username defaults to `admin`). If `ADMIN_PASSWORD` is empty, the password is **`admin`**, so a fresh deployment signs in with `admin` / `admin`. It isn't forced to change, but a warning is shown on every page until the password is changed (**My account**) — do it before going to production. Those variables are ignored once any user exists.
 
-**Admin → Users** tab:
+**Users** page (header → **Users**, or `/users` — only visible to admins):
 
 - **Create user** — username, temporary password (≥ 8 characters) and role. The user must choose their own password on first sign-in.
 - **Role** — change it from the drop-down; it applies on the user's next request.

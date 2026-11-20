@@ -189,7 +189,7 @@ export const docsEn = {
       ['Discard changes', 'Drops unsaved edits.'],
       ['Reset to defaults', 'After confirmation, deletes all admin changes and restores the built-in values. Cannot be undone.'],
     ],
-    note: 'Changes apply to **new lookups**; an open results page keeps the values it loaded (reload it). History entries keep the weights in force when they were run. The home page and results order also follow the new weights. Only **Admin** users see the Admin page. Its **Users** tab creates users and changes their role (Admin · Analyst · Reader), resets passwords, disables or deletes accounts. Passwords set by an admin are temporary: the user must choose their own on next sign-in. There is always at least one active admin, and admins can\'t demote, disable or delete themselves.',
+    note: 'Changes apply to **new lookups**; an open results page keeps the values it loaded (reload it). History entries keep the weights in force when they were run. The home page and results order also follow the new weights. Only **Admin** users see the Admin page and the [Users](/users) page next to it in the header. **Users** lists every account, creates users and changes their role (Admin · Analyst · Reader), resets passwords, disables or deletes accounts. Passwords set by an admin are temporary: the user must choose their own on next sign-in. There is always at least one active admin, and admins can\'t demote, disable or delete themselves.',
   },
 
   weights: {
@@ -260,7 +260,7 @@ export const docsEn = {
       ['MISP instances', '`MISP_<N>_*`', 'Any number: `_NAME`, `_URL`, `_KEY`, `_VERIFY_SSL`. `_WEIGHT` / `_KNOWLEDGE_WEIGHT` (0–10, defaults 0 / 9) are only the initial weights — a value saved in Admin wins. For mutual TLS, put the cert in `backend/certs/` and set `_CLIENT_CERT` / `_CLIENT_KEY`.'],
       ['Weights & thresholds', '`backend/data/weights.json`', 'Written by Admin; survives restarts and rebuilds (Docker volume). Values above 10 from older versions are clamped to 10 on load. Reset to defaults deletes it.'],
       ['History', '`backend/data/history.db`', 'SQLite, same volume. Created automatically on first run.'],
-      ['Users & sessions', '`backend/data/users.db`', 'SQLite, same volume. Managed from Admin → Users. Passwords are stored as scrypt hashes.'],
+      ['Users & sessions', '`backend/data/users.db`', 'SQLite, same volume. Managed from the [Users](/users) page. Passwords are stored as scrypt hashes.'],
       ['Initial admin', '`ADMIN_USERNAME` / `ADMIN_PASSWORD`', 'In `backend/.env`, used only on the first start, when there are no users yet. Default `admin` / `admin`: a warning is shown until that password is changed — change it before going to production.'],
       ['Sessions', '`SESSION_TTL_HOURS` / `SESSION_COOKIE_SECURE`', 'Session length (default 12 h). Set the cookie flag to `true` when the app is served over HTTPS.'],
       ['Ports', '`.env` (repo root)', '`FRONTEND_PORT` / `BACKEND_PORT`. Different file from `backend/.env`.'],
