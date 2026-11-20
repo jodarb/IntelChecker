@@ -50,7 +50,7 @@ Implemented sources: VirusTotal, AlienVault OTX, AbuseIPDB, abuse.ch (ThreatFox)
 ---
 
 ## 5. Verdict Engine
-Implemented in `frontend/src/verdictEngine.ts` (`computeVerdict`). It produces **two independent scores** plus a quadrant. Full user-facing explanation: README "Verdict Scoring & Weights", `docs/admin.md` and the in-app Docs page (`/docs`, text in `frontend/src/i18n/docs/{en,es}.ts`) — keep all of them (both languages) in sync with any change to the logic.
+Implemented in `frontend/src/verdictEngine.ts` (`computeVerdict`). It produces **two independent scores** plus a quadrant. Full user-facing explanation: `docs/user-guide.md`, `docs/admin.md` and the in-app Docs page (`/docs`, text in `frontend/src/i18n/docs/{en,es}.ts`) — keep all of them (both languages) in sync with any change to the logic.
 
 * **Per-engine assessment:** each engine's result is normalized to an outcome — `hit` / `clean` / `context` / `no_data` / `excluded` — with a risk **subscore** (0–10, only for hit/clean) and a **depth of record** (0 / 0.5 / 1). "Not found" is `no_data`, never `clean`: absence of data is not a benign confirmation.
 * **Knowledge (0–10):** `coverage = Σ(kw × depth) / Σ(kw of every counted source for the type)`, `knowledge = round(10 × min(1, coverage ÷ full_at))` with `full_at` = `scoring.knowledge_full_at` % (Admin, default 70, 10–100; 100 = no saturation). Sources still loading or with a persistent error (bad key…) count in the denominator with depth 0; sources that failed for a **transient** reason (`TRANSIENT_ERROR_CODES`: rate limit, timeout, network, HTTP/5xx, or the frontend couldn't reach the backend) are left out (`inTotal: false` in the contribution). Contributions store `knowledgeFullAt` so the matrix replays history with the value in force then (missing = 100).
@@ -96,7 +96,7 @@ intelchecker/
 │   │   └── summaryRegistry.ts # Summary field extractors
 │   ├── Dockerfile             # Build → nginx (proxies /api to backend)
 │   └── package.json
-├── docs/                      # admin.md, logo.png, screenshot.png
+├── docs/                      # user-guide.md, admin.md, sources.md, development.md, logo.png, screenshot.png
 ├── docker-compose.yml
 └── .env.example               # FRONTEND_PORT / BACKEND_PORT
 ```
