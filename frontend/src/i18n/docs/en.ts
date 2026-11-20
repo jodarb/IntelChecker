@@ -49,7 +49,8 @@ export const docsEn = {
       'Use the switch next to a source to turn it off; disabled sources aren\'t queried and don\'t count in either score. The choice is remembered on this browser only.',
       'Each source shows two chips: **R** (its risk weight) and **K** (its knowledge weight). Sources are sorted by risk weight, then knowledge weight.',
       'Sources without an API key are listed under **Not configured** and are left out of the lookup entirely.',
-      'Lookups are always live — nothing is cached. Every completed lookup is saved to [History](/history).',
+      'Lookups are always live — nothing is cached. Every completed lookup is saved to [History](/history) together with the user who ran it.',
+      'Running lookups needs the **Analyst** or **Admin** role. **Readers** can only browse History; they don\'t see the home page search.',
       'The **EN / ES** selector in the header switches the interface language; the choice is remembered on this browser.',
     ],
   },
@@ -188,7 +189,7 @@ export const docsEn = {
       ['Discard changes', 'Drops unsaved edits.'],
       ['Reset to defaults', 'After confirmation, deletes all admin changes and restores the built-in values. Cannot be undone.'],
     ],
-    note: 'Changes apply to **new lookups**; an open results page keeps the values it loaded (reload it). History entries keep the weights in force when they were run. The home page and results order also follow the new weights. The Admin page has **no authentication** — restrict access at the network/VPN level.',
+    note: 'Changes apply to **new lookups**; an open results page keeps the values it loaded (reload it). History entries keep the weights in force when they were run. The home page and results order also follow the new weights. Only **Admin** users see the Admin page. Its **Users** tab creates users and changes their role (Admin · Analyst · Reader), resets passwords, disables or deletes accounts. Passwords set by an admin are temporary: the user must choose their own on next sign-in. There is always at least one active admin, and admins can\'t demote, disable or delete themselves.',
   },
 
   weights: {
@@ -259,11 +260,14 @@ export const docsEn = {
       ['MISP instances', '`MISP_<N>_*`', 'Any number: `_NAME`, `_URL`, `_KEY`, `_VERIFY_SSL`. `_WEIGHT` / `_KNOWLEDGE_WEIGHT` (0–10, defaults 0 / 9) are only the initial weights — a value saved in Admin wins. For mutual TLS, put the cert in `backend/certs/` and set `_CLIENT_CERT` / `_CLIENT_KEY`.'],
       ['Weights & thresholds', '`backend/data/weights.json`', 'Written by Admin; survives restarts and rebuilds (Docker volume). Values above 10 from older versions are clamped to 10 on load. Reset to defaults deletes it.'],
       ['History', '`backend/data/history.db`', 'SQLite, same volume. Created automatically on first run.'],
+      ['Users & sessions', '`backend/data/users.db`', 'SQLite, same volume. Managed from Admin → Users. Passwords are stored as scrypt hashes.'],
+      ['Initial admin', '`ADMIN_USERNAME` / `ADMIN_PASSWORD`', 'In `backend/.env`, used only on the first start, when there are no users yet. Without `ADMIN_PASSWORD` a temporary password is printed in the backend log (`docker compose logs backend`).'],
+      ['Sessions', '`SESSION_TTL_HOURS` / `SESSION_COOKIE_SECURE`', 'Session length (default 12 h). Set the cookie flag to `true` when the app is served over HTTPS.'],
       ['Ports', '`.env` (repo root)', '`FRONTEND_PORT` / `BACKEND_PORT`. Different file from `backend/.env`.'],
       ['MITRE ATT&CK data', 'downloaded by the backend', 'The ~50 MB dataset is fetched from GitHub and cached 24 h. It powers actor lookups and the actor/alias detection in the Summary; without internet those fall back to the built-in family table.'],
       ['Interface language', 'header → EN / ES', 'Stored per browser. Source data (raw JSON, tags, report titles) is shown as the source returned it.'],
     ],
-    note: 'Lookups are never cached: only history and weights are stored. IntelChecker has no authentication anywhere — it is meant for an internal network or VPN.',
+    note: 'Lookups are never cached: only history, weights and users are stored. Every page and API call requires signing in; what each user can do depends on their role.',
   },
 }
 

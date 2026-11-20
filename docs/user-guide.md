@@ -6,6 +6,8 @@ How IntelChecker turns the answers of every CTI source into a verdict, and how t
 
 ## 1. Running a lookup
 
+Sign in with the account your admin gave you (the first time you'll be asked to choose your own password). Running lookups needs the **Analyst** or **Admin** role; **Readers** can only browse History. Roles are described in [admin.md § 0](admin.md#0-users-and-roles).
+
 Type an indicator on the home page, pick its type (IP, Domain, URL, File Hash, ASN, Threat Actor) and press **Analyze**. Every source that supports the type is queried **in parallel**, and each card appears as soon as its own source answers.
 
 - The source list under the search box shows which sources are connected. Its switch turns a source off for that browser; disabled sources aren't queried and don't count in any score.
@@ -98,7 +100,7 @@ Each card links to the indicator on the original tool and has a `RAW` button wit
 
 ## 4. History and search frequency
 
-Every completed lookup is stored in `backend/data/history.db` with a **frozen snapshot**: both scores, the quadrant, every source's contribution and raw response. **History** (header) lists them, optionally filtered by indicator; opening one shows the result exactly as it was — later weight changes never rewrite history. Entries from before the two-score model only have a Risk Score.
+Every completed lookup is stored in `backend/data/history.db` with the user who ran it and a **frozen snapshot**: both scores, the quadrant, every source's contribution and raw response. **History** (header) lists them, optionally filtered by indicator; opening one shows the result exactly as it was — later weight changes never rewrite history. Entries from before the two-score model only have a Risk Score.
 
 The **Search Frequency** card counts how many *other* times the same indicator was looked up (the current lookup never counts itself). Its colour is whichever window reads most severe; any hit within 72 h is at least yellow:
 

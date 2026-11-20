@@ -27,6 +27,7 @@
 | 🎯 **Two-score verdict** | **Knowledge** (how much is known) + **Risk** (how risky, per sources with a verdict) → a quadrant: Confirmed malicious · Isolated signal · Known benign · Unknown… |
 | 📊 **Summary** | Who flagged it, malware families, threat actor relations, first/last seen, GeoIP / ASN / ISP — each value traceable to its source |
 | 🗺️ **Explainable** | Matrix view replays how each source moved both scores; *How is this calculated?* shows every contribution |
+| 🔐 **Role-based access** | Sign-in required; Admin · Analyst · Reader roles, users managed from the **Admin** page |
 | 🧮 **Tunable** | Per-source risk/knowledge weights, thresholds and knowledge saturation from the **Admin** page |
 | 🕓 **History** | Every lookup is saved with a frozen snapshot; a frequency card flags indicators that keep coming back |
 | 🌐 **EN / ES** | Whole interface and in-app docs in English and Spanish |
@@ -72,7 +73,7 @@ cp .env.example .env                     # optional: change FRONTEND_PORT / BACK
 docker compose up --build -d
 ```
 
-Open `http://<host>:8080` (or your `FRONTEND_PORT`). Weights and thresholds are tuned from the **Admin** page; query history and weights persist in the `backend/data/` volume.
+Open `http://<host>:8080` (or your `FRONTEND_PORT`) and sign in. On the first start the backend creates an admin from `ADMIN_USERNAME` / `ADMIN_PASSWORD` in `backend/.env`; if you leave the password empty, a temporary one is printed by `docker compose logs backend`. Users, weights and thresholds are managed from the **Admin** page; query history, users and weights persist in the `backend/data/` volume.
 
 **Update to a new version**
 
@@ -82,7 +83,7 @@ git pull
 docker compose up --build -d      # add `build --no-cache` if a container serves stale code
 ```
 
-`backend/.env` and `backend/data/` (history and saved weights) are not touched by an update.
+`backend/.env` and `backend/data/` (history, users and saved weights) are not touched by an update.
 
 ## 🔑 API keys
 
@@ -112,7 +113,7 @@ Tor Exit Nodes, MITRE ATT&CK, RIPEstat, PhishTank and TweetFeed need no key.
 | Document | Contents |
 |---|---|
 | [docs/user-guide.md](docs/user-guide.md) | Reading a lookup: Knowledge / Risk formulas, quadrants, Summary, matrix, history and search frequency |
-| [docs/admin.md](docs/admin.md) | Every Admin setting and its effect, default weights, per-source scoring rules |
+| [docs/admin.md](docs/admin.md) | Users and roles, every Admin setting and its effect, default weights, per-source scoring rules |
 | [docs/sources.md](docs/sources.md) | Notes on each integration, MISP multi-instance and mutual TLS |
 | [docs/development.md](docs/development.md) | Running without Docker, configuration files, project structure, architecture |
 
@@ -121,5 +122,5 @@ The same user and admin guidance is available in the app (header → **Docs**) w
 ---
 
 <div align="center">
-<sub>Built for internal SOC and CTI operations · No authentication — deploy on an internal network or VPN</sub>
+<sub>Built for internal SOC and CTI operations · Sign-in with Admin / Analyst / Reader roles</sub>
 </div>

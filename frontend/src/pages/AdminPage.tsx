@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ArrowLeft, ChevronDown, RotateCcw, Save, Undo2 } from 'lucide-react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, ChevronDown, RotateCcw, Save, SlidersHorizontal, Undo2, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Layout from '@/components/Layout'
+import UsersPanel from '@/components/admin/UsersPanel'
 import { useEngines } from '@/EnginesContext'
 import { useVerdictConfigEditor } from '@/hooks/useVerdictWeights'
 import { DEFAULT_SCORING, type EngineWeight, type VerdictConfig } from '@/verdictEngine'
@@ -155,7 +156,59 @@ function EngineRow({
   )
 }
 
+type AdminTab = 'weights' | 'users'
+
 export default function AdminPage() {
+  const [params, setParams] = useSearchParams()
+  const tab: AdminTab = params.get('tab') === 'users' ? 'users' : 'weights'
+  const { t } = useI18n()
+
+  const tabs: { id: AdminTab; label: string; icon: typeof Users }[] = [
+    { id: 'weights', label: t('admin.tabWeights'), icon: SlidersHorizontal },
+    { id: 'users', label: t('admin.tabUsers'), icon: Users },
+  ]
+
+  return (
+    <Layout>
+      <main className="flex-1 px-6 py-6 w-full max-w-4xl mx-auto flex flex-col gap-6">
+        <div className="flex items-start gap-4">
+          <Button variant="ghost" size="sm" asChild className="mt-0.5 shrink-0">
+            <Link to="/"><ArrowLeft className="h-4 w-4 mr-1" /> {t('common.back')}</Link>
+          </Button>
+          <div>
+            <h2 className="text-xl font-semibold text-foreground">{tab === 'users' ? t('users.title') : t('admin.title')}</h2>
+            {tab === 'weights' && (
+              <p className="text-sm text-muted-foreground mt-1">
+                {t('admin.subtitle')}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div role="tablist" className="flex gap-1 border-b border-border">
+          {tabs.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={tab === id}
+              onClick={() => setParams(id === 'weights' ? {} : { tab: id }, { replace: true })}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 -mb-px border-b-2 text-sm font-medium transition-colors ${tab === id
+                ? 'border-primary text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+            >
+              <Icon className="h-4 w-4" /> {label}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'users' ? <UsersPanel /> : <WeightsEditor />}
+      </main>
+    </Layout>
+  )
+}
+
+function WeightsEditor() {
   const { engines } = useEngines()
   const { config, error: loadError, save, reset, reload } = useVerdictConfigEditor()
   // null = no local edits; the form shows the saved config.
@@ -208,20 +261,7 @@ export default function AdminPage() {
   }
 
   return (
-    <Layout>
-      <main className="flex-1 px-6 py-6 w-full max-w-4xl mx-auto flex flex-col gap-6">
-        <div className="flex items-start gap-4">
-          <Button variant="ghost" size="sm" asChild className="mt-0.5 shrink-0">
-            <Link to="/"><ArrowLeft className="h-4 w-4 mr-1" /> {t('common.back')}</Link>
-          </Button>
-          <div>
-            <h2 className="text-xl font-semibold text-foreground">{t('admin.title')}</h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              {t('admin.subtitle')}
-            </p>
-          </div>
-        </div>
-
+    <>
         {loadError && (
           <div className="flex items-center gap-3">
             <p className="text-sm text-red-400">{t('admin.loadError')}</p>
@@ -329,7 +369,6 @@ export default function AdminPage() {
             </div>
           </>
         )}
-      </main>
-    </Layout>
+    </>
   )
 }

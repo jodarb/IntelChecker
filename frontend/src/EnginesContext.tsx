@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode, type ComponentType } from 'react'
 import { STATIC_ENGINES, type EngineConfig, type IndicatorType, type CardProps } from '@/registry'
 import MISPCard from '@/components/results/MISPCard'
+import { apiFetch } from '@/lib/api'
 
 const BACKEND = '/api'
 
@@ -29,7 +30,7 @@ export function EnginesProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch(`${BACKEND}/engines/status`)
+    apiFetch(`${BACKEND}/engines/status`)
       .then(r => r.json())
       .then((s: StatusMap) => setStatus(s))
       .catch(() => setStatus(null))

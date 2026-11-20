@@ -1,10 +1,41 @@
-# Admin page — verdict weights and thresholds
+# Admin page — users, verdict weights and thresholds
 
 The **Admin** page (header → **Admin**, or `/admin`) controls how IntelChecker turns the raw answers of each CTI source into the two scores shown on every lookup — the **Knowledge Score** and the **Risk Score** — and into the **quadrant** label shown under them.
 
 Nothing on this page changes *which* sources are queried or *what* they return. It only changes how much each answer counts.
 
-> **No authentication.** Like the rest of IntelChecker, the Admin page is meant for an internal network: anyone who can open the app can change the weights. Restrict access at the network/VPN level if that matters in your deployment.
+> **Admins only.** The Admin page and the weights API are restricted to users with the **Admin** role. See [§ 0](#0-users-and-roles) for user management.
+
+---
+
+## 0. Users and roles
+
+Every page and API call requires signing in. There are three roles:
+
+| Role | Run lookups | Browse History | Edit weights · manage users |
+|---|:-:|:-:|:-:|
+| **Admin** | ✅ | ✅ | ✅ |
+| **Analyst** | ✅ | ✅ | — |
+| **Reader** | — | ✅ | — |
+
+Readers don't see the home page search: they land on History. Every new History entry records the user who ran it.
+
+**First admin.** On the very first start (no users yet) the backend creates an admin from `ADMIN_USERNAME` / `ADMIN_PASSWORD` in `backend/.env` (username defaults to `admin`). If `ADMIN_PASSWORD` is empty, a temporary password is printed in the backend log — `docker compose logs backend` — and must be changed on first sign-in. Those variables are ignored once any user exists.
+
+**Admin → Users** tab:
+
+- **Create user** — username, temporary password (≥ 8 characters) and role. The user must choose their own password on first sign-in.
+- **Role** — change it from the drop-down; it applies on the user's next request.
+- **Reset password** (key icon) — sets a new temporary password and signs the user out everywhere.
+- **Disable / Enable** (power icon) — a disabled user can't sign in and is signed out immediately. Their history stays.
+- **Delete** — removes the account; their past lookups stay in History with their name.
+- Safeguards: there is always at least one active admin, and you can't change your own role, disable or delete yourself.
+
+Any user can change their own password from **My account** (their name in the header); doing so signs out their other sessions.
+
+**Sessions** last `SESSION_TTL_HOURS` (default 12) and live in an HttpOnly, SameSite=Strict cookie. When serving over HTTPS set `SESSION_COOKIE_SECURE=true`. After 5 failed sign-ins in 15 minutes an account rejects further attempts until the window passes. Users, password hashes (scrypt) and sessions are stored in `backend/data/users.db`.
+
+**Locked out?** If no admin can sign in, stop the stack, delete `backend/data/users.db` (history and weights are untouched) and start it again: the first-admin bootstrap runs again.
 
 ---
 

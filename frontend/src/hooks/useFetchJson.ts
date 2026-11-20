@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { apiFetch } from '@/lib/api'
 
 interface FetchState<T> {
   data: T | null
@@ -22,7 +23,7 @@ export function useFetchJson<T>(url: string | null): FetchState<T> {
   useEffect(() => {
     if (url == null) return
     const ctrl = new AbortController()
-    fetch(url, { signal: ctrl.signal })
+    apiFetch(url, { signal: ctrl.signal })
       .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json() as Promise<T> })
       .then(data => setState({ url, data, failed: false }))
       .catch(() => {

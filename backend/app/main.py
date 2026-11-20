@@ -1,9 +1,9 @@
 import os
 import asyncio
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from pydantic import BaseModel
+from app.core import auth
 from app.core import db as history_db
 from app.core import weights as weights_store
 from app.core.config import MISP_INSTANCES
@@ -18,6 +18,7 @@ from app.services import (
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     history_db.init_db()
+    auth.init_db()
     task = asyncio.create_task(torexitlist.start_background_refresh())
     yield
     task.cancel()
@@ -25,12 +26,15 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["GET", "POST", "PUT"],
-    allow_headers=["*"],
-)
+# No CORS middleware: the SPA reaches the API same-origin through the nginx (or Vite)
+# /api proxy, and the session cookie is SameSite=Strict, so cross-site requests are
+# neither needed nor allowed.
+
+# Role checks (see app/core/auth.py): any signed-in user, reader+, analyst+, admin.
+SignedIn = Depends(auth.current_user)
+CanReadHistory = Depends(auth.require("history:read"))
+CanAnalyze = Depends(auth.require("analyze"))
+IsAdmin = Depends(auth.require("admin"))
 
 _SERVICES = {
     "abuseipdb": abuseipdb,
@@ -61,6 +65,28 @@ class AnalyzeRequest(BaseModel):
     type: str
 
 
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+class UserCreateRequest(BaseModel):
+    username: str
+    password: str
+    role: str
+
+
+class UserUpdateRequest(BaseModel):
+    role: str | None = None
+    active: bool | None = None
+    password: str | None = None
+
+
 class HistoryEntryRequest(BaseModel):
     indicator: str
     type: str
@@ -72,7 +98,77 @@ class HistoryEntryRequest(BaseModel):
     contributions: dict | list = []
 
 
-@app.get("/engines/status")
+# ── Authentication ────────────────────────────────────────────────────────────
+
+def _me(user: dict) -> dict:
+    return {
+        "id": user["id"],
+        "username": user["username"],
+        "role": user["role"],
+        "must_change_password": user["must_change_password"],
+        "permissions": sorted(auth.PERMISSIONS.get(user["role"], set())),
+    }
+
+
+@app.post("/auth/login")
+def login(req: LoginRequest, response: Response):
+    token, user = auth.login(req.username, req.password)
+    response.set_cookie(
+        auth.COOKIE_NAME, token,
+        max_age=auth.SESSION_TTL_SECONDS, httponly=True, samesite="strict",
+        secure=auth.COOKIE_SECURE, path="/",
+    )
+    return _me(user)
+
+
+@app.post("/auth/logout")
+def logout(request: Request, response: Response):
+    token = request.cookies.get(auth.COOKIE_NAME)
+    if token:
+        auth.logout(token)
+    response.delete_cookie(auth.COOKIE_NAME, path="/")
+    return {"ok": True}
+
+
+# session_user (not current_user): a user with a temporary password must still be
+# able to see who they are and change it.
+@app.get("/auth/me")
+def me(user: dict = Depends(auth.session_user)):
+    return _me(user)
+
+
+@app.put("/auth/password")
+def change_password(req: PasswordChangeRequest, user: dict = Depends(auth.session_user)):
+    auth.change_own_password(user["id"], req.current_password, req.new_password, user["token_hash"])
+    return _me({**user, "must_change_password": False})
+
+
+# ── User management (admin) ───────────────────────────────────────────────────
+
+@app.get("/users", dependencies=[IsAdmin])
+def list_users():
+    return auth.list_users()
+
+
+@app.post("/users", dependencies=[IsAdmin], status_code=201)
+def create_user(req: UserCreateRequest):
+    return auth.create_user(req.username, req.password, req.role)
+
+
+@app.patch("/users/{user_id}")
+def update_user(user_id: int, req: UserUpdateRequest, admin: dict = IsAdmin):
+    return auth.update_user(user_id, admin["id"], role=req.role, active=req.active, password=req.password)
+
+
+@app.delete("/users/{user_id}", status_code=204)
+def delete_user(user_id: int, admin: dict = IsAdmin):
+    auth.delete_user(user_id, admin["id"])
+    return Response(status_code=204)
+
+
+# ── Lookups ───────────────────────────────────────────────────────────────────
+
+@app.get("/engines/status", dependencies=[SignedIn])
 def engines_status():
     result = {}
     for name, meta in ENGINES.items():
@@ -87,7 +183,7 @@ def engines_status():
     return result
 
 
-@app.post("/analyze/{engine}")
+@app.post("/analyze/{engine}", dependencies=[CanAnalyze])
 async def analyze(engine: str, req: AnalyzeRequest):
     if engine not in ENGINES:
         raise HTTPException(
@@ -96,19 +192,19 @@ async def analyze(engine: str, req: AnalyzeRequest):
     return await _SERVICES[engine].dispatch(req.indicator, req.type)
 
 
-@app.get("/mitre/aliases")
+@app.get("/mitre/aliases", dependencies=[SignedIn])
 async def mitre_aliases():
     return await mitreattack.alias_lists()
 
 
-@app.get("/weights")
+# Every signed-in user reads the weights (the verdict is computed in the browser);
+# only admins change them.
+@app.get("/weights", dependencies=[SignedIn])
 def get_weights():
     return weights_store.get_weights()
 
 
-# No authentication by design (internal deployment, see CLAUDE.md) — anyone who can
-# reach the app can change the weights.
-@app.put("/weights")
+@app.put("/weights", dependencies=[IsAdmin])
 def put_weights(payload: dict):
     try:
         return weights_store.save_weights(payload)
@@ -116,21 +212,23 @@ def put_weights(payload: dict):
         raise HTTPException(status_code=422, detail=str(e))
 
 
-@app.post("/weights/reset")
+@app.post("/weights/reset", dependencies=[IsAdmin])
 def reset_weights():
     return weights_store.reset_weights()
 
 
+# Saving is part of running a lookup, so it needs the "analyze" permission. The
+# username comes from the session, never from the request body.
 @app.post("/history")
-def create_history_entry(entry: HistoryEntryRequest):
+def create_history_entry(entry: HistoryEntryRequest, user: dict = CanAnalyze):
     entry_id = history_db.save_query(
         entry.indicator, entry.type, entry.score, entry.knowledge_score, entry.quadrant,
-        entry.results, entry.contributions,
+        entry.results, entry.contributions, user["username"],
     )
     return {"id": entry_id}
 
 
-@app.get("/history")
+@app.get("/history", dependencies=[CanReadHistory])
 def list_history_entries(indicator: str | None = None):
     # No cap when filtering to one indicator — the point is an accurate global
     # count, not just what fits in the default recent-activity page size.
@@ -139,12 +237,12 @@ def list_history_entries(indicator: str | None = None):
 
 # Must be registered before /history/{entry_id} — otherwise "frequency" would be
 # swallowed by that route and rejected as an invalid int id.
-@app.get("/history/frequency")
+@app.get("/history/frequency", dependencies=[CanReadHistory])
 def get_history_frequency(indicator: str):
     return history_db.get_frequency(indicator)
 
 
-@app.get("/history/{entry_id}")
+@app.get("/history/{entry_id}", dependencies=[CanReadHistory])
 def get_history_entry(entry_id: int):
     entry = history_db.get_entry(entry_id)
     if not entry:

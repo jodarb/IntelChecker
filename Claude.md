@@ -4,10 +4,11 @@
 **INTELCHECKER** is an internal web application designed for the rapid triage and classification of Indicators of Compromise (IoCs) and Cyber Threat Intelligence (CTI) data. Analysts can input an indicator, select its type (or let the system automatically detect it), and receive a unified verdict alongside detailed technical context streamed in parallel from multiple external CTI sources.
 
 ### Key Features
-* **Decoupled & Internal Architecture:** SPA design deployed within a local network/VPN environment, omitting initial user authentication mechanisms.
+* **Decoupled & Internal Architecture:** SPA design deployed within a local network/VPN environment.
+* **Authentication & roles:** every page and API call requires a session. Three roles: `admin` (everything + edit weights + manage users), `analyst` (run lookups + read history), `reader` (read history only). See §7.
 * **Asynchronous Processing:** Multi-threaded/asynchronous API requests that prevent thread blocking and resource starvation.
 * **Real-Time Data Streaming:** Dynamic frontend components that render individual API responses immediately as they are streamed from the backend.
-* **Near-stateless Operation:** Lookups are always executed in real time (no result caching). The only persisted state lives in `backend/data/` (Docker volume): `history.db` (SQLite query history with frozen snapshots of every lookup) and `weights.json` (verdict weights/thresholds edited from the Admin page).
+* **Near-stateless Operation:** Lookups are always executed in real time (no result caching). The only persisted state lives in `backend/data/` (Docker volume): `history.db` (SQLite query history with frozen snapshots of every lookup, plus who ran it), `users.db` (users, roles, sessions) and `weights.json` (verdict weights/thresholds edited from the Admin page).
 
 ---
 
@@ -69,11 +70,12 @@ Implemented in `frontend/src/verdictEngine.ts` (`computeVerdict`). It produces *
 intelchecker/
 ├── backend/
 │   ├── app/
-│   │   ├── main.py            # FastAPI app: /analyze/{engine}, /engines/status, /history, /weights, /mitre/aliases
+│   │   ├── main.py            # FastAPI app: /auth/*, /users, /analyze/{engine}, /engines/status, /history, /weights, /mitre/aliases
 │   │   ├── core/
 │   │   │   ├── config.py      # Environment variables (.env), MISP instances
 │   │   │   ├── registry.py    # Engine capabilities (types supported, required key)
 │   │   │   ├── weights.py     # Default verdict weights/thresholds + persistence
+│   │   │   ├── auth.py        # Users, roles, sessions, FastAPI permission dependencies
 │   │   │   └── db.py          # SQLite query history
 │   │   └── services/          # One async httpx client module per CTI source
 │   ├── data/                  # history.db + weights.json (Docker volume, gitignored)
@@ -84,14 +86,15 @@ intelchecker/
 │   ├── public/                # app-logo.png, favicons, logos/ (source logos)
 │   ├── src/
 │   │   ├── components/        # Layout, EngineStatusPanel, results/ (per-source cards, Summary, modals)
-│   │   ├── pages/             # Home, Results, History, HistoryDetail, Admin, Docs
+│   │   ├── auth/              # AuthProvider, AuthGate, useAuth (role/permission checks)
+│   │   ├── lib/api.ts         # apiFetch/apiJson: every backend call (detects expired sessions)
+│   │   ├── pages/             # Home, Results, History, HistoryDetail, Admin (weights + users), Account, Login, Docs
 │   │   ├── hooks/             # useVerdictWeights, useEngineToggles, useTheme, useFetchJson, useMitreAliases
 │   │   ├── i18n/              # EN/ES: provider, useI18n, rich(), messages/<area>.ts, docs/{en,es}.ts
 │   │   ├── verdictEngine.ts   # Two-score verdict
 │   │   ├── trajectory.ts      # Matrix view replay
 │   │   ├── quadrants.ts       # Quadrant/outcome labels
 │   │   ├── registry.tsx       # Frontend engine registry
-│   │   ├── intelAggregates.ts # Summary aggregates (tags, actors, first/last seen, flagged-by)
 │   │   ├── intelAggregates.ts # Summary aggregates (tags/families, actors, first/last seen, flagged-by)
 │   │   └── summaryRegistry.ts # Summary field extractors
 │   ├── Dockerfile             # Build → nginx (proxies /api to backend)
@@ -100,3 +103,13 @@ intelchecker/
 ├── docker-compose.yml
 └── .env.example               # FRONTEND_PORT / BACKEND_PORT
 ```
+
+---
+
+## 7. Authentication & Roles
+* **Backend** (`backend/app/core/auth.py`): users + sessions in `backend/data/users.db`, scrypt password hashes (stdlib), opaque session token in an HttpOnly `SameSite=Strict` cookie (`intelchecker_session`), only its SHA-256 stored. Server-side sessions, so disabling a user or resetting a password revokes them at once.
+* **Permissions:** `PERMISSIONS` maps role → `history:read` / `analyze` / `admin`. Endpoints declare them via `auth.require(...)` in `main.py`: `/analyze/*` and `POST /history` need `analyze`; `GET /history*` needs `history:read`; `PUT /weights`, `POST /weights/reset` and `/users*` need `admin`; `/engines/status`, `GET /weights`, `/mitre/aliases` need any signed-in user. **Every new endpoint must declare one.**
+* **Bootstrap:** on first start with no users, an admin is created from `ADMIN_USERNAME` / `ADMIN_PASSWORD` (or a random temporary password logged to stdout). Admin-set passwords are temporary (`must_change_password`): `current_user` rejects them with `PasswordChangeRequired` until `/auth/password` is called.
+* **Safeguards:** at least one active admin always remains; admins can't change their own role, disable or delete themselves. Login is throttled per username (5 failures / 15 min).
+* **Frontend:** `AuthGate` (in `main.tsx`) shows Login / forced password change before anything else mounts; routes are wrapped with `<Allowed permission=…>` in `App.tsx`; use `useAuth().can(...)` to hide actions. All backend calls go through `lib/api.ts` (`apiFetch`/`apiJson`) so a 401 signs the UI out. Auth error codes are translated via `authError.<code>` keys (`i18n/messages/auth.ts`).
+

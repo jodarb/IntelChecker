@@ -17,6 +17,7 @@ interface HistoryListEntry {
   score: number | null
   knowledge_score: number | null
   quadrant: Quadrant | null
+  username: string | null
 }
 
 const BACKEND = '/api'
@@ -95,6 +96,11 @@ export default function HistoryPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-4 shrink-0">
+                  {entry.username && (
+                    <span className="hidden sm:inline text-xs text-muted-foreground" title={t('history.ranBy', { username: entry.username })}>
+                      {entry.username}
+                    </span>
+                  )}
                   <span className="text-xs text-muted-foreground">{formatTimestamp(entry.timestamp, locale)}</span>
                   {entry.quadrant && (
                     <span className={`hidden md:inline-flex px-2 py-0.5 rounded-full border text-xs font-medium ${QUADRANT_META[entry.quadrant].className}`}>

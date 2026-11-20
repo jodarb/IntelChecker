@@ -31,6 +31,7 @@ interface HistoryDetail {
   score: number | null            // Risk Score
   knowledge_score: number | null  // null for entries saved before the two-score model
   quadrant: Quadrant | null
+  username: string | null
   results: Record<string, StoredEngineResult>
   contributions: VerdictContributions
 }
@@ -138,6 +139,7 @@ export default function HistoryDetailPage() {
         <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border bg-muted/20 text-xs text-muted-foreground">
           <History className="h-3.5 w-3.5 shrink-0" />
           {t('history.archived', { date: formatTimestamp(entry.timestamp, locale) })}
+          {entry.username && <> · {t('history.ranBy', { username: entry.username })}</>}
         </div>
 
         <SearchFrequencyCard indicator={entry.indicator} excludeSelf />

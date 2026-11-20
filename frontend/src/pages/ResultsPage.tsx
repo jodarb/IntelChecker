@@ -17,6 +17,7 @@ import { useEngineToggles } from '@/hooks/useEngineToggles'
 import { useEngines } from '@/EnginesContext'
 import { useI18n } from '@/i18n/useI18n'
 import { BACKEND_DOWN } from '@/i18n/errors'
+import { apiFetch } from '@/lib/api'
 
 const BACKEND = '/api'
 
@@ -48,7 +49,7 @@ function useAllEngineQueries(
       }))
 
     engines.forEach(engine => {
-      fetch(`${BACKEND}/analyze/${engine.id}`, {
+      apiFetch(`${BACKEND}/analyze/${engine.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ indicator, type }),
@@ -170,7 +171,7 @@ export default function ResultsPage() {
       ]),
     )
 
-    fetch(`${BACKEND}/history`, {
+    apiFetch(`${BACKEND}/history`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

@@ -15,6 +15,7 @@ import { useMitreAliases } from '@/hooks/useMitreAliases'
 import VerdictExplainerModal from './VerdictExplainerModal'
 import MatrixModal from './MatrixModal'
 import { useI18n } from '@/i18n/useI18n'
+import { useAuth } from '@/auth/context'
 
 // ── Aggregation ──────────────────────────────────────────────────────────────
 
@@ -250,6 +251,7 @@ const CTX_PREFIX: Record<string, 'summary.ctx.pulse' | 'summary.ctx.event'> = { 
 // answered and none relates it to an actor, say so explicitly.
 function ActorsBlock({ intel, indicator, type }: { intel: IntelSummary; indicator: string; type: IndicatorType }) {
   const { t } = useI18n()
+  const canAnalyze = useAuth().can('analyze')
   const actors = intel.actors.filter(a => a.value.toLowerCase() !== indicator.toLowerCase())
   const isActorLookup = type === 'threat-actor'
   const none = actors.length === 0 && intel.unnamedActorLinks.length === 0
@@ -266,12 +268,14 @@ function ActorsBlock({ intel, indicator, type }: { intel: IntelSummary; indicato
         <div key={actor.value} className="flex flex-col gap-1 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-sm font-semibold text-primary">{actor.value}</span>
-            <Link
-              to={`/results?indicator=${encodeURIComponent(actor.value)}&type=threat-actor`}
-              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-            >
-              <ExternalLink className="h-3 w-3" /> {t('summary.lookupThisActor', { name: actor.value })}
-            </Link>
+            {canAnalyze && (
+              <Link
+                to={`/results?indicator=${encodeURIComponent(actor.value)}&type=threat-actor`}
+                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+              >
+                <ExternalLink className="h-3 w-3" /> {t('summary.lookupThisActor', { name: actor.value })}
+              </Link>
+            )}
           </div>
           <ul className="flex flex-col gap-0.5 text-xs text-muted-foreground">
             {actor.sources.map((src, i) => {

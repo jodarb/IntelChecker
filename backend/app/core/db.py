@@ -39,17 +39,20 @@ def init_db() -> None:
             conn.execute("ALTER TABLE history ADD COLUMN knowledge_score INTEGER")
         if "quadrant" not in existing:
             conn.execute("ALTER TABLE history ADD COLUMN quadrant TEXT")
+        # Who ran the lookup — NULL for entries saved before authentication existed.
+        if "username" not in existing:
+            conn.execute("ALTER TABLE history ADD COLUMN username TEXT")
 
 
 def save_query(
     indicator: str, type: str, score: int | None, knowledge_score: int | None,
-    quadrant: str | None, results: dict, contributions: dict | list,
+    quadrant: str | None, results: dict, contributions: dict | list, username: str | None,
 ) -> int:
     with _connect() as conn:
         cur = conn.execute(
-            "INSERT INTO history (indicator, type, score, knowledge_score, quadrant, results_json, contributions_json) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (indicator, type, score, knowledge_score, quadrant, json.dumps(results), json.dumps(contributions)),
+            "INSERT INTO history (indicator, type, score, knowledge_score, quadrant, results_json, contributions_json, username) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (indicator, type, score, knowledge_score, quadrant, json.dumps(results), json.dumps(contributions), username),
         )
         return cur.lastrowid
 
@@ -59,13 +62,13 @@ def list_history(limit: int = 200, indicator: str | None = None) -> list[dict]:
         conn.row_factory = sqlite3.Row
         if indicator:
             rows = conn.execute(
-                "SELECT id, indicator, type, timestamp, score, knowledge_score, quadrant FROM history "
+                "SELECT id, indicator, type, timestamp, score, knowledge_score, quadrant, username FROM history "
                 "WHERE indicator = ? COLLATE NOCASE ORDER BY id DESC LIMIT ?",
                 (indicator, limit),
             ).fetchall()
         else:
             rows = conn.execute(
-                "SELECT id, indicator, type, timestamp, score, knowledge_score, quadrant FROM history ORDER BY id DESC LIMIT ?",
+                "SELECT id, indicator, type, timestamp, score, knowledge_score, quadrant, username FROM history ORDER BY id DESC LIMIT ?",
                 (limit,),
             ).fetchall()
         return [dict(r) for r in rows]

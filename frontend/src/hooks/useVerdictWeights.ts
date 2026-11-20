@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { VerdictConfig } from '@/verdictEngine'
+import { apiFetch } from '@/lib/api'
 
 const FALLBACK: VerdictConfig = { engines: {}, thresholds: { knowledge: 4, risk: 5 } }
 
@@ -10,7 +11,7 @@ export function useVerdictWeights() {
   const [config, setConfig] = useState<VerdictConfig | null>(null)
 
   useEffect(() => {
-    fetch('/api/weights')
+    apiFetch('/api/weights')
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
       .then((c: VerdictConfig) => setConfig(c))
       .catch(() => setConfig(FALLBACK))
@@ -23,7 +24,7 @@ export function useVerdictConfigEditor() {
   const [config, setConfig] = useState<VerdictConfig | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchConfig = useCallback(() => fetch('/api/weights')
+  const fetchConfig = useCallback(() => apiFetch('/api/weights')
     .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
     .then((c: VerdictConfig) => { setError(null); setConfig(c) })
     .catch(() => setError('Could not load weights from the backend. Is it running?')), [])
@@ -31,9 +32,10 @@ export function useVerdictConfigEditor() {
   useEffect(() => { fetchConfig() }, [fetchConfig])
 
   const send = useCallback(async (url: string, init: RequestInit) => {
-    const r = await fetch(url, init)
+    const r = await apiFetch(url, init)
     const body = await r.json().catch(() => ({}))
-    if (!r.ok) throw new Error(body?.detail ?? `Backend returned HTTP ${r.status}`)
+    const detail = typeof body?.detail === 'string' ? body.detail : body?.detail?.message
+    if (!r.ok) throw new Error(detail ?? `Backend returned HTTP ${r.status}`)
     setConfig(body)
     return body as VerdictConfig
   }, [])

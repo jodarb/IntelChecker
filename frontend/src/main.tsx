@@ -5,13 +5,19 @@ import './index.css'
 import App from './App.tsx'
 import { EnginesProvider } from './EnginesContext'
 import { I18nProvider } from './i18n/I18nProvider'
+import { AuthProvider } from './auth/AuthProvider'
+import { AuthGate } from './auth/AuthGate'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <I18nProvider>
-      <EnginesProvider>
-        <App />
-      </EnginesProvider>
+      <AuthProvider>
+        <AuthGate>
+          <EnginesProvider>
+            <App />
+          </EnginesProvider>
+        </AuthGate>
+      </AuthProvider>
     </I18nProvider>
   </StrictMode>,
 )

@@ -22,3 +22,16 @@ export function apiErrorText(
   if (i18n.lang !== 'en' && err.code && key in messages.en) return i18n.t(key, { source })
   return err.message ?? (err.code ? i18n.t(key, { source }) : null)
 }
+
+/** Text for an auth / user-management error from the backend, translated by code. */
+export function authErrorText(
+  i18n: Pick<I18nValue, 't'>,
+  err: unknown,
+): string {
+  if (err instanceof TypeError) return i18n.t('common.backendDown')
+  const code = (err as { code?: string })?.code
+  const key = `authError.${code}` as MessageKey
+  if (code && key in messages.en) return i18n.t(key)
+  if (err instanceof Error && err.message) return err.message
+  return i18n.t('admin.unexpected')
+}

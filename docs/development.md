@@ -36,10 +36,11 @@ The Vite dev server proxies `/api/*` to `http://localhost:8000` (see `frontend/v
 
 | File | Purpose |
 |---|---|
-| `backend/.env` | API keys and MISP instances. Gitignored; template in `backend/.env.example`. Rebuild after changes. |
+| `backend/.env` | API keys, MISP instances and the initial admin / session settings. Gitignored; template in `backend/.env.example`. Rebuild after changes. |
 | `.env` (repo root) | `FRONTEND_PORT` / `BACKEND_PORT` for Docker Compose (defaults `8080` / `8000`). Not passed into any container. Template in `.env.example`. |
 | `backend/data/weights.json` | Verdict weights, thresholds and Knowledge saturation, written by the Admin page. No rebuild needed. |
 | `backend/data/history.db` | SQLite query history, created on first run. |
+| `backend/data/users.db` | Users, roles and sessions (see [admin.md § 0](admin.md#0-users-and-roles)). Created on first run with the initial admin. |
 | `backend/certs/` | MISP mutual-TLS client certificates (see [sources.md](sources.md#misp-any-number-of-instances)). |
 
 `backend/data/` and `backend/certs/` are Docker volumes, so they survive restarts, rebuilds and updates.

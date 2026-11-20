@@ -49,7 +49,8 @@ export const docsEs: DocsContent = {
       'Usa el interruptor junto a una fuente para desactivarla; las fuentes desactivadas no se consultan y no cuentan en ninguna puntuación. La elección se recuerda solo en este navegador.',
       'Cada fuente muestra dos etiquetas: **R** (su peso Risk) y **K** (su peso Knowledge). Las fuentes se ordenan por peso Risk y luego por peso Knowledge.',
       'Las fuentes sin API key aparecen en **Sin configurar** y quedan totalmente fuera de la consulta.',
-      'Las consultas son siempre en vivo — no se cachea nada. Cada consulta completada se guarda en el [Historial](/history).',
+      'Las consultas son siempre en vivo — no se cachea nada. Cada consulta completada se guarda en el [Historial](/history) junto con el usuario que la lanzó.',
+      'Lanzar análisis requiere el rol **Analista** o **Admin**. Los **Lectores** solo pueden consultar el Historial; no ven el buscador de la página de inicio.',
       'El selector **EN / ES** de la cabecera cambia el idioma de la interfaz; la elección se recuerda en este navegador.',
     ],
   },
@@ -188,7 +189,7 @@ export const docsEs: DocsContent = {
       ['Descartar cambios', 'Deshace las ediciones sin guardar.'],
       ['Restablecer valores por defecto', 'Tras confirmar, borra todos los cambios de administración y restaura los valores integrados. No se puede deshacer.'],
     ],
-    note: 'Los cambios se aplican a las **nuevas consultas**; una página de resultados abierta mantiene los valores que cargó (recárgala). Las entradas del Historial conservan los pesos vigentes cuando se hicieron. El orden de la página de inicio y de los resultados también sigue los nuevos pesos. La página Admin **no tiene autenticación** — restringe el acceso a nivel de red/VPN.',
+    note: 'Los cambios se aplican a las **nuevas consultas**; una página de resultados abierta mantiene los valores que cargó (recárgala). Las entradas del Historial conservan los pesos vigentes cuando se hicieron. El orden de la página de inicio y de los resultados también sigue los nuevos pesos. Solo los usuarios **Admin** ven la página Admin. Su pestaña **Usuarios** crea usuarios y cambia su rol (Admin · Analista · Lector), restablece contraseñas y desactiva o elimina cuentas. Las contraseñas que pone un admin son temporales: el usuario debe elegir la suya en su siguiente acceso. Siempre queda al menos un admin activo, y un admin no puede degradarse, desactivarse ni eliminarse a sí mismo.',
   },
 
   weights: {
@@ -259,10 +260,13 @@ export const docsEs: DocsContent = {
       ['Instancias MISP', '`MISP_<N>_*`', 'Las que quieras: `_NAME`, `_URL`, `_KEY`, `_VERIFY_SSL`. `_WEIGHT` / `_KNOWLEDGE_WEIGHT` (0–10, por defecto 0 / 9) son solo los pesos iniciales — un valor guardado en Admin tiene prioridad. Para TLS mutuo, pon el certificado en `backend/certs/` y define `_CLIENT_CERT` / `_CLIENT_KEY`.'],
       ['Pesos y umbrales', '`backend/data/weights.json`', 'Lo escribe Admin; sobrevive a reinicios y reconstrucciones (volumen de Docker). Los valores mayores que 10 de versiones antiguas se recortan a 10 al cargar. Restablecer valores por defecto lo borra.'],
       ['Historial', '`backend/data/history.db`', 'SQLite, en el mismo volumen. Se crea automáticamente en el primer arranque.'],
+      ['Usuarios y sesiones', '`backend/data/users.db`', 'SQLite, en el mismo volumen. Se gestiona desde Admin → Usuarios. Las contraseñas se guardan como hashes scrypt.'],
+      ['Admin inicial', '`ADMIN_USERNAME` / `ADMIN_PASSWORD`', 'En `backend/.env`; solo se usan en el primer arranque, cuando aún no hay usuarios. Sin `ADMIN_PASSWORD` se imprime una contraseña temporal en el log del backend (`docker compose logs backend`).'],
+      ['Sesiones', '`SESSION_TTL_HOURS` / `SESSION_COOKIE_SECURE`', 'Duración de la sesión (12 h por defecto). Pon la cookie en `true` cuando la app se sirva por HTTPS.'],
       ['Puertos', '`.env` (raíz del repo)', '`FRONTEND_PORT` / `BACKEND_PORT`. Es un fichero distinto de `backend/.env`.'],
       ['Datos de MITRE ATT&CK', 'los descarga el backend', 'El dataset de ~50 MB se descarga de GitHub y se guarda 24 h. Alimenta las consultas de actores y la detección de actores/alias del Resumen; sin internet, se usa solo la tabla de familias integrada.'],
       ['Idioma de la interfaz', 'cabecera → EN / ES', 'Se guarda por navegador. Los datos de las fuentes (JSON en bruto, etiquetas, títulos de reportes) se muestran tal como los devuelve cada fuente.'],
     ],
-    note: 'Las consultas nunca se cachean: solo se guardan el historial y los pesos. IntelChecker no tiene autenticación en ninguna parte — está pensado para una red interna o VPN.',
+    note: 'Las consultas nunca se cachean: solo se guardan el historial, los pesos y los usuarios. Todas las páginas y llamadas a la API requieren iniciar sesión; lo que puede hacer cada usuario depende de su rol.',
   },
 }
