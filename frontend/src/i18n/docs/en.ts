@@ -1,7 +1,7 @@
 // In-app documentation (pages/DocsPage.tsx). Strings use the inline markup from
 // i18n/rich.tsx: **bold**, `code`, *italic*, [label](/route or #anchor).
 // `{tk}` / `{tr}` are replaced with the live knowledge / risk thresholds.
-// Mirrors README "Verdict Scoring & Weights" and docs/admin.md — keep in sync.
+// Mirrors docs/user-guide.md and docs/admin.md — keep in sync.
 export const docsEn = {
   title: 'Documentation',
   intro: 'How IntelChecker queries sources, how it turns their answers into a Knowledge Score, a Risk Score and a quadrant, and how admins tune it. Tables marked **live** show this deployment\'s current values.',
