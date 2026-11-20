@@ -100,7 +100,7 @@ Each card links to the indicator on the original tool and has a `RAW` button wit
 
 ## 4. History and search frequency
 
-Every completed lookup is stored in `backend/data/history.db` with the user who ran it and a **frozen snapshot**: both scores, the quadrant, every source's contribution and raw response. **History** (header) lists them, optionally filtered by indicator; opening one shows the result exactly as it was — later weight changes never rewrite history. Entries from before the two-score model only have a Risk Score.
+Every completed lookup is stored in `backend/data/history.db` with the user who ran it (lookups made through the [API](api.md) are tagged **API**) and a **frozen snapshot**: both scores, the quadrant, every source's contribution and raw response. **History** (header) lists them, optionally filtered by indicator; opening one shows the result exactly as it was — later weight changes never rewrite history. Entries from before the two-score model only have a Risk Score.
 
 The **Search Frequency** card counts how many *other* times the same indicator was looked up (the current lookup never counts itself). Its colour is whichever window reads most severe; any hit within 72 h is at least yellow:
 

@@ -51,7 +51,7 @@ Implemented sources: VirusTotal, AlienVault OTX, AbuseIPDB, abuse.ch (ThreatFox)
 ---
 
 ## 5. Verdict Engine
-Implemented in `frontend/src/verdictEngine.ts` (`computeVerdict`). It produces **two independent scores** plus a quadrant. Full user-facing explanation: `docs/user-guide.md`, `docs/admin.md` and the in-app Docs page (`/docs`, text in `frontend/src/i18n/docs/{en,es}.ts`) — keep all of them (both languages) in sync with any change to the logic.
+Implemented in `frontend/src/verdictEngine.ts` (`computeVerdict`) and mirrored line by line in `backend/app/core/verdict.py` (used by `POST /lookup`). **Any change to the logic must be made in both**, and `backend/tests/verdict_parity.py` (random fuzz comparing both engines; needs Node ≥ 23) must report 0 mismatches. Engine order/labels in `backend/app/core/registry.py` must match `frontend/src/registry.tsx`. It produces **two independent scores** plus a quadrant. Full user-facing explanation: `docs/user-guide.md`, `docs/admin.md` and the in-app Docs page (`/docs`, text in `frontend/src/i18n/docs/{en,es}.ts`) — keep all of them (both languages) in sync with any change to the logic.
 
 * **Per-engine assessment:** each engine's result is normalized to an outcome — `hit` / `clean` / `context` / `no_data` / `excluded` — with a risk **subscore** (0–10, only for hit/clean) and a **depth of record** (0 / 0.5 / 1). "Not found" is `no_data`, never `clean`: absence of data is not a benign confirmation.
 * **Knowledge (0–10):** `coverage = Σ(kw × depth) / Σ(kw of every counted source for the type)`, `knowledge = round(10 × min(1, coverage ÷ full_at))` with `full_at` = `scoring.knowledge_full_at` % (Admin, default 70, 10–100; 100 = no saturation). Sources still loading or with a persistent error (bad key…) count in the denominator with depth 0; sources that failed for a **transient** reason (`TRANSIENT_ERROR_CODES`: rate limit, timeout, network, HTTP/5xx, or the frontend couldn't reach the backend) are left out (`inTotal: false` in the contribution). Contributions store `knowledgeFullAt` so the matrix replays history with the value in force then (missing = 100).
@@ -70,12 +70,13 @@ Implemented in `frontend/src/verdictEngine.ts` (`computeVerdict`). It produces *
 intelchecker/
 ├── backend/
 │   ├── app/
-│   │   ├── main.py            # FastAPI app: /auth/*, /users, /analyze/{engine}, /engines/status, /history, /weights, /mitre/aliases
+│   │   ├── main.py            # FastAPI app: /auth/*, /users (+tokens), /lookup, /analyze/{engine}, /engines/status, /history, /weights, /mitre/aliases
 │   │   ├── core/
 │   │   │   ├── config.py      # Environment variables (.env), MISP instances
 │   │   │   ├── registry.py    # Engine capabilities (types supported, required key)
 │   │   │   ├── weights.py     # Default verdict weights/thresholds + persistence
-│   │   │   ├── auth.py        # Users, roles, sessions, FastAPI permission dependencies
+│   │   │   ├── auth.py        # Users, roles, sessions, API tokens, FastAPI permission dependencies
+│   │   │   ├── verdict.py     # Python mirror of verdictEngine.ts (POST /lookup)
 │   │   │   └── db.py          # SQLite query history
 │   │   └── services/          # One async httpx client module per CTI source
 │   ├── data/                  # history.db + weights.json (Docker volume, gitignored)
@@ -99,7 +100,7 @@ intelchecker/
 │   │   └── summaryRegistry.ts # Summary field extractors
 │   ├── Dockerfile             # Build → nginx (proxies /api to backend)
 │   └── package.json
-├── docs/                      # user-guide.md, admin.md, sources.md, development.md, logo.png, screenshot.png
+├── docs/                      # user-guide.md, admin.md, api.md, sources.md, development.md, logo.png, screenshot.png
 ├── docker-compose.yml
 └── .env.example               # FRONTEND_PORT / BACKEND_PORT
 ```
@@ -111,5 +112,6 @@ intelchecker/
 * **Permissions:** `PERMISSIONS` maps role → `history:read` / `analyze` / `admin`. Endpoints declare them via `auth.require(...)` in `main.py`: `/analyze/*` and `POST /history` need `analyze`; `GET /history*` needs `history:read`; `PUT /weights`, `POST /weights/reset` and `/users*` need `admin`; `/engines/status`, `GET /weights`, `/mitre/aliases` need any signed-in user. **Every new endpoint must declare one.**
 * **Bootstrap:** on first start with no users, an admin is created from `ADMIN_USERNAME` / `ADMIN_PASSWORD`, defaulting to `admin` / `admin` (not forced to change; `/auth/me` returns `default_password: true` and the header shows a warning until it is changed). Admin-set passwords are temporary (`must_change_password`): `current_user` rejects them with `PasswordChangeRequired` until `/auth/password` is called.
 * **Safeguards:** at least one active admin always remains; admins can't change their own role, disable or delete themselves. Login is throttled per username (5 failures / 15 min).
+* **API tokens:** `api_tokens` table in `users.db`, created/revoked by admins (`/users/{id}/tokens`), sent as `Authorization: Bearer ick_…`, stored as SHA-256. `session_user` accepts a token or the cookie (`user["auth"]` = `token`/`session`); a token acts as its user with the current role, ignores `must_change_password`, and can't change the password (`browser_session_user`). `POST /lookup` (analyze) runs every source + the Python verdict and saves to history with `via='api'`. Usage doc: `docs/api.md`.
 * **Frontend:** `AuthGate` (in `main.tsx`) shows Login / forced password change before anything else mounts; routes are wrapped with `<Allowed permission=…>` in `App.tsx`; use `useAuth().can(...)` to hide actions. All backend calls go through `lib/api.ts` (`apiFetch`/`apiJson`) so a 401 signs the UI out. Auth error codes are translated via `authError.<code>` keys (`i18n/messages/auth.ts`).
 

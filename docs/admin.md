@@ -31,6 +31,8 @@ Readers don't see the home page search: they land on History. Every new History 
 - **Delete** — removes the account; their past lookups stay in History with their name.
 - Safeguards: there is always at least one active admin, and you can't change your own role, disable or delete yourself.
 
+- **API tokens** (key-card button, with the number of active tokens) — create a token for scripts and integrations (name + expiry), list the user's tokens with their last use, and revoke them. The full token is shown **once**. A token acts as its user with the user's current role and stops working if the user is disabled or deleted; resetting the password doesn't revoke it. Usage: [api.md](api.md).
+
 Any user can change their own password from **My account** (their name in the header); doing so signs out their other sessions.
 
 **Sessions** last `SESSION_TTL_HOURS` (default 12) and live in an HttpOnly, SameSite=Strict cookie. When serving over HTTPS set `SESSION_COOKIE_SECURE=true`. After 5 failed sign-ins in 15 minutes an account rejects further attempts until the window passes. Users, password hashes (scrypt) and sessions are stored in `backend/data/users.db`.

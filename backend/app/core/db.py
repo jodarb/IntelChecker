@@ -42,17 +42,22 @@ def init_db() -> None:
         # Who ran the lookup — NULL for entries saved before authentication existed.
         if "username" not in existing:
             conn.execute("ALTER TABLE history ADD COLUMN username TEXT")
+        # Where the lookup came from: 'ui' (results page) or 'api' (POST /lookup).
+        # NULL for entries saved before this column existed — those all came from the UI.
+        if "via" not in existing:
+            conn.execute("ALTER TABLE history ADD COLUMN via TEXT")
 
 
 def save_query(
     indicator: str, type: str, score: int | None, knowledge_score: int | None,
     quadrant: str | None, results: dict, contributions: dict | list, username: str | None,
+    via: str = "ui",
 ) -> int:
     with _connect() as conn:
         cur = conn.execute(
-            "INSERT INTO history (indicator, type, score, knowledge_score, quadrant, results_json, contributions_json, username) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (indicator, type, score, knowledge_score, quadrant, json.dumps(results), json.dumps(contributions), username),
+            "INSERT INTO history (indicator, type, score, knowledge_score, quadrant, results_json, contributions_json, username, via) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (indicator, type, score, knowledge_score, quadrant, json.dumps(results), json.dumps(contributions), username, via),
         )
         return cur.lastrowid
 
@@ -62,13 +67,13 @@ def list_history(limit: int = 200, indicator: str | None = None) -> list[dict]:
         conn.row_factory = sqlite3.Row
         if indicator:
             rows = conn.execute(
-                "SELECT id, indicator, type, timestamp, score, knowledge_score, quadrant, username FROM history "
+                "SELECT id, indicator, type, timestamp, score, knowledge_score, quadrant, username, via FROM history "
                 "WHERE indicator = ? COLLATE NOCASE ORDER BY id DESC LIMIT ?",
                 (indicator, limit),
             ).fetchall()
         else:
             rows = conn.execute(
-                "SELECT id, indicator, type, timestamp, score, knowledge_score, quadrant, username FROM history ORDER BY id DESC LIMIT ?",
+                "SELECT id, indicator, type, timestamp, score, knowledge_score, quadrant, username, via FROM history ORDER BY id DESC LIMIT ?",
                 (limit,),
             ).fetchall()
         return [dict(r) for r in rows]

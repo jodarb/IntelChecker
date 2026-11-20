@@ -27,7 +27,8 @@
 | 🎯 **Two-score verdict** | **Knowledge** (how much is known) + **Risk** (how risky, per sources with a verdict) → a quadrant: Confirmed malicious · Isolated signal · Known benign · Unknown… |
 | 📊 **Summary** | Who flagged it, malware families, threat actor relations, first/last seen, GeoIP / ASN / ISP — each value traceable to its source |
 | 🗺️ **Explainable** | Matrix view replays how each source moved both scores; *How is this calculated?* shows every contribution |
-| 🔐 **Role-based access** | Sign-in required; Admin · Analyst · Reader roles, users managed from the **Admin** page |
+| 🔐 **Role-based access** | Sign-in required; Admin · Analyst · Reader roles, users managed from the **Users** page |
+| 🔌 **API** | `POST /lookup` with per-user API tokens: every source + the same verdict as the UI in one call, logged in History |
 | 🧮 **Tunable** | Per-source risk/knowledge weights, thresholds and knowledge saturation from the **Admin** page |
 | 🕓 **History** | Every lookup is saved with a frozen snapshot; a frequency card flags indicators that keep coming back |
 | 🌐 **EN / ES** | Whole interface and in-app docs in English and Spanish |
@@ -114,6 +115,7 @@ Tor Exit Nodes, MITRE ATT&CK, RIPEstat, PhishTank and TweetFeed need no key.
 |---|---|
 | [docs/user-guide.md](docs/user-guide.md) | Reading a lookup: Knowledge / Risk formulas, quadrants, Summary, matrix, history and search frequency |
 | [docs/admin.md](docs/admin.md) | Users and roles, every Admin setting and its effect, default weights, per-source scoring rules |
+| [docs/api.md](docs/api.md) | API tokens, `POST /lookup` and the other endpoints, with curl / Python examples |
 | [docs/sources.md](docs/sources.md) | Notes on each integration, MISP multi-instance and mutual TLS |
 | [docs/development.md](docs/development.md) | Running without Docker, configuration files, project structure, architecture |
 

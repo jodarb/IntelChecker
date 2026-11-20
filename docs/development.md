@@ -124,3 +124,9 @@ The frontend fires one `POST /analyze/{engine}` per source in parallel, so each 
 
 - Every user-facing string goes through `useI18n()`; dictionaries are in `frontend/src/i18n/messages/<area>.ts` with `es` typed against `en`, so a missing translation fails the build. The Docs page text is in `frontend/src/i18n/docs/{en,es}.ts`.
 - Changes to the verdict logic must be reflected in [user-guide.md](user-guide.md), [admin.md](admin.md) and the in-app Docs page (both languages).
+- The verdict engine exists twice: `frontend/src/verdictEngine.ts` (results page) and its Python mirror `backend/app/core/verdict.py` (`POST /lookup`). Change both, then run the parity test, which feeds thousands of random results to both engines and requires identical output (needs Node ≥ 23):
+
+  ```bash
+  cd backend && .venv/bin/python tests/verdict_parity.py            # add --history data/history.db to replay real lookups
+  ```
+- New source: also add its label in `backend/app/core/registry.py` (same order and label as `frontend/src/registry.tsx`).

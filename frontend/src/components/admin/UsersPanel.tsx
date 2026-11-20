@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { KeyRound, Power, Trash2, UserPlus } from 'lucide-react'
+import { KeyRound, KeySquare, Power, Trash2, UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { apiJson } from '@/lib/api'
 import { ROLES, useAuth, type Role } from '@/auth/context'
 import { useI18n } from '@/i18n/useI18n'
 import { authErrorText } from '@/i18n/errors'
+import TokensSection from './TokensSection'
 
 interface UserRow {
   id: number
@@ -15,6 +16,8 @@ interface UserRow {
   must_change_password: boolean
   created_at: string
   last_login: string | null
+  /** active (non-expired) API tokens */
+  api_tokens: number
 }
 
 const selectClass =
@@ -36,6 +39,7 @@ export default function UsersPanel() {
   const [newName, setNewName] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [newRole, setNewRole] = useState<Role>('analyst')
+  const [tokensOpen, setTokensOpen] = useState<number | null>(null)
 
   const load = useCallback(() => {
     apiJson<UserRow[]>('/users')
@@ -139,13 +143,14 @@ export default function UsersPanel() {
             <span>{t('users.colUser')}</span>
             <span>{t('users.colRole')}</span>
             <span>{t('users.colLastLogin')}</span>
-            <span className="w-[7.5rem]" />
+            <span className="w-[10.5rem]" />
           </div>
           {users.map(u => {
             const isMe = u.id === me?.id
             return (
-              <div key={u.id}
-                className={`rounded-lg border border-border bg-muted/20 px-3 py-2 grid grid-cols-1 md:grid-cols-[1fr_9rem_10rem_auto] items-center gap-3 ${u.active ? '' : 'opacity-60'}`}>
+              <div key={u.id} className="rounded-lg border border-border bg-muted/20 px-3 py-2 flex flex-col">
+              <div
+                className={`grid grid-cols-1 md:grid-cols-[1fr_9rem_10rem_auto] items-center gap-3 ${u.active ? '' : 'opacity-60'}`}>
                 <div className="flex flex-col min-w-0">
                   <span className="text-sm font-medium text-foreground truncate">
                     {u.username}{isMe && <span className="text-muted-foreground font-normal"> ({t('users.you')})</span>}
@@ -168,6 +173,12 @@ export default function UsersPanel() {
                   {u.last_login ? formatTimestamp(u.last_login, locale) : t('users.never')}
                 </span>
                 <div className="flex items-center gap-1 justify-end">
+                  <Button variant="ghost" size="sm" onClick={() => setTokensOpen(o => (o === u.id ? null : u.id))}
+                    aria-expanded={tokensOpen === u.id}
+                    title={t('tokens.title')} className={`h-9 gap-1 px-2 ${tokensOpen === u.id ? 'bg-muted/60' : ''}`}>
+                    <KeySquare className="h-4 w-4" />
+                    <span className="text-xs tabular-nums">{u.api_tokens}</span>
+                  </Button>
                   <Button variant="ghost" size="icon" disabled={busy} onClick={() => resetPassword(u)}
                     title={t('users.resetPassword')} aria-label={t('users.resetPassword')} className="h-9 w-9">
                     <KeyRound className="h-4 w-4" />
@@ -183,6 +194,8 @@ export default function UsersPanel() {
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
+              </div>
+              {tokensOpen === u.id && <TokensSection userId={u.id} username={u.username} onChange={load} />}
               </div>
             )
           })}

@@ -18,6 +18,7 @@ interface HistoryListEntry {
   knowledge_score: number | null
   quadrant: Quadrant | null
   username: string | null
+  via: 'ui' | 'api' | null
 }
 
 const BACKEND = '/api'
@@ -96,6 +97,11 @@ export default function HistoryPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-4 shrink-0">
+                  {entry.via === 'api' && (
+                    <span className="inline-flex px-1.5 py-0.5 rounded border border-border text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground" title={t('history.viaApiTitle')}>
+                      API
+                    </span>
+                  )}
                   {entry.username && (
                     <span className="hidden sm:inline text-xs text-muted-foreground" title={t('history.ranBy', { username: entry.username })}>
                       {entry.username}

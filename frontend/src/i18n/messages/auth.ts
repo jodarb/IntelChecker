@@ -64,6 +64,30 @@ const en = {
 
   // History attribution
   'history.ranBy': 'Run by {username}',
+  'history.viaApi': 'via API',
+  'history.viaApiTitle': 'Run through the API (POST /lookup)',
+
+  // API tokens (Users page)
+  'tokens.title': 'API tokens',
+  'tokens.help': 'API tokens let scripts and integrations call the API as this user, with their current role. Send it as `Authorization: Bearer <token>`. It stops working if the user is disabled or deleted. See `docs/api.md`.',
+  'tokens.none': 'No API tokens.',
+  'tokens.name': 'Token name',
+  'tokens.namePlaceholder': 'e.g. SOAR playbook',
+  'tokens.expiry': 'Expires',
+  'tokens.days': 'In {n} days',
+  'tokens.never': 'Never',
+  'tokens.create': 'Create token',
+  'tokens.createdOnce': 'Copy the token now — it won’t be shown again.',
+  'tokens.copy': 'Copy',
+  'tokens.copied': 'Copied',
+  'tokens.created': 'Created {date}',
+  'tokens.lastUsed': 'Last used {date}',
+  'tokens.neverUsed': 'Never used',
+  'tokens.expires': 'Expires {date}',
+  'tokens.expired': 'Expired {date}',
+  'tokens.noExpiry': 'No expiry',
+  'tokens.revoke': 'Revoke token',
+  'tokens.revokeConfirm': 'Revoke the token “{name}” of {username}? Anything using it will stop working immediately.',
 
   // Backend auth error codes
   'authError.InvalidCredentials': 'Invalid username or password.',
@@ -80,6 +104,11 @@ const en = {
   'authError.UserNotFound': 'That user no longer exists.',
   'authError.CannotModifySelf': 'You can’t change your own role, deactivate or delete yourself.',
   'authError.LastAdmin': 'There must always be at least one active admin.',
+  'authError.InvalidToken': 'Invalid, expired or revoked API token.',
+  'authError.SessionRequired': 'This action requires signing in, not an API token.',
+  'authError.InvalidTokenName': 'The token name must be 1–64 characters.',
+  'authError.InvalidTokenExpiry': 'The expiry must be between 1 and 3650 days.',
+  'authError.TokenNotFound': 'That API token no longer exists.',
 }
 const es: Record<keyof typeof en, string> = {
   'auth.signInTitle': 'Iniciar sesión',
@@ -141,6 +170,29 @@ const es: Record<keyof typeof en, string> = {
   'users.updated': 'Usuario «{username}» actualizado.',
 
   'history.ranBy': 'Lanzado por {username}',
+  'history.viaApi': 'por API',
+  'history.viaApiTitle': 'Lanzado a través de la API (POST /lookup)',
+
+  'tokens.title': 'Tokens de API',
+  'tokens.help': 'Los tokens de API permiten que scripts e integraciones llamen a la API como este usuario, con su rol actual. Se envían como `Authorization: Bearer <token>`. Dejan de funcionar si el usuario se desactiva o se elimina. Ver `docs/api.md`.',
+  'tokens.none': 'Sin tokens de API.',
+  'tokens.name': 'Nombre del token',
+  'tokens.namePlaceholder': 'p. ej. playbook del SOAR',
+  'tokens.expiry': 'Caduca',
+  'tokens.days': 'En {n} días',
+  'tokens.never': 'Nunca',
+  'tokens.create': 'Crear token',
+  'tokens.createdOnce': 'Copia el token ahora: no se volverá a mostrar.',
+  'tokens.copy': 'Copiar',
+  'tokens.copied': 'Copiado',
+  'tokens.created': 'Creado {date}',
+  'tokens.lastUsed': 'Último uso {date}',
+  'tokens.neverUsed': 'Sin usar',
+  'tokens.expires': 'Caduca {date}',
+  'tokens.expired': 'Caducó {date}',
+  'tokens.noExpiry': 'Sin caducidad',
+  'tokens.revoke': 'Revocar token',
+  'tokens.revokeConfirm': '¿Revocar el token «{name}» de {username}? Lo que lo use dejará de funcionar al momento.',
 
   'authError.InvalidCredentials': 'Usuario o contraseña incorrectos.',
   'authError.TooManyAttempts': 'Demasiados intentos fallidos. Vuelve a intentarlo en unos minutos.',
@@ -156,5 +208,10 @@ const es: Record<keyof typeof en, string> = {
   'authError.UserNotFound': 'Ese usuario ya no existe.',
   'authError.CannotModifySelf': 'No puedes cambiar tu propio rol, ni desactivarte o eliminarte.',
   'authError.LastAdmin': 'Siempre debe haber al menos un administrador activo.',
+  'authError.InvalidToken': 'Token de API no válido, caducado o revocado.',
+  'authError.SessionRequired': 'Esta acción requiere iniciar sesión, no un token de API.',
+  'authError.InvalidTokenName': 'El nombre del token debe tener de 1 a 64 caracteres.',
+  'authError.InvalidTokenExpiry': 'La caducidad debe estar entre 1 y 3650 días.',
+  'authError.TokenNotFound': 'Ese token de API ya no existe.',
 }
 export default { en, es }

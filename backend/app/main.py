@@ -1,5 +1,6 @@
 import os
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from pydantic import BaseModel
@@ -7,12 +8,16 @@ from app.core import auth
 from app.core import db as history_db
 from app.core import weights as weights_store
 from app.core.config import MISP_INSTANCES
-from app.core.registry import ENGINES
+from app.core.registry import ENGINES, INDICATOR_TYPES
+from app.core.verdict import compute_verdict, get_engine_assessment
 from app.services import (
     abuseipdb, virustotal, abusech, alienvault, ipinfo, shodan,
     torexitlist, urlhaus, mitreattack, ripestat, urlscan, malwarebazaar, phishtank,
     recordedfuture, anyrun, greynoise, hybridanalysis, safebrowsing, tweetfeed, misp,
 )
+
+
+log = logging.getLogger("intelchecker")
 
 
 @asynccontextmanager
@@ -87,6 +92,20 @@ class UserUpdateRequest(BaseModel):
     password: str | None = None
 
 
+class TokenCreateRequest(BaseModel):
+    name: str
+    expires_in_days: int | None = None   # None = never expires
+
+
+class LookupRequest(BaseModel):
+    indicator: str
+    type: str
+    engines: list[str] | None = None     # only these sources (default: every configured one for the type)
+    exclude: list[str] = []              # skip these sources
+    save: bool = True                    # store in the history, like a lookup from the UI
+    include_raw: bool = False            # add each source's raw response to the answer
+
+
 class HistoryEntryRequest(BaseModel):
     indicator: str
     type: str
@@ -139,7 +158,7 @@ def me(user: dict = Depends(auth.session_user)):
 
 
 @app.put("/auth/password")
-def change_password(req: PasswordChangeRequest, user: dict = Depends(auth.session_user)):
+def change_password(req: PasswordChangeRequest, user: dict = Depends(auth.browser_session_user)):
     auth.change_own_password(user["id"], req.current_password, req.new_password, user["token_hash"])
     return _me({**user, "must_change_password": False})
 
@@ -167,17 +186,38 @@ def delete_user(user_id: int, admin: dict = IsAdmin):
     return Response(status_code=204)
 
 
+# ── API tokens (admin) ────────────────────────────────────────────────────────
+
+@app.get("/users/{user_id}/tokens", dependencies=[IsAdmin])
+def list_tokens(user_id: int):
+    return auth.list_tokens(user_id)
+
+
+@app.post("/users/{user_id}/tokens", dependencies=[IsAdmin], status_code=201)
+def create_token(user_id: int, req: TokenCreateRequest):
+    raw, token = auth.create_token(user_id, req.name, req.expires_in_days)
+    return {**token, "token": raw}
+
+
+@app.delete("/users/{user_id}/tokens/{token_id}", dependencies=[IsAdmin], status_code=204)
+def delete_token(user_id: int, token_id: int):
+    auth.delete_token(user_id, token_id)
+    return Response(status_code=204)
+
+
 # ── Lookups ───────────────────────────────────────────────────────────────────
+
+def _is_connected(meta: dict) -> bool:
+    if "connected" in meta:
+        return meta["connected"]
+    return True if meta["key"] is None else bool(os.environ.get(meta["key"], ""))
+
 
 @app.get("/engines/status", dependencies=[SignedIn])
 def engines_status():
     result = {}
     for name, meta in ENGINES.items():
-        if "connected" in meta:
-            connected = meta["connected"]
-        else:
-            connected = True if meta["key"] is None else bool(os.environ.get(meta["key"], ""))
-        entry = {"connected": connected, "supports": meta["supports"]}
+        entry = {"connected": _is_connected(meta), "supports": meta["supports"]}
         if "name" in meta:
             entry["label"] = meta["name"]
         result[name] = entry
@@ -191,6 +231,85 @@ async def analyze(engine: str, req: AnalyzeRequest):
             status_code=404, detail=f"Unknown engine: {engine}"
         )
     return await _SERVICES[engine].dispatch(req.indicator, req.type)
+
+
+@app.post("/lookup")
+async def lookup(req: LookupRequest, user: dict = CanAnalyze):
+    """Full lookup in one call, for API clients: queries every configured source for
+    the type in parallel, computes the verdict with the current weights (the same
+    engine as the UI — app/core/verdict.py) and stores it in the history under the
+    caller's username, like a lookup run from the results page."""
+    indicator = req.indicator.strip()
+    if not indicator:
+        raise auth.api_error(422, "InvalidIndicator", "The indicator is empty.")
+    if req.type not in INDICATOR_TYPES:
+        raise auth.api_error(422, "InvalidType", f"Type must be one of: {', '.join(INDICATOR_TYPES)}.")
+    unknown = sorted({e for e in (req.engines or []) + req.exclude if e not in ENGINES})
+    if unknown:
+        raise auth.api_error(422, "UnknownEngine", f"Unknown source(s): {', '.join(unknown)}.")
+
+    # Same selection as the results page: sources supporting the type that have their
+    # API key (unconfigured ones aren't queried nor counted), in display order.
+    selected = [
+        eid for eid, meta in ENGINES.items()
+        if req.type in meta["supports"] and _is_connected(meta)
+        and (req.engines is None or eid in req.engines) and eid not in req.exclude
+    ]
+
+    async def run(eid: str) -> dict:
+        try:
+            return {"data": await _SERVICES[eid].dispatch(indicator, req.type), "error": None}
+        except Exception:
+            # The UI sees this as "couldn't reach the backend": a transient failure.
+            log.exception("Lookup of %s on %s failed", indicator, eid)
+            return {"data": None, "error": f"{ENGINES[eid]['label']} lookup failed unexpectedly."}
+
+    results = dict(zip(selected, await asyncio.gather(*(run(e) for e in selected))))
+    config = weights_store.get_weights()
+    engines = [{"id": e, "label": ENGINES[e]["label"]} for e in selected]
+    verdict = compute_verdict(config, engines, results, req.type)
+
+    history_id = None
+    if req.save and selected:
+        snapshot = {
+            e: {"label": ENGINES[e]["label"], "data": results[e]["data"], "error": results[e]["error"]}
+            for e in selected
+        }
+        history_id = history_db.save_query(
+            indicator, req.type, verdict["risk"], verdict["knowledge"], verdict["quadrant"],
+            snapshot, verdict["contributions"], user["username"], via="api",
+        )
+
+    sources = {}
+    for e in selected:
+        data, error = results[e]["data"], results[e]["error"]
+        api_err = data.get("error") if isinstance(data, dict) else None
+        a = get_engine_assessment(e, req.type, results[e])
+        entry = {
+            "label": ENGINES[e]["label"],
+            "outcome": a["outcome"],
+            "subscore": a["subscore"],
+            "depth": a["depth"],
+            "error": api_err if isinstance(api_err, dict) else ({"code": "InternalError", "message": error}
+                                                                 if error else None),
+        }
+        if req.include_raw:
+            entry["data"] = data
+        sources[e] = entry
+
+    return {
+        "history_id": history_id,
+        "indicator": indicator,
+        "type": req.type,
+        "risk": verdict["risk"],
+        "knowledge": verdict["knowledge"],
+        "quadrant": verdict["quadrant"],
+        "thresholds": config["thresholds"],
+        "responded": verdict["responded"],
+        "queried": verdict["queried"],
+        "sources": sources,
+        "contributions": verdict["contributions"],
+    }
 
 
 @app.get("/mitre/aliases", dependencies=[SignedIn])

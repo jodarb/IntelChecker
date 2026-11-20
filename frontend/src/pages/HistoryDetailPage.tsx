@@ -32,6 +32,7 @@ interface HistoryDetail {
   knowledge_score: number | null  // null for entries saved before the two-score model
   quadrant: Quadrant | null
   username: string | null
+  via: 'ui' | 'api' | null
   results: Record<string, StoredEngineResult>
   contributions: VerdictContributions
 }
@@ -140,6 +141,7 @@ export default function HistoryDetailPage() {
           <History className="h-3.5 w-3.5 shrink-0" />
           {t('history.archived', { date: formatTimestamp(entry.timestamp, locale) })}
           {entry.username && <> · {t('history.ranBy', { username: entry.username })}</>}
+          {entry.via === 'api' && <> · {t('history.viaApi')}</>}
         </div>
 
         <SearchFrequencyCard indicator={entry.indicator} excludeSelf />

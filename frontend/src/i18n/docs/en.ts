@@ -263,6 +263,7 @@ export const docsEn = {
       ['Users & sessions', '`backend/data/users.db`', 'SQLite, same volume. Managed from the [Users](/users) page. Passwords are stored as scrypt hashes.'],
       ['Initial admin', '`ADMIN_USERNAME` / `ADMIN_PASSWORD`', 'In `backend/.env`, used only on the first start, when there are no users yet. Default `admin` / `admin`: a warning is shown until that password is changed — change it before going to production.'],
       ['Sessions', '`SESSION_TTL_HOURS` / `SESSION_COOKIE_SECURE`', 'Session length (default 12 h). Set the cookie flag to `true` when the app is served over HTTPS.'],
+      ['API', '`POST /api/lookup`', 'Every source plus the same verdict as this page in one call, saved to History tagged **API**. Authenticate with an API token created on the [Users](/users) page (`Authorization: Bearer …`), which acts with its user\'s role. Full guide: `docs/api.md`.'],
       ['Ports', '`.env` (repo root)', '`FRONTEND_PORT` / `BACKEND_PORT`. Different file from `backend/.env`.'],
       ['MITRE ATT&CK data', 'downloaded by the backend', 'The ~50 MB dataset is fetched from GitHub and cached 24 h. It powers actor lookups and the actor/alias detection in the Summary; without internet those fall back to the built-in family table.'],
       ['Interface language', 'header → EN / ES', 'Stored per browser. Source data (raw JSON, tags, report titles) is shown as the source returned it.'],

@@ -10,6 +10,11 @@ history). Passwords are hashed with scrypt from the standard library. Sessions a
 opaque random tokens sent as an HttpOnly cookie; only their SHA-256 is stored, so a
 leaked database can't be replayed as live sessions. Sessions are server-side, which
 lets a password reset, role change or deactivation take effect immediately.
+
+API tokens (for scripts and integrations) are created by an admin for any user and
+sent as `Authorization: Bearer ick_…`. A token acts as its user: it has the user's
+current role, stops working when the user is disabled or deleted, and is stored
+only as a SHA-256 hash — the full value is shown once, at creation.
 """
 import hashlib
 import hmac
@@ -152,6 +157,18 @@ def init_db() -> None:
                 expires_at INTEGER NOT NULL
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS api_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                name TEXT NOT NULL,
+                token_hash TEXT NOT NULL UNIQUE,
+                prefix TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                last_used TEXT,
+                expires_at TEXT
+            )
+        """)
         if conn.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0:
             _bootstrap_admin(conn)
 
@@ -184,7 +201,80 @@ def _bootstrap_admin(conn: sqlite3.Connection) -> None:
 def list_users() -> list[dict]:
     with _connect() as conn:
         rows = conn.execute(f"SELECT {_USER_COLUMNS} FROM users ORDER BY username COLLATE NOCASE").fetchall()
-        return [_public(r) for r in rows]
+        counts = dict(conn.execute(
+            "SELECT user_id, COUNT(*) FROM api_tokens "
+            "WHERE expires_at IS NULL OR expires_at > datetime('now') GROUP BY user_id"
+        ).fetchall())
+        return [{**_public(r), "api_tokens": counts.get(r["id"], 0)} for r in rows]
+
+
+# ── API tokens ────────────────────────────────────────────────────────────────
+
+API_TOKEN_PREFIX = "ick_"
+TOKEN_NAME_MAX = 64
+TOKEN_MAX_DAYS = 3650
+_TOKEN_COLUMNS = "id, name, prefix, created_at, last_used, expires_at"
+
+
+def _token_public(row: sqlite3.Row) -> dict:
+    token = {k: row[k] for k in ("id", "name", "prefix", "created_at", "last_used", "expires_at")}
+    token["expired"] = bool(row["expired"])
+    return token
+
+
+def list_tokens(user_id: int) -> list[dict]:
+    with _connect() as conn:
+        if conn.execute("SELECT 1 FROM users WHERE id = ?", (user_id,)).fetchone() is None:
+            raise api_error(404, "UserNotFound", "User not found.")
+        rows = conn.execute(
+            f"SELECT {_TOKEN_COLUMNS}, (expires_at IS NOT NULL AND expires_at <= datetime('now')) AS expired "
+            "FROM api_tokens WHERE user_id = ? ORDER BY id DESC", (user_id,),
+        ).fetchall()
+        return [_token_public(r) for r in rows]
+
+
+def create_token(user_id: int, name: str, expires_in_days: int | None) -> tuple[str, dict]:
+    """Returns (raw token — shown once, never stored —, token metadata)."""
+    name = name.strip()
+    if not (1 <= len(name) <= TOKEN_NAME_MAX):
+        raise api_error(422, "InvalidTokenName", f"Token name must be 1–{TOKEN_NAME_MAX} characters.")
+    if expires_in_days is not None and not (1 <= expires_in_days <= TOKEN_MAX_DAYS):
+        raise api_error(422, "InvalidTokenExpiry", f"Expiry must be between 1 and {TOKEN_MAX_DAYS} days.")
+    raw = API_TOKEN_PREFIX + secrets.token_urlsafe(32)
+    with _connect() as conn:
+        if conn.execute("SELECT 1 FROM users WHERE id = ?", (user_id,)).fetchone() is None:
+            raise api_error(404, "UserNotFound", "User not found.")
+        cur = conn.execute(
+            "INSERT INTO api_tokens (user_id, name, token_hash, prefix, expires_at) VALUES (?, ?, ?, ?, "
+            "CASE WHEN ? IS NULL THEN NULL ELSE datetime('now', '+' || ? || ' days') END)",
+            (user_id, name, _token_hash(raw), raw[:len(API_TOKEN_PREFIX) + 6], expires_in_days, expires_in_days),
+        )
+        row = conn.execute(
+            f"SELECT {_TOKEN_COLUMNS}, 0 AS expired FROM api_tokens WHERE id = ?", (cur.lastrowid,),
+        ).fetchone()
+        return raw, _token_public(row)
+
+
+def delete_token(user_id: int, token_id: int) -> None:
+    with _connect() as conn:
+        cur = conn.execute("DELETE FROM api_tokens WHERE id = ? AND user_id = ?", (token_id, user_id))
+        if cur.rowcount == 0:
+            raise api_error(404, "TokenNotFound", "API token not found.")
+
+
+def _user_for_api_token(raw: str) -> dict | None:
+    with _connect() as conn:
+        row = conn.execute(
+            f"SELECT t.id AS token_id, {', '.join('u.' + c.strip() for c in _USER_COLUMNS.split(','))} "
+            "FROM api_tokens t JOIN users u ON u.id = t.user_id "
+            "WHERE t.token_hash = ? AND u.active = 1 "
+            "AND (t.expires_at IS NULL OR t.expires_at > datetime('now'))",
+            (_token_hash(raw),),
+        ).fetchone()
+        if row is None:
+            return None
+        conn.execute("UPDATE api_tokens SET last_used = datetime('now') WHERE id = ?", (row["token_id"],))
+        return _public(row)
 
 
 def get_user(user_id: int) -> dict | None:
@@ -349,18 +439,38 @@ def _user_for_token(token: str) -> dict | None:
 # ── FastAPI dependencies ──────────────────────────────────────────────────────
 
 def session_user(request: Request) -> dict:
-    """Signed-in user, even one who still has to change their password."""
+    """Authenticated user — by API token (Authorization: Bearer) or session cookie —,
+    even one who still has to change their password. `user["auth"]` says which."""
+    header = request.headers.get("authorization", "")
+    scheme, _, credential = header.partition(" ")
+    if scheme.lower() == "bearer" and credential.strip():
+        user = _user_for_api_token(credential.strip())
+        if user is None:
+            raise api_error(401, "InvalidToken", "Invalid, expired or revoked API token.")
+        user["auth"] = "token"
+        return user
+
     token = request.cookies.get(COOKIE_NAME)
     user = _user_for_token(token) if token else None
     if user is None:
         raise api_error(401, "NotAuthenticated", "Sign in to continue.")
+    user["auth"] = "session"
     user["token_hash"] = _token_hash(token)
     return user
 
 
+def browser_session_user(user: dict = Depends(session_user)) -> dict:
+    """Account actions (changing the password) need the interactive session, not a token."""
+    if user["auth"] != "session":
+        raise api_error(403, "SessionRequired", "This action requires signing in, not an API token.")
+    return user
+
+
 def current_user(user: dict = Depends(session_user)) -> dict:
-    """Signed-in user allowed to use the app (temporary password already replaced)."""
-    if user["must_change_password"]:
+    """Signed-in user allowed to use the app (temporary password already replaced).
+    A temporary password only gates the interactive UI: API tokens are issued by an
+    admin and keep working."""
+    if user["must_change_password"] and user["auth"] == "session":
         raise api_error(403, "PasswordChangeRequired", "You must change your password before continuing.")
     return user
 
