@@ -99,6 +99,10 @@ Response:
 | `GET /history/frequency?indicator=…` | reader | Times looked up in the last 24 h / 72 h / 30 d. |
 | `GET /weights` | any | Current weights and thresholds. |
 | `GET /auth/me` | any | The user behind the token/session and their permissions. |
+| `GET /connectors` | admin | API keys (status, source `ui`/`env`, last 4 chars — never the key), MISP instances, files in `backend/certs/`. |
+| `PUT` / `DELETE /connectors/keys/{ENV_NAME}` `{value}` | admin | Save / remove a source's key (e.g. `VIRUSTOTAL_API_KEY`). |
+| `POST /connectors/misp` · `PATCH` / `DELETE /connectors/misp/{id}` | admin | Add / edit / delete a MISP instance (`name`, `url`, `key`, `verify_ssl`, `client_cert`, `client_key`; omit `key` on edit to keep it). |
+| `POST /connectors/test/{engine}` | admin | One real lookup of a harmless indicator: `{ok, error}`. Uses one request of the source's quota. |
 
 Errors are JSON: `{"detail": {"code": "…", "message": "…"}}` — `401 InvalidToken`/`NotAuthenticated`, `403 Forbidden` (role), `422 InvalidType`/`UnknownEngine`/`InvalidIndicator`.
 

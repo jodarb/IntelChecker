@@ -29,7 +29,7 @@ const en = {
   'role.admin': 'Admin',
   'role.analyst': 'Analyst',
   'role.reader': 'Reader',
-  'role.admin.desc': 'Runs lookups, browses history, edits verdict weights and manages users.',
+  'role.admin.desc': 'Runs lookups, browses history, edits verdict weights, manages users and connectors (API keys).',
   'role.analyst.desc': 'Runs lookups and browses history.',
   'role.reader.desc': 'Browses history only.',
 
@@ -137,7 +137,7 @@ const es: Record<keyof typeof en, string> = {
   'role.admin': 'Admin',
   'role.analyst': 'Analista',
   'role.reader': 'Lector',
-  'role.admin.desc': 'Lanza análisis, consulta el historial, edita los pesos del veredicto y gestiona usuarios.',
+  'role.admin.desc': 'Lanza análisis, consulta el historial, edita los pesos del veredicto y gestiona usuarios y conectores (API keys).',
   'role.analyst.desc': 'Lanza análisis y consulta el historial.',
   'role.reader.desc': 'Solo consulta el historial.',
 

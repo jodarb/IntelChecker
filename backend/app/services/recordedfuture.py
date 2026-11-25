@@ -1,13 +1,13 @@
 from urllib.parse import quote
 import httpx
-from app.core.config import RECORDED_FUTURE_API_KEY
+from app.core.connectors import secret
 
 _BASE = "https://api.recordedfuture.com/v2"
 _FIELDS = "risk,timestamps,entity,intelCard"
 
 
 async def _request(entity_type: str, indicator: str) -> dict:
-    if not RECORDED_FUTURE_API_KEY:
+    if not secret("RECORDED_FUTURE_API_KEY"):
         return {"error": {"code": "MissingApiKey", "message": "Recorded Future API token is not configured."}}
 
     async with httpx.AsyncClient(timeout=15) as client:
@@ -15,7 +15,7 @@ async def _request(entity_type: str, indicator: str) -> dict:
             r = await client.get(
                 f"{_BASE}/{entity_type}/{quote(indicator, safe='')}",
                 params={"fields": _FIELDS},
-                headers={"X-RFToken": RECORDED_FUTURE_API_KEY, "Accept": "application/json"},
+                headers={"X-RFToken": secret("RECORDED_FUTURE_API_KEY"), "Accept": "application/json"},
             )
         except httpx.TimeoutException:
             return {"error": {"code": "Timeout", "message": "Recorded Future request timed out after 15 s."}}

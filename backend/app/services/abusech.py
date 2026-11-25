@@ -1,11 +1,11 @@
 import httpx
-from app.core.config import ABUSECH_AUTH_KEY
+from app.core.connectors import secret
 
 _URL = "https://threatfox-api.abuse.ch/api/v1/"
 
 
 async def _query(search_term: str) -> dict:
-    if not ABUSECH_AUTH_KEY:
+    if not secret("ABUSECH_AUTH_KEY"):
         return {"error": {"code": "MissingApiKey", "message": "abuse.ch API key is not configured."}}
 
     async with httpx.AsyncClient(timeout=15) as client:
@@ -13,7 +13,7 @@ async def _query(search_term: str) -> dict:
             r = await client.post(
                 _URL,
                 json={"query": "search_ioc", "search_term": search_term},
-                headers={"Auth-Key": ABUSECH_AUTH_KEY},
+                headers={"Auth-Key": secret("ABUSECH_AUTH_KEY")},
             )
         except httpx.TimeoutException:
             return {"error": {"code": "Timeout", "message": "ThreatFox request timed out after 15 s."}}

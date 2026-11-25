@@ -1,11 +1,11 @@
 import httpx
-from app.core.config import URLSCAN_API_KEY
+from app.core.connectors import secret
 
 _BASE = "https://urlscan.io/api/v1"
 
 
 async def _search(query: str) -> dict:
-    if not URLSCAN_API_KEY:
+    if not secret("URLSCAN_API_KEY"):
         return {"error": {"code": "MissingApiKey", "message": "urlscan.io API key is not configured."}}
 
     async with httpx.AsyncClient(timeout=15) as client:
@@ -13,7 +13,7 @@ async def _search(query: str) -> dict:
             r = await client.get(
                 f"{_BASE}/search/",
                 params={"q": query, "size": 10},
-                headers={"API-Key": URLSCAN_API_KEY},
+                headers={"API-Key": secret("URLSCAN_API_KEY")},
             )
         except httpx.TimeoutException:
             return {"error": {"code": "Timeout", "message": "urlscan.io request timed out after 15 s."}}

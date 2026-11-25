@@ -70,7 +70,7 @@ export const docsEn = {
       noResults: 'The source has no record of the indicator. Absence of evidence is not evidence of absence.',
       noScore: 'The source returned real data, but nothing to score (e.g. Shodan ports, IPinfo geolocation).',
       error: 'The lookup itself failed. The card says why: invalid API key, rate limit, timeout, service unavailable…',
-      off: 'Greyed-out card with a power icon: the source isn’t part of this lookup. **Off · not configured** — it has no API key in `backend/.env` (never shown as an error); **Disabled** — you switched it off on the home page. It isn’t queried and doesn’t count in either score. Archived History entries show it the same way.',
+      off: 'Greyed-out card with a power icon: the source isn’t part of this lookup. **Off · not configured** — it has no API key (set it on the [Connectors](/connectors) page; never shown as an error); **Disabled** — you switched it off on the home page. It isn’t queried and doesn’t count in either score. Archived History entries show it the same way.',
     },
   },
 
@@ -189,7 +189,7 @@ export const docsEn = {
       ['Discard changes', 'Drops unsaved edits.'],
       ['Reset to defaults', 'After confirmation, deletes all admin changes and restores the built-in values. Cannot be undone.'],
     ],
-    note: 'Changes apply to **new lookups**; an open results page keeps the values it loaded (reload it). History entries keep the weights in force when they were run. The home page and results order also follow the new weights. Only **Admin** users see the Admin page and the [Users](/users) page next to it in the header. **Users** lists every account, creates users and changes their role (Admin · Analyst · Reader), resets passwords, disables or deletes accounts. Passwords set by an admin are temporary: the user must choose their own on next sign-in. There is always at least one active admin, and admins can\'t demote, disable or delete themselves.',
+    note: 'Changes apply to **new lookups**; an open results page keeps the values it loaded (reload it). History entries keep the weights in force when they were run. The home page and results order also follow the new weights. Only **Admin** users see the Admin page and the [Users](/users) and [Connectors](/connectors) pages next to it in the header. **Connectors** holds the API key of every source and the MISP instances: set, replace or remove a key, add / edit / delete MISP instances (name, URL, key, TLS verification, mTLS certificate from `backend/certs/`) and **Test** a connection with one real lookup of a harmless indicator. Keys apply to the next lookup without a restart and are never shown again, only their last four characters. **Users** lists every account, creates users and changes their role (Admin · Analyst · Reader), resets passwords, disables or deletes accounts. Passwords set by an admin are temporary: the user must choose their own on next sign-in. There is always at least one active admin, and admins can\'t demote, disable or delete themselves.',
   },
 
   weights: {
@@ -256,8 +256,8 @@ export const docsEn = {
     title: 'Configuration',
     head: ['What', 'Where', 'Notes'],
     rows: [
-      ['API keys', '`backend/.env`', 'Copy from `backend/.env.example`. A source without its key shows as not configured and is excluded from both scores. Rebuild after changes: `docker compose up --build -d`.'],
-      ['MISP instances', '`MISP_<N>_*`', 'Any number: `_NAME`, `_URL`, `_KEY`, `_VERIFY_SSL`. `_WEIGHT` / `_KNOWLEDGE_WEIGHT` (0–10, defaults 0 / 9) are only the initial weights — a value saved in Admin wins. For mutual TLS, put the cert in `backend/certs/` and set `_CLIENT_CERT` / `_CLIENT_KEY`.'],
+      ['API keys', '[Connectors](/connectors) page', 'Saved in `backend/data/connectors.json` (0600, same volume) and applied at once. A key saved there wins over the same variable in `backend/.env`, which still works as a fallback (rebuild after editing it). A source without its key shows as not configured and is excluded from both scores.'],
+      ['MISP instances', '[Connectors](/connectors) page', 'Any number, added and edited at runtime. New instances start at weights 0 / 9 (change them in Admin). For mutual TLS, put the cert in `backend/certs/` and select it on the instance. Instances defined with `MISP_<N>_*` in `backend/.env` are used until the first MISP change on Connectors, which copies them over; from then on those variables are ignored.'],
       ['Weights & thresholds', '`backend/data/weights.json`', 'Written by Admin; survives restarts and rebuilds (Docker volume). Values above 10 from older versions are clamped to 10 on load. Reset to defaults deletes it.'],
       ['History', '`backend/data/history.db`', 'SQLite, same volume. Created automatically on first run.'],
       ['Users & sessions', '`backend/data/users.db`', 'SQLite, same volume. Managed from the [Users](/users) page. Passwords are stored as scrypt hashes.'],

@@ -68,13 +68,13 @@ Requires Docker + Docker Compose. No API key is mandatory: sources without one s
 git clone <repo-url>
 cd IntelChecker
 
-cp backend/.env.example backend/.env     # fill in the keys you have (see below)
+cp backend/.env.example backend/.env     # optional: initial admin, session settings
 cp .env.example .env                     # optional: change FRONTEND_PORT / BACKEND_PORT
 
 docker compose up --build -d
 ```
 
-Open `http://<host>:8080` (or your `FRONTEND_PORT`) and sign in. On the first start the backend creates the admin **`admin` / `admin`** (a warning is shown until you change that password — do it before going to production); set `ADMIN_USERNAME` / `ADMIN_PASSWORD` in `backend/.env` to start with your own instead. Users, weights and thresholds are managed from the **Admin** page; query history, users and weights persist in the `backend/data/` volume.
+Open `http://<host>:8080` (or your `FRONTEND_PORT`) and sign in. On the first start the backend creates the admin **`admin` / `admin`** (a warning is shown until you change that password — do it before going to production); set `ADMIN_USERNAME` / `ADMIN_PASSWORD` in `backend/.env` to start with your own instead. Then add your API keys on the **Connectors** page (header → **Connectors**). Users, connectors, weights and thresholds are managed from the UI; query history, users, connectors and weights persist in the `backend/data/` volume.
 
 **Update to a new version**
 
@@ -84,11 +84,13 @@ git pull
 docker compose up --build -d      # add `build --no-cache` if a container serves stale code
 ```
 
-`backend/.env` and `backend/data/` (history, users and saved weights) are not touched by an update.
+`backend/.env` and `backend/data/` (history, users, connectors and saved weights) are not touched by an update.
 
 ## 🔑 API keys
 
-All keys go in `backend/.env` (gitignored).
+Admins manage every key from the **Connectors** page (header → **Connectors**): set / replace / remove a key, **Test** it, and add or edit MISP instances — no restart needed. Keys are stored in `backend/data/connectors.json` (permissions 0600, in clear like `.env`: protect the volume and its backups) and are never shown again, only their last four characters.
+
+The variables below still work in `backend/.env` as a fallback (a key saved on Connectors wins). `MISP_<N>_*` instances in `.env` are used until the first MISP change on Connectors, which copies them over.
 
 | Variable | Service | Free tier |
 |---|---|:---:|
@@ -105,7 +107,7 @@ All keys go in `backend/.env` (gitignored).
 | `GREYNOISE_API_KEY` | [GreyNoise](https://viz.greynoise.io/account/) (Community) | ✅ 50/week |
 | `HYBRID_ANALYSIS_API_KEY` | [Hybrid Analysis](https://hybrid-analysis.com/my-account?tab=%23api-key-tab) | ✅ |
 | `GOOGLE_SAFE_BROWSING_API_KEY` | [Google Safe Browsing](https://developers.google.com/safe-browsing/v4/get-started) | ✅ |
-| `MISP_<N>_NAME` / `_URL` / `_KEY` / … | [MISP](https://www.misp-project.org) — any number of instances | n/a |
+| `MISP_<N>_NAME` / `_URL` / `_KEY` / … | [MISP](https://www.misp-project.org) — any number of instances (better: add them on Connectors) | n/a |
 
 Tor Exit Nodes, MITRE ATT&CK, RIPEstat, PhishTank and TweetFeed need no key.
 

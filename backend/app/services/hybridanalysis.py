@@ -1,5 +1,5 @@
 import httpx
-from app.core.config import HYBRID_ANALYSIS_API_KEY
+from app.core.connectors import secret
 
 _BASE = "https://hybrid-analysis.com/api/v2"
 
@@ -7,7 +7,7 @@ _BASE = "https://hybrid-analysis.com/api/v2"
 def _headers() -> dict:
     # Hybrid Analysis rejects requests without a recognized User-Agent, regardless
     # of API key validity.
-    return {"api-key": HYBRID_ANALYSIS_API_KEY, "User-Agent": "Falcon Sandbox"}
+    return {"api-key": secret("HYBRID_ANALYSIS_API_KEY"), "User-Agent": "Falcon Sandbox"}
 
 
 def _error_for_status(status_code: int) -> dict | None:
@@ -21,7 +21,7 @@ def _error_for_status(status_code: int) -> dict | None:
 
 
 async def _search_terms(field: str, value: str) -> dict:
-    if not HYBRID_ANALYSIS_API_KEY:
+    if not secret("HYBRID_ANALYSIS_API_KEY"):
         return {"error": {"code": "MissingApiKey", "message": "Hybrid Analysis API key is not configured."}}
 
     async with httpx.AsyncClient(timeout=20) as client:
@@ -58,7 +58,7 @@ async def check_url(url: str) -> dict:
 
 
 async def check_hash(hash_value: str) -> dict:
-    if not HYBRID_ANALYSIS_API_KEY:
+    if not secret("HYBRID_ANALYSIS_API_KEY"):
         return {"error": {"code": "MissingApiKey", "message": "Hybrid Analysis API key is not configured."}}
 
     async with httpx.AsyncClient(timeout=20) as client:

@@ -1,6 +1,6 @@
 import re
 import httpx
-from app.core.config import SHODAN_API_KEY
+from app.core.connectors import secret
 
 _BASE = "https://api.shodan.io"
 
@@ -11,12 +11,12 @@ def _normalize_asn(value: str) -> str:
 
 
 async def _get(path: str, params: dict) -> dict:
-    if not SHODAN_API_KEY:
+    if not secret("SHODAN_API_KEY"):
         return {"error": {"code": "MissingApiKey", "message": "Shodan API key is not configured."}}
 
     async with httpx.AsyncClient(timeout=15) as client:
         try:
-            r = await client.get(f"{_BASE}{path}", params={**params, "key": SHODAN_API_KEY})
+            r = await client.get(f"{_BASE}{path}", params={**params, "key": secret("SHODAN_API_KEY")})
         except httpx.TimeoutException:
             return {"error": {"code": "Timeout", "message": "Shodan request timed out after 15 s."}}
         except httpx.RequestError:

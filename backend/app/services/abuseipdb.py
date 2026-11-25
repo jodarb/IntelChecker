@@ -1,16 +1,16 @@
 import httpx
-from app.core.config import ABUSEIPDB_API_KEY
+from app.core.connectors import secret
 
 
 async def check_ip(ip: str) -> dict:
-    if not ABUSEIPDB_API_KEY:
+    if not secret("ABUSEIPDB_API_KEY"):
         return {"error": {"code": "MissingApiKey", "message": "AbuseIPDB API key is not configured."}}
 
     async with httpx.AsyncClient(timeout=15) as client:
         try:
             r = await client.get(
                 "https://api.abuseipdb.com/api/v2/check",
-                headers={"Key": ABUSEIPDB_API_KEY, "Accept": "application/json"},
+                headers={"Key": secret("ABUSEIPDB_API_KEY"), "Accept": "application/json"},
                 params={"ipAddress": ip, "maxAgeInDays": 90, "verbose": True},
             )
         except httpx.TimeoutException:

@@ -39,6 +39,16 @@ Any user can change their own password from **My account** (their name in the he
 
 **Locked out?** If no admin can sign in, stop the stack, delete `backend/data/users.db` (history and weights are untouched) and start it again: the first-admin bootstrap runs again.
 
+### Connectors (API keys and MISP)
+
+**Connectors** page (header → **Connectors**, or `/connectors` — only visible to admins):
+
+- **API keys** — one row per key, with the sources it powers (the abuse.ch key serves ThreatFox, URLhaus and MalwareBazaar) and a link to get one. **Set key / Replace** saves it; **Remove** (bin icon) deletes the value saved here. Status: *Configured* (saved here), *From .env* (only in `backend/.env`) or *Not configured*. A key saved here wins over `.env`; removing it falls back to the `.env` value, if any.
+- **MISP instances** — **Add instance** (name, URL, API key, *Verify TLS certificate*, optional mTLS client certificate / key chosen from the files in `backend/certs/`), **Edit** (pencil; leave the key empty to keep it) and **Delete**. Each instance is its own source; set its weights on the Admin page (new ones start at 0 / 9). Instances from `MISP_<N>_*` in `.env` are shown until the first MISP change here, which copies them over; from then on those variables are ignored.
+- **Test** — runs one real lookup of a harmless indicator (8.8.8.8, example.com, the EICAR hash…) against the source and shows whether it answered and accepted the key ("not found" counts as OK). It uses one request of the source's quota — mind GreyNoise Community's 50 per week.
+
+Changes apply to the next lookup, no restart. Keys are never returned by the API once saved, only their last four characters. They are stored in `backend/data/connectors.json` with permissions 0600, **in clear** (like `backend/.env`): protect the data volume and its backups accordingly.
+
 ---
 
 ## 1. The two scores in one minute
@@ -210,7 +220,7 @@ Archived history entries keep the value in force when they were run; entries sav
 - **0–10 scale.** All weights use the 0–10 range. A `weights.json` saved by an older version with values above 10 (or a `MISP_<N>_*WEIGHT` above 10 in `.env`) is clamped to 10 when loaded, so review those rows and **Save** once.
 - Saved values are stored in **`backend/data/weights.json`** — the same Docker volume as the query history — so they survive restarts, rebuilds and updates.
 - Saving stores the **full set** of values shown on the page. After the first save, a future release that changes a *default* for an existing source won't override your saved value; use **Reset to defaults** to pick up new defaults. Sources added in a future release get their default weights automatically.
-- **MISP instances** take their *initial* weights from `backend/.env` (`MISP_<N>_WEIGHT`, default 0, and `MISP_<N>_KNOWLEDGE_WEIGHT`, default 9). Once saved from Admin, the Admin value wins. Changing the `.env` value later has no effect until you **Reset to defaults**.
+- **MISP instances** start at risk 0 / knowledge 9 when added on the Connectors page; instances imported from `backend/.env` start at `MISP_<N>_WEIGHT` / `MISP_<N>_KNOWLEDGE_WEIGHT`. Once saved from Admin, the Admin value wins until you **Reset to defaults**.
 
 ---
 
@@ -222,7 +232,7 @@ Archived history entries keep the value in force when they were run; entries sav
 |---|:-:|:-:|---|
 | Recorded Future | 10 | 9 | |
 | MITRE ATT&CK | 0 | 9 | context only |
-| MISP (each instance) | `.env` (0) | `.env` (9) | |
+| MISP (each instance) | 0 (or `.env`) | 9 (or `.env`) | |
 | VirusTotal | 8 | 8 | |
 | MalwareBazaar | 8 | 7 | |
 | AlienVault OTX | 6 | 7 | |

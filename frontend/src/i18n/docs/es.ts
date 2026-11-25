@@ -70,7 +70,7 @@ export const docsEs: DocsContent = {
       noResults: 'La fuente no tiene registro del indicador. La ausencia de pruebas no es prueba de ausencia.',
       noScore: 'La fuente devolvió datos reales, pero nada que puntuar (p. ej. puertos de Shodan, geolocalización de IPinfo).',
       error: 'La propia consulta falló. La tarjeta indica por qué: API key no válida, límite de peticiones, tiempo de espera agotado, servicio no disponible…',
-      off: 'Tarjeta en gris con el icono de apagado: la fuente no forma parte de esta consulta. **Apagada · sin configurar** — no tiene API key en `backend/.env` (nunca se muestra como error); **Desactivada** — la apagaste en la página de inicio. No se consulta y no cuenta en ninguna puntuación. Las entradas del Historial la muestran igual.',
+      off: 'Tarjeta en gris con el icono de apagado: la fuente no forma parte de esta consulta. **Apagada · sin configurar** — no tiene API key (se añade en la página [Conectores](/connectors); nunca se muestra como error); **Desactivada** — la apagaste en la página de inicio. No se consulta y no cuenta en ninguna puntuación. Las entradas del Historial la muestran igual.',
     },
   },
 
@@ -189,7 +189,7 @@ export const docsEs: DocsContent = {
       ['Descartar cambios', 'Deshace las ediciones sin guardar.'],
       ['Restablecer valores por defecto', 'Tras confirmar, borra todos los cambios de administración y restaura los valores integrados. No se puede deshacer.'],
     ],
-    note: 'Los cambios se aplican a las **nuevas consultas**; una página de resultados abierta mantiene los valores que cargó (recárgala). Las entradas del Historial conservan los pesos vigentes cuando se hicieron. El orden de la página de inicio y de los resultados también sigue los nuevos pesos. Solo los usuarios **Admin** ven la página Admin y la página [Usuarios](/users), a su lado en la cabecera. **Usuarios** lista todas las cuentas, crea usuarios y cambia su rol (Admin · Analista · Lector), restablece contraseñas y desactiva o elimina cuentas. Las contraseñas que pone un admin son temporales: el usuario debe elegir la suya en su siguiente acceso. Siempre queda al menos un admin activo, y un admin no puede degradarse, desactivarse ni eliminarse a sí mismo.',
+    note: 'Los cambios se aplican a las **nuevas consultas**; una página de resultados abierta mantiene los valores que cargó (recárgala). Las entradas del Historial conservan los pesos vigentes cuando se hicieron. El orden de la página de inicio y de los resultados también sigue los nuevos pesos. Solo los usuarios **Admin** ven la página Admin y las páginas [Usuarios](/users) y [Conectores](/connectors), a su lado en la cabecera. **Conectores** guarda la API key de cada fuente y las instancias MISP: añade, cambia o quita una clave, crea / edita / elimina instancias MISP (nombre, URL, clave, verificación TLS, certificado mTLS de `backend/certs/`) y **Prueba** una conexión con una búsqueda real de un indicador inofensivo. Las claves se aplican en la siguiente búsqueda sin reiniciar y no se vuelven a mostrar, solo sus cuatro últimos caracteres. **Usuarios** lista todas las cuentas, crea usuarios y cambia su rol (Admin · Analista · Lector), restablece contraseñas y desactiva o elimina cuentas. Las contraseñas que pone un admin son temporales: el usuario debe elegir la suya en su siguiente acceso. Siempre queda al menos un admin activo, y un admin no puede degradarse, desactivarse ni eliminarse a sí mismo.',
   },
 
   weights: {
@@ -256,8 +256,8 @@ export const docsEs: DocsContent = {
     title: 'Configuración',
     head: ['Qué', 'Dónde', 'Notas'],
     rows: [
-      ['API keys', '`backend/.env`', 'Copia `backend/.env.example`. Una fuente sin su clave aparece como sin configurar y queda fuera de ambas puntuaciones. Reconstruye tras los cambios: `docker compose up --build -d`.'],
-      ['Instancias MISP', '`MISP_<N>_*`', 'Las que quieras: `_NAME`, `_URL`, `_KEY`, `_VERIFY_SSL`. `_WEIGHT` / `_KNOWLEDGE_WEIGHT` (0–10, por defecto 0 / 9) son solo los pesos iniciales — un valor guardado en Admin tiene prioridad. Para TLS mutuo, pon el certificado en `backend/certs/` y define `_CLIENT_CERT` / `_CLIENT_KEY`.'],
+      ['API keys', 'Página [Conectores](/connectors)', 'Se guardan en `backend/data/connectors.json` (0600, mismo volumen) y se aplican al momento. Una clave guardada ahí tiene prioridad sobre la misma variable de `backend/.env`, que sigue sirviendo de respaldo (reconstruye tras editarlo). Una fuente sin su clave aparece como sin configurar y queda fuera de ambas puntuaciones.'],
+      ['Instancias MISP', 'Página [Conectores](/connectors)', 'Las que quieras, se añaden y editan en caliente. Las nuevas empiezan con pesos 0 / 9 (se cambian en Admin). Para TLS mutuo, pon el certificado en `backend/certs/` y selecciónalo en la instancia. Las instancias definidas con `MISP_<N>_*` en `backend/.env` se usan hasta el primer cambio de MISP en Conectores, que las copia; a partir de ahí esas variables se ignoran.'],
       ['Pesos y umbrales', '`backend/data/weights.json`', 'Lo escribe Admin; sobrevive a reinicios y reconstrucciones (volumen de Docker). Los valores mayores que 10 de versiones antiguas se recortan a 10 al cargar. Restablecer valores por defecto lo borra.'],
       ['Historial', '`backend/data/history.db`', 'SQLite, en el mismo volumen. Se crea automáticamente en el primer arranque.'],
       ['Usuarios y sesiones', '`backend/data/users.db`', 'SQLite, en el mismo volumen. Se gestiona desde la página [Usuarios](/users). Las contraseñas se guardan como hashes scrypt.'],

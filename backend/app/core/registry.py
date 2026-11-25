@@ -1,4 +1,4 @@
-from app.core.config import MISP_INSTANCES
+from app.core import connectors
 
 # Order and labels mirror STATIC_ENGINES in frontend/src/registry.tsx: the backend
 # verdict (POST /lookup) lists contributions in this order and stores these labels
@@ -10,7 +10,7 @@ def _engine(label: str, supports: list[str], key: str | None) -> dict:
     return {"label": label, "supports": supports, "key": key}
 
 
-ENGINES: dict[str, dict] = {
+STATIC_ENGINES: dict[str, dict] = {
     "abuseipdb":      _engine("AbuseIPDB", ["ip"], "ABUSEIPDB_API_KEY"),
     "virustotal":     _engine("VirusTotal", _ALL, "VIRUSTOTAL_API_KEY"),
     "abusech":        _engine("ThreatFox · abuse.ch", ["ip", "hash"], "ABUSECH_AUTH_KEY"),
@@ -32,16 +32,27 @@ ENGINES: dict[str, dict] = {
     "tweetfeed":      _engine("TweetFeed", _ALL, None),
 }
 
-# MISP is multi-instance: any number of servers can be defined via MISP_<N>_*
-# env vars (see config.py), each becoming its own entry here at startup, with
-# its own display name and its own connected status.
-for _inst in MISP_INSTANCES:
-    ENGINES[_inst["id"]] = {
-        "label": _inst["name"],
-        "supports": ["ip", "domain", "url", "hash"],
-        "key": None,
-        "name": _inst["name"],
-        "connected": bool(_inst["url"]) and bool(_inst["key"]),
-    }
+# MISP is multi-instance: any number of servers, managed from the Connectors page
+# (or MISP_<N>_* in .env until then — see connectors.py), each becoming its own
+# entry with its own display name and connected status. Instances can be added or
+# removed at runtime, so the full list is built on every call.
+def engines() -> dict[str, dict]:
+    out = dict(STATIC_ENGINES)
+    for inst in connectors.misp_instances():
+        out[inst["id"]] = {
+            "label": inst["name"],
+            "supports": ["ip", "domain", "url", "hash"],
+            "key": None,
+            "name": inst["name"],
+            "connected": bool(inst["url"]) and bool(inst["key"]),
+        }
+    return out
+
+
+def is_connected(meta: dict) -> bool:
+    if "connected" in meta:
+        return meta["connected"]
+    return True if meta["key"] is None else bool(connectors.secret(meta["key"]))
+
 
 INDICATOR_TYPES = ("ip", "domain", "url", "hash", "asn", "threat-actor")

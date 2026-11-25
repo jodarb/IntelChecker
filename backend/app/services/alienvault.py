@@ -1,20 +1,20 @@
 from urllib.parse import quote
 import httpx
-from app.core.config import ALIENVAULT_API_KEY
+from app.core.connectors import secret
 
 _BASE = "https://otx.alienvault.com/api/v1/indicators"
 _SEARCH_PULSES_URL = "https://otx.alienvault.com/api/v1/search/pulses"
 
 
 async def _request(path: str) -> dict:
-    if not ALIENVAULT_API_KEY:
+    if not secret("ALIENVAULT_API_KEY"):
         return {"error": {"code": "MissingApiKey", "message": "AlienVault OTX API key is not configured."}}
 
     async with httpx.AsyncClient(timeout=15) as client:
         try:
             r = await client.get(
                 f"{_BASE}/{path}",
-                headers={"X-OTX-API-KEY": ALIENVAULT_API_KEY},
+                headers={"X-OTX-API-KEY": secret("ALIENVAULT_API_KEY")},
             )
         except httpx.TimeoutException:
             return {"error": {"code": "Timeout", "message": "AlienVault OTX request timed out after 15 s."}}
@@ -50,7 +50,7 @@ async def check_hash(hash_value: str) -> dict:
 
 
 async def check_threat_actor(actor: str) -> dict:
-    if not ALIENVAULT_API_KEY:
+    if not secret("ALIENVAULT_API_KEY"):
         return {"error": {"code": "MissingApiKey", "message": "AlienVault OTX API key is not configured."}}
 
     async with httpx.AsyncClient(timeout=25) as client:
@@ -58,7 +58,7 @@ async def check_threat_actor(actor: str) -> dict:
             r = await client.get(
                 _SEARCH_PULSES_URL,
                 params={"q": actor, "limit": 10},
-                headers={"X-OTX-API-KEY": ALIENVAULT_API_KEY},
+                headers={"X-OTX-API-KEY": secret("ALIENVAULT_API_KEY")},
             )
         except httpx.TimeoutException:
             return {"error": {"code": "Timeout", "message": "AlienVault OTX pulse search timed out after 25 s."}}

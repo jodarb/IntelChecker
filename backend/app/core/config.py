@@ -14,16 +14,15 @@ _MISP_INDEX_RE = re.compile(r"^MISP_(\d+)_NAME$")
 
 # Client certs for mTLS-only MISP instances live here (gitignored, like .env).
 # Resolves to backend/certs/ locally and /app/certs/ in the container — the same
-# relative computation as _ENV_PATH below, kept in sync with where docker-compose
+# relative computation as the .env path above, kept in sync with where docker-compose
 # bind-mounts the directory.
-_CERTS_DIR = Path(__file__).parent.parent.parent / "certs"
+CERTS_DIR = Path(__file__).parent.parent.parent / "certs"
 
 
-def _resolve_cert(idx: int, suffix: str) -> str:
-    """MISP_<idx>_CLIENT_CERT / _CLIENT_KEY hold a filename, not a path — the file
-    must live in backend/certs/. Returns an absolute path, or "" if unset."""
-    filename = os.environ.get(f"MISP_{idx}_{suffix}", "").strip()
-    return str(_CERTS_DIR / filename) if filename else ""
+def cert_path(filename: str) -> str:
+    """MISP client cert/key settings hold a filename, not a path — the file must
+    live in backend/certs/. Returns an absolute path, or "" if unset."""
+    return str(CERTS_DIR / filename) if filename else ""
 
 
 def _load_misp_instances() -> list[dict]:
@@ -62,25 +61,16 @@ def _load_misp_instances() -> list[dict]:
             "url": os.environ.get(f"MISP_{idx}_URL", "").strip().rstrip("/"),
             "key": os.environ.get(f"MISP_{idx}_KEY", "").strip(),
             "verify_ssl": verify_raw not in ("false", "0", "no"),
-            "client_cert": _resolve_cert(idx, "CLIENT_CERT"),
-            "client_key": _resolve_cert(idx, "CLIENT_KEY"),
+            "client_cert": os.environ.get(f"MISP_{idx}_CLIENT_CERT", "").strip(),
+            "client_key": os.environ.get(f"MISP_{idx}_CLIENT_KEY", "").strip(),
             "weight": weight,
             "knowledge_weight": knowledge_weight,
         })
     return instances
 
 
-ABUSEIPDB_API_KEY: str = get("ABUSEIPDB_API_KEY")
-VIRUSTOTAL_API_KEY: str = get("VIRUSTOTAL_API_KEY")
-ABUSECH_AUTH_KEY: str = get("ABUSECH_AUTH_KEY")  # unified auth.abuse.ch key, shared by ThreatFox and URLhaus
-ALIENVAULT_API_KEY: str = get("ALIENVAULT_API_KEY")
-IPINFO_API_KEY: str = get("IPINFO_API_KEY")
-SHODAN_API_KEY: str = get("SHODAN_API_KEY")
-URLSCAN_API_KEY: str = get("URLSCAN_API_KEY")
-PHISHTANK_API_KEY: str = get("PHISHTANK_API_KEY")  # optional — checkurl works without a key, just at lower priority
-RECORDED_FUTURE_API_KEY: str = get("RECORDED_FUTURE_API_KEY")
-ANYRUN_API_KEY: str = get("ANYRUN_API_KEY")
-GREYNOISE_API_KEY: str = get("GREYNOISE_API_KEY")
-HYBRID_ANALYSIS_API_KEY: str = get("HYBRID_ANALYSIS_API_KEY")
-GOOGLE_SAFE_BROWSING_API_KEY: str = get("GOOGLE_SAFE_BROWSING_API_KEY")
+# API keys are no longer module constants: they are read on every call through
+# app.core.connectors.secret(), so a key saved from the Connectors page takes effect
+# at once. The .env value is the fallback. MISP_INSTANCES is the .env definition,
+# used until MISP is first edited from the Connectors page (see connectors.py).
 MISP_INSTANCES: list[dict] = _load_misp_instances()

@@ -3,6 +3,8 @@ import os
 import ssl
 import httpx
 
+from app.core import config, connectors
+
 _SUPPORTED_TYPES = ("ip", "domain", "url", "hash")
 
 
@@ -22,8 +24,8 @@ class MispEngine:
         cert file is missing. Some MISP instances (mTLS) reject the connection
         with an SSL alert unless the client presents a certificate on connect."""
         name = self._instance["name"]
-        client_cert = self._instance.get("client_cert", "")
-        client_key = self._instance.get("client_key", "")
+        client_cert = config.cert_path(self._instance.get("client_cert", ""))
+        client_key = config.cert_path(self._instance.get("client_key", ""))
 
         if not client_cert:
             return None
@@ -34,7 +36,7 @@ class MispEngine:
 
         for path, label in files_to_check:
             if not os.path.isfile(path):
-                return {"error": {"code": "MissingCertificate", "message": f"{name}'s {label} file was not found at {path}. Drop it in backend/certs/ and point MISP_<N>_CLIENT_CERT/_CLIENT_KEY at its filename."}}
+                return {"error": {"code": "MissingCertificate", "message": f"{name}'s {label} file was not found at {path}. Drop it in backend/certs/ and select it again on the Connectors page."}}
 
         return (client_cert, client_key) if client_key else client_cert
 
@@ -157,5 +159,7 @@ class MispEngine:
         return {"Attribute": attributes, "Events": events}
 
 
-def build_engines(instances: list[dict]) -> dict[str, MispEngine]:
-    return {inst["id"]: MispEngine(inst) for inst in instances}
+def engine_for(instance_id: str) -> MispEngine | None:
+    """Engine bound to the instance's current settings (they can change at runtime)."""
+    inst = connectors.get_misp(instance_id)
+    return MispEngine(inst) if inst else None

@@ -1,11 +1,11 @@
 import httpx
-from app.core.config import IPINFO_API_KEY
+from app.core.connectors import secret
 
 _BASE = "https://ipinfo.io"
 
 
 async def check_ip(ip: str) -> dict:
-    if not IPINFO_API_KEY:
+    if not secret("IPINFO_API_KEY"):
         return {"error": {"code": "MissingApiKey", "message": "IPinfo API key is not configured."}}
 
     async with httpx.AsyncClient(timeout=15) as client:
@@ -13,7 +13,7 @@ async def check_ip(ip: str) -> dict:
             r = await client.get(
                 f"{_BASE}/{ip}",
                 headers={
-                    "Authorization": f"Bearer {IPINFO_API_KEY}",
+                    "Authorization": f"Bearer {secret('IPINFO_API_KEY')}",
                     "Accept": "application/json",
                 },
             )

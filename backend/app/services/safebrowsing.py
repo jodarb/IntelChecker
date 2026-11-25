@@ -1,12 +1,12 @@
 import httpx
-from app.core.config import GOOGLE_SAFE_BROWSING_API_KEY
+from app.core.connectors import secret
 
 _BASE = "https://safebrowsing.googleapis.com/v4/threatMatches:find"
 _THREAT_TYPES = ["MALWARE", "SOCIAL_ENGINEERING", "UNWANTED_SOFTWARE", "POTENTIALLY_HARMFUL_APPLICATION"]
 
 
 async def check_url(url: str) -> dict:
-    if not GOOGLE_SAFE_BROWSING_API_KEY:
+    if not secret("GOOGLE_SAFE_BROWSING_API_KEY"):
         return {"error": {"code": "MissingApiKey", "message": "Google Safe Browsing API key is not configured."}}
 
     body = {
@@ -21,7 +21,7 @@ async def check_url(url: str) -> dict:
 
     async with httpx.AsyncClient(timeout=15) as client:
         try:
-            r = await client.post(_BASE, params={"key": GOOGLE_SAFE_BROWSING_API_KEY}, json=body)
+            r = await client.post(_BASE, params={"key": secret("GOOGLE_SAFE_BROWSING_API_KEY")}, json=body)
         except httpx.TimeoutException:
             return {"error": {"code": "Timeout", "message": "Google Safe Browsing request timed out after 15 s."}}
         except httpx.RequestError:

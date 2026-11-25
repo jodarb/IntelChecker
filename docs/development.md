@@ -36,7 +36,8 @@ The Vite dev server proxies `/api/*` to `http://localhost:8000` (see `frontend/v
 
 | File | Purpose |
 |---|---|
-| `backend/.env` | API keys, MISP instances and the initial admin / session settings. Gitignored; template in `backend/.env.example`. Rebuild after changes. |
+| `backend/.env` | Initial admin / session settings, plus fallback API keys and MISP instances (the Connectors page wins). Gitignored; template in `backend/.env.example`. Rebuild after changes. |
+| `backend/data/connectors.json` | API keys and MISP instances saved from the Connectors page (`app/core/connectors.py`), mode 0600. Re-read when it changes; no restart needed. |
 | `.env` (repo root) | `FRONTEND_PORT` / `BACKEND_PORT` for Docker Compose (defaults `8080` / `8000`). Not passed into any container. Template in `.env.example`. |
 | `backend/data/weights.json` | Verdict weights, thresholds and Knowledge saturation, written by the Admin page. No rebuild needed. |
 | `backend/data/history.db` | SQLite query history, created on first run. |
@@ -55,7 +56,8 @@ IntelChecker/
 │   ├── app/
 │   │   ├── main.py              # FastAPI: /analyze/{engine}, /engines/status, /history, /weights, /mitre/aliases
 │   │   ├── core/
-│   │   │   ├── config.py        # .env loader, MISP instances
+│   │   │   ├── config.py        # .env loader, MISP instances from .env
+│   │   │   ├── connectors.py    # API keys + MISP instances store (Connectors page)
 │   │   │   ├── registry.py      # Engine capabilities (types supported, required key)
 │   │   │   ├── weights.py       # Default weights/thresholds/saturation + Admin persistence
 │   │   │   └── db.py            # SQLite query history

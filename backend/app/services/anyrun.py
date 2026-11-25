@@ -1,6 +1,6 @@
 import httpx
 from datetime import datetime, timedelta
-from app.core.config import ANYRUN_API_KEY
+from app.core.connectors import secret
 
 _BASE = "https://api.any.run/v1"
 _LOOKBACK_DAYS = 180  # matches the ANY.RUN SDK's own default lookup window
@@ -21,7 +21,7 @@ def _hash_field(value: str) -> str:
 
 
 async def _search(field: str, value: str) -> dict:
-    if not ANYRUN_API_KEY:
+    if not secret("ANYRUN_API_KEY"):
         return {"error": {"code": "MissingApiKey", "message": "ANY.RUN API key is not configured."}}
 
     today = datetime.utcnow().date()
@@ -31,7 +31,7 @@ async def _search(field: str, value: str) -> dict:
         "endDate": today.isoformat(),
     }
     # ANY.RUN expects the raw key prefixed with "API-KEY " in the Authorization header.
-    headers = {"Authorization": f"API-KEY {ANYRUN_API_KEY}"}
+    headers = {"Authorization": f"API-KEY {secret('ANYRUN_API_KEY')}"}
 
     async with httpx.AsyncClient(timeout=20) as client:
         try:

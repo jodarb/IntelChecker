@@ -8,7 +8,7 @@
 * **Authentication & roles:** every page and API call requires a session. Three roles: `admin` (everything + edit weights + manage users), `analyst` (run lookups + read history), `reader` (read history only). See §7.
 * **Asynchronous Processing:** Multi-threaded/asynchronous API requests that prevent thread blocking and resource starvation.
 * **Real-Time Data Streaming:** Dynamic frontend components that render individual API responses immediately as they are streamed from the backend.
-* **Near-stateless Operation:** Lookups are always executed in real time (no result caching). The only persisted state lives in `backend/data/` (Docker volume): `history.db` (SQLite query history with frozen snapshots of every lookup, plus who ran it), `users.db` (users, roles, sessions) and `weights.json` (verdict weights/thresholds edited from the Admin page).
+* **Near-stateless Operation:** Lookups are always executed in real time (no result caching). The only persisted state lives in `backend/data/` (Docker volume): `history.db` (SQLite query history with frozen snapshots of every lookup, plus who ran it), `users.db` (users, roles, sessions), `weights.json` (verdict weights/thresholds edited from the Admin page) and `connectors.json` (API keys + MISP instances edited from the Connectors page).
 
 ---
 
@@ -44,7 +44,7 @@
 ---
 
 ## 4. Threat Intel Integrations (CTI Sources)
-The backend manages API authentication using server-side credentials defined in `backend/.env`. Engine capabilities (supported indicator types, required key) are declared in `backend/app/core/registry.py`; each source is a module in `backend/app/services/` and a card in `frontend/src/components/results/`, wired through `frontend/src/registry.tsx`, `summaryRegistry.ts` and `intelAggregates.ts` (tags, actors, first/last seen for the Summary). A source without its API key is reported as `MissingApiKey` and excluded from both scores.
+The backend manages API authentication using server-side credentials managed by admins on the **Connectors** page (`backend/app/core/connectors.py` → `backend/data/connectors.json`, mode 0600, in clear; `backend/.env` is a fallback — a key saved on Connectors wins). Services must read keys at call time with `connectors.secret("<ENV_NAME>")`, never as module constants, and a new key needs an entry in `CONNECTORS`. MISP instances also live there (`connectors.misp_instances()`; `MISP_<N>_*` in `.env` only until the first MISP change from the UI), so the engine list is dynamic: use `registry.engines()` / `registry.is_connected()`, not a static dict. Engine capabilities (supported indicator types, required key) are declared in `backend/app/core/registry.py`; each source is a module in `backend/app/services/` and a card in `frontend/src/components/results/`, wired through `frontend/src/registry.tsx`, `summaryRegistry.ts` and `intelAggregates.ts` (tags, actors, first/last seen for the Summary). A source without its API key is reported as `MissingApiKey` and excluded from both scores.
 
 Implemented sources: VirusTotal, AlienVault OTX, AbuseIPDB, abuse.ch (ThreatFox), URLhaus, MalwareBazaar, Shodan, IPinfo, RIPEstat, Tor Exit List, MITRE ATT&CK, URLScan, PhishTank, Recorded Future, Any.run, GreyNoise, Hybrid Analysis, Google Safe Browsing, TweetFeed, and N MISP instances (`MISP_<N>_*` env vars). The README's coverage table is the source of truth for which types each one supports.
 
@@ -70,16 +70,17 @@ Implemented in `frontend/src/verdictEngine.ts` (`computeVerdict`) and mirrored l
 intelchecker/
 ├── backend/
 │   ├── app/
-│   │   ├── main.py            # FastAPI app: /auth/*, /users (+tokens), /lookup, /analyze/{engine}, /engines/status, /history, /weights, /mitre/aliases
+│   │   ├── main.py            # FastAPI app: /auth/*, /users (+tokens), /connectors, /lookup, /analyze/{engine}, /engines/status, /history, /weights, /mitre/aliases
 │   │   ├── core/
-│   │   │   ├── config.py      # Environment variables (.env), MISP instances
+│   │   │   ├── config.py      # Environment variables (.env), MISP instances from .env
+│   │   │   ├── connectors.py  # API keys + MISP instances store (Connectors page, admin)
 │   │   │   ├── registry.py    # Engine capabilities (types supported, required key)
 │   │   │   ├── weights.py     # Default verdict weights/thresholds + persistence
 │   │   │   ├── auth.py        # Users, roles, sessions, API tokens, FastAPI permission dependencies
 │   │   │   ├── verdict.py     # Python mirror of verdictEngine.ts (POST /lookup)
 │   │   │   └── db.py          # SQLite query history
 │   │   └── services/          # One async httpx client module per CTI source
-│   ├── data/                  # history.db + weights.json (Docker volume, gitignored)
+│   ├── data/                  # history.db, users.db, weights.json, connectors.json (Docker volume, gitignored)
 │   ├── Dockerfile
 │   ├── .env.example
 │   └── requirements.txt
@@ -89,7 +90,7 @@ intelchecker/
 │   │   ├── components/        # Layout, EngineStatusPanel, results/ (per-source cards, Summary, modals)
 │   │   ├── auth/              # AuthProvider, AuthGate, useAuth (role/permission checks)
 │   │   ├── lib/api.ts         # apiFetch/apiJson: every backend call (detects expired sessions)
-│   │   ├── pages/             # Home, Results, History, HistoryDetail, Admin (weights), Users (admin only), Account, Login, Docs
+│   │   ├── pages/             # Home, Results, History, HistoryDetail, Admin (weights), Users + Connectors (admin only), Account, Login, Docs
 │   │   ├── hooks/             # useVerdictWeights, useEngineToggles, useTheme, useFetchJson, useMitreAliases
 │   │   ├── i18n/              # EN/ES: provider, useI18n, rich(), messages/<area>.ts, docs/{en,es}.ts
 │   │   ├── verdictEngine.ts   # Two-score verdict
@@ -109,7 +110,7 @@ intelchecker/
 
 ## 7. Authentication & Roles
 * **Backend** (`backend/app/core/auth.py`): users + sessions in `backend/data/users.db`, scrypt password hashes (stdlib), opaque session token in an HttpOnly `SameSite=Strict` cookie (`intelchecker_session`), only its SHA-256 stored. Server-side sessions, so disabling a user or resetting a password revokes them at once.
-* **Permissions:** `PERMISSIONS` maps role → `history:read` / `analyze` / `admin`. Endpoints declare them via `auth.require(...)` in `main.py`: `/analyze/*` and `POST /history` need `analyze`; `GET /history*` needs `history:read`; `PUT /weights`, `POST /weights/reset` and `/users*` need `admin`; `/engines/status`, `GET /weights`, `/mitre/aliases` need any signed-in user. **Every new endpoint must declare one.**
+* **Permissions:** `PERMISSIONS` maps role → `history:read` / `analyze` / `admin`. Endpoints declare them via `auth.require(...)` in `main.py`: `/analyze/*` and `POST /history` need `analyze`; `GET /history*` needs `history:read`; `PUT /weights`, `POST /weights/reset`, `/users*` and `/connectors*` need `admin`; `/engines/status`, `GET /weights`, `/mitre/aliases` need any signed-in user. **Every new endpoint must declare one.**
 * **Bootstrap:** on first start with no users, an admin is created from `ADMIN_USERNAME` / `ADMIN_PASSWORD`, defaulting to `admin` / `admin` (not forced to change; `/auth/me` returns `default_password: true` and the header shows a warning until it is changed). Admin-set passwords are temporary (`must_change_password`): `current_user` rejects them with `PasswordChangeRequired` until `/auth/password` is called.
 * **Safeguards:** at least one active admin always remains; admins can't change their own role, disable or delete themselves. Login is throttled per username (5 failures / 15 min).
 * **API tokens:** `api_tokens` table in `users.db`, created/revoked by admins (`/users/{id}/tokens`), sent as `Authorization: Bearer ick_…`, stored as SHA-256. `session_user` accepts a token or the cookie (`user["auth"]` = `token`/`session`); a token acts as its user with the current role, ignores `must_change_password`, and can't change the password (`browser_session_user`). `POST /lookup` (analyze) runs every source + the Python verdict and saves to history with `via='api'`. Usage doc: `docs/api.md`.

@@ -1,4 +1,4 @@
-import { History, SlidersHorizontal, BookOpen, LogOut, UserRound, TriangleAlert, Users } from 'lucide-react'
+import { History, SlidersHorizontal, BookOpen, LogOut, UserRound, TriangleAlert, Users, Plug } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import HeaderControls from '@/components/HeaderControls'
@@ -47,6 +47,12 @@ export default function Layout({ children }: LayoutProps) {
                 <Link to="/users">
                   <Users className="h-4 w-4" />
                   {t('layout.users')}
+                </Link>
+              </Button>
+              <Button variant="ghost" size="sm" asChild className="gap-1.5">
+                <Link to="/connectors">
+                  <Plug className="h-4 w-4" />
+                  {t('layout.connectors')}
                 </Link>
               </Button>
             </>

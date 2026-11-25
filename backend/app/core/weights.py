@@ -16,7 +16,7 @@ import os
 import threading
 from pathlib import Path
 
-from app.core.config import MISP_INSTANCES
+from app.core import connectors
 
 _WEIGHTS_PATH = Path(__file__).parent.parent.parent / "data" / "weights.json"
 _lock = threading.Lock()
@@ -74,8 +74,8 @@ def _clamp_entry(w: dict) -> dict:
 
 def _defaults() -> dict:
     engines = {k: json.loads(json.dumps(v)) for k, v in DEFAULT_ENGINE_WEIGHTS.items()}
-    # MISP instances are discovered at deploy time; their .env weights act as defaults.
-    for inst in MISP_INSTANCES:
+    # MISP instances come from the Connectors page (or .env); their initial weights act as defaults.
+    for inst in connectors.misp_instances():
         engines[inst["id"]] = {
             "risk": _clamp_weight(inst["weight"]),
             "knowledge": _clamp_weight(inst["knowledge_weight"]),

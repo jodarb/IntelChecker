@@ -1,16 +1,16 @@
 import httpx
-from app.core.config import ABUSECH_AUTH_KEY
+from app.core.connectors import secret
 
 _BASE = "https://urlhaus-api.abuse.ch/v1"
 
 
 async def _post(path: str, data: dict) -> dict:
-    if not ABUSECH_AUTH_KEY:
+    if not secret("ABUSECH_AUTH_KEY"):
         return {"error": {"code": "MissingApiKey", "message": "abuse.ch API key is not configured."}}
 
     async with httpx.AsyncClient(timeout=15) as client:
         try:
-            r = await client.post(f"{_BASE}{path}", data=data, headers={"Auth-Key": ABUSECH_AUTH_KEY})
+            r = await client.post(f"{_BASE}{path}", data=data, headers={"Auth-Key": secret("ABUSECH_AUTH_KEY")})
         except httpx.TimeoutException:
             return {"error": {"code": "Timeout", "message": "URLhaus request timed out after 15 s."}}
         except httpx.RequestError:

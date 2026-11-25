@@ -96,7 +96,7 @@ Each card links to the indicator on the original tool and has a `RAW` button wit
 | `No results` (soft, yellow) | The source has no record of the indicator. |
 | `No score` (soft, yellow) | Real data, but nothing to score (Shodan host, IPinfo geolocation). |
 | `Error` (soft, red) | The lookup failed; the card says why (invalid key, rate limit, timeout…). |
-| `Off · not configured` / `Disabled` (grey, power icon) | Not part of the lookup: no API key in `backend/.env`, or switched off on the home page. Not queried, not counted in either score. History entries show it the same way. |
+| `Off · not configured` / `Disabled` (grey, power icon) | Not part of the lookup: no API key (set on the Connectors page), or switched off on the home page. Not queried, not counted in either score. History entries show it the same way. |
 
 ## 4. History and search frequency
 

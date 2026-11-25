@@ -1,16 +1,16 @@
 import httpx
-from app.core.config import GREYNOISE_API_KEY
+from app.core.connectors import secret
 
 _BASE = "https://api.greynoise.io/v3/community"
 
 
 async def check_ip(ip: str) -> dict:
-    if not GREYNOISE_API_KEY:
+    if not secret("GREYNOISE_API_KEY"):
         return {"error": {"code": "MissingApiKey", "message": "GreyNoise API key is not configured."}}
 
     async with httpx.AsyncClient(timeout=15) as client:
         try:
-            r = await client.get(f"{_BASE}/{ip}", headers={"key": GREYNOISE_API_KEY})
+            r = await client.get(f"{_BASE}/{ip}", headers={"key": secret("GREYNOISE_API_KEY")})
         except httpx.TimeoutException:
             return {"error": {"code": "Timeout", "message": "GreyNoise request timed out after 15 s."}}
         except httpx.RequestError:

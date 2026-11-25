@@ -8,6 +8,7 @@ import AdminPage from '@/pages/AdminPage'
 import DocsPage from '@/pages/DocsPage'
 import AccountPage from '@/pages/AccountPage'
 import UsersPage from '@/pages/UsersPage'
+import ConnectorsPage from '@/pages/ConnectorsPage'
 import { useAuth, type Permission } from '@/auth/context'
 
 /** Routes a role can't use send the user to the history, which every role can browse. */
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="/history/:id" element={<HistoryDetailPage />} />
         <Route path="/admin" element={<Allowed permission="admin"><AdminPage /></Allowed>} />
         <Route path="/users" element={<Allowed permission="admin"><UsersPage /></Allowed>} />
+        <Route path="/connectors" element={<Allowed permission="admin"><ConnectorsPage /></Allowed>} />
         <Route path="/docs" element={<DocsPage />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

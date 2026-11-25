@@ -1,4 +1,3 @@
-import os
 import asyncio
 import logging
 from contextlib import asynccontextmanager
@@ -7,8 +6,8 @@ from pydantic import BaseModel
 from app.core import auth
 from app.core import db as history_db
 from app.core import weights as weights_store
-from app.core.config import MISP_INSTANCES
-from app.core.registry import ENGINES, INDICATOR_TYPES
+from app.core import connectors
+from app.core.registry import INDICATOR_TYPES, engines as current_engines, is_connected
 from app.core.verdict import compute_verdict, get_engine_assessment
 from app.services import (
     abuseipdb, virustotal, abusech, alienvault, ipinfo, shodan,
@@ -61,8 +60,12 @@ _SERVICES = {
     "hybridanalysis": hybridanalysis,
     "safebrowsing": safebrowsing,
     "tweetfeed": tweetfeed,
-    **misp.build_engines(MISP_INSTANCES),
 }
+
+
+def _service(engine_id: str):
+    """Static source module, or a MISP engine bound to the instance's current settings."""
+    return _SERVICES.get(engine_id) or misp.engine_for(engine_id)
 
 
 class AnalyzeRequest(BaseModel):
@@ -205,19 +208,101 @@ def delete_token(user_id: int, token_id: int):
     return Response(status_code=204)
 
 
+# ── Connectors (admin) ────────────────────────────────────────────────────────
+# API keys and MISP instances (app/core/connectors.py). Stored keys are never
+# returned, only their last four characters.
+
+class SecretRequest(BaseModel):
+    value: str
+
+
+class MispRequest(BaseModel):
+    name: str | None = None
+    url: str | None = None
+    key: str | None = None          # omitted on edit = keep the current key
+    verify_ssl: bool | None = None
+    client_cert: str | None = None  # filename in backend/certs/, "" = none
+    client_key: str | None = None
+
+
+# A harmless, well-known indicator per type, to check that a source accepts its key.
+_TEST_INDICATORS = {
+    "ip": "8.8.8.8",
+    "domain": "example.com",
+    "url": "https://example.com/",
+    # EICAR test file
+    "hash": "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f",
+    "asn": "AS15169",
+    "threat-actor": "APT28",
+}
+
+
+@app.get("/connectors", dependencies=[IsAdmin])
+def list_connectors():
+    return {
+        "keys": connectors.list_keys(),
+        "misp": connectors.list_misp(),
+        "misp_from_env": not connectors.misp_managed_in_ui(),
+        "cert_files": connectors.list_cert_files(),
+    }
+
+
+@app.put("/connectors/keys/{env_name}", dependencies=[IsAdmin], status_code=204)
+def set_connector_key(env_name: str, req: SecretRequest):
+    connectors.set_key(env_name, req.value)
+    return Response(status_code=204)
+
+
+@app.delete("/connectors/keys/{env_name}", dependencies=[IsAdmin], status_code=204)
+def delete_connector_key(env_name: str):
+    connectors.delete_key(env_name)
+    return Response(status_code=204)
+
+
+@app.post("/connectors/misp", dependencies=[IsAdmin], status_code=201)
+def create_misp_instance(req: MispRequest):
+    return connectors.create_misp(req.model_dump(exclude_unset=True))
+
+
+@app.patch("/connectors/misp/{instance_id}", dependencies=[IsAdmin])
+def update_misp_instance(instance_id: str, req: MispRequest):
+    return connectors.update_misp(instance_id, req.model_dump(exclude_unset=True))
+
+
+@app.delete("/connectors/misp/{instance_id}", dependencies=[IsAdmin], status_code=204)
+def delete_misp_instance(instance_id: str):
+    connectors.delete_misp(instance_id)
+    return Response(status_code=204)
+
+
+@app.post("/connectors/test/{engine}", dependencies=[IsAdmin])
+async def test_connector(engine: str):
+    """Runs a real lookup of a harmless indicator against one source. "Not found"
+    counts as success: the source answered and accepted the credentials. Uses one
+    request of the source's quota."""
+    meta = current_engines().get(engine)
+    service = _service(engine)
+    if meta is None or service is None:
+        raise auth.api_error(404, "ConnectorNotFound", f"Unknown source: {engine}.")
+    type_ = next(t for t in ("ip", "domain", "url", "hash", "asn", "threat-actor") if t in meta["supports"])
+    try:
+        data = await service.dispatch(_TEST_INDICATORS[type_], type_)
+    except Exception:
+        log.exception("Connector test of %s failed", engine)
+        return {"ok": False, "error": {"code": "InternalError", "message": f"{meta['label']} test failed unexpectedly."}}
+    err = data.get("error") if isinstance(data, dict) else None
+    if isinstance(err, dict) and err.get("code") != "NotFound":
+        return {"ok": False, "error": err}
+    return {"ok": True, "error": None}
+
+
 # ── Lookups ───────────────────────────────────────────────────────────────────
-
-def _is_connected(meta: dict) -> bool:
-    if "connected" in meta:
-        return meta["connected"]
-    return True if meta["key"] is None else bool(os.environ.get(meta["key"], ""))
-
 
 @app.get("/engines/status", dependencies=[SignedIn])
 def engines_status():
     result = {}
-    for name, meta in ENGINES.items():
-        entry = {"connected": _is_connected(meta), "supports": meta["supports"]}
+    for name, meta in current_engines().items():
+        entry = {"connected": is_connected(meta), "supports": meta["supports"]}
         if "name" in meta:
             entry["label"] = meta["name"]
         result[name] = entry
@@ -226,11 +311,12 @@ def engines_status():
 
 @app.post("/analyze/{engine}", dependencies=[CanAnalyze])
 async def analyze(engine: str, req: AnalyzeRequest):
-    if engine not in ENGINES:
+    service = _service(engine)
+    if service is None:
         raise HTTPException(
             status_code=404, detail=f"Unknown engine: {engine}"
         )
-    return await _SERVICES[engine].dispatch(req.indicator, req.type)
+    return await service.dispatch(req.indicator, req.type)
 
 
 @app.post("/lookup")
@@ -244,35 +330,36 @@ async def lookup(req: LookupRequest, user: dict = CanAnalyze):
         raise auth.api_error(422, "InvalidIndicator", "The indicator is empty.")
     if req.type not in INDICATOR_TYPES:
         raise auth.api_error(422, "InvalidType", f"Type must be one of: {', '.join(INDICATOR_TYPES)}.")
-    unknown = sorted({e for e in (req.engines or []) + req.exclude if e not in ENGINES})
+    all_engines = current_engines()
+    unknown = sorted({e for e in (req.engines or []) + req.exclude if e not in all_engines})
     if unknown:
         raise auth.api_error(422, "UnknownEngine", f"Unknown source(s): {', '.join(unknown)}.")
 
     # Same selection as the results page: sources supporting the type that have their
     # API key (unconfigured ones aren't queried nor counted), in display order.
     selected = [
-        eid for eid, meta in ENGINES.items()
-        if req.type in meta["supports"] and _is_connected(meta)
+        eid for eid, meta in all_engines.items()
+        if req.type in meta["supports"] and is_connected(meta)
         and (req.engines is None or eid in req.engines) and eid not in req.exclude
     ]
 
     async def run(eid: str) -> dict:
         try:
-            return {"data": await _SERVICES[eid].dispatch(indicator, req.type), "error": None}
+            return {"data": await _service(eid).dispatch(indicator, req.type), "error": None}
         except Exception:
             # The UI sees this as "couldn't reach the backend": a transient failure.
             log.exception("Lookup of %s on %s failed", indicator, eid)
-            return {"data": None, "error": f"{ENGINES[eid]['label']} lookup failed unexpectedly."}
+            return {"data": None, "error": f"{all_engines[eid]['label']} lookup failed unexpectedly."}
 
     results = dict(zip(selected, await asyncio.gather(*(run(e) for e in selected))))
     config = weights_store.get_weights()
-    engines = [{"id": e, "label": ENGINES[e]["label"]} for e in selected]
+    engines = [{"id": e, "label": all_engines[e]["label"]} for e in selected]
     verdict = compute_verdict(config, engines, results, req.type)
 
     history_id = None
     if req.save and selected:
         snapshot = {
-            e: {"label": ENGINES[e]["label"], "data": results[e]["data"], "error": results[e]["error"]}
+            e: {"label": all_engines[e]["label"], "data": results[e]["data"], "error": results[e]["error"]}
             for e in selected
         }
         history_id = history_db.save_query(
@@ -286,7 +373,7 @@ async def lookup(req: LookupRequest, user: dict = CanAnalyze):
         api_err = data.get("error") if isinstance(data, dict) else None
         a = get_engine_assessment(e, req.type, results[e])
         entry = {
-            "label": ENGINES[e]["label"],
+            "label": all_engines[e]["label"],
             "outcome": a["outcome"],
             "subscore": a["subscore"],
             "depth": a["depth"],

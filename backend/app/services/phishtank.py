@@ -1,5 +1,5 @@
 import httpx
-from app.core.config import PHISHTANK_API_KEY
+from app.core.connectors import secret
 
 _URL = "https://checkurl.phishtank.com/checkurl/"
 # PhishTank's Cloudflare front-end 403s any User-Agent that doesn't contain "phishtank" —
@@ -9,8 +9,8 @@ _HEADERS = {"User-Agent": "phishtank/intelchecker"}
 
 async def check_url(url: str) -> dict:
     data = {"url": url, "format": "json"}
-    if PHISHTANK_API_KEY:
-        data["app_key"] = PHISHTANK_API_KEY
+    if secret("PHISHTANK_API_KEY"):
+        data["app_key"] = secret("PHISHTANK_API_KEY")
 
     async with httpx.AsyncClient(timeout=15) as client:
         try:

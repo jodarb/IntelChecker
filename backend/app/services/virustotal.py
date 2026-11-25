@@ -1,17 +1,17 @@
 import base64
 import httpx
-from app.core.config import VIRUSTOTAL_API_KEY
+from app.core.connectors import secret
 
 _BASE = "https://www.virustotal.com/api/v3"
 
 
 async def _request(path: str) -> dict:
-    if not VIRUSTOTAL_API_KEY:
+    if not secret("VIRUSTOTAL_API_KEY"):
         return {"error": {"code": "MissingApiKey", "message": "VirusTotal API key is not configured."}}
 
     async with httpx.AsyncClient(timeout=15) as client:
         try:
-            r = await client.get(f"{_BASE}/{path}", headers={"x-apikey": VIRUSTOTAL_API_KEY})
+            r = await client.get(f"{_BASE}/{path}", headers={"x-apikey": secret("VIRUSTOTAL_API_KEY")})
         except httpx.TimeoutException:
             return {"error": {"code": "Timeout", "message": "VirusTotal request timed out after 15 s."}}
         except httpx.RequestError:

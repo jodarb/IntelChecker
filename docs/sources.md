@@ -28,12 +28,14 @@ Notes on each integration: how it is queried, what it needs and anything that af
 
 ## MISP (any number of instances)
 
-MISP is the only source you can add several times: your own instance, a partner's, an ISAC feed… Each one shows up as its own named source with its own status and toggle. The backend discovers them from `backend/.env` at startup (the `MISP_<N>_*` block in `backend/.env.example`) and the UI renders each with a shared card — adding an instance is just more env lines and a restart.
+MISP is the only source you can add several times: your own instance, a partner's, an ISAC feed… Each one shows up as its own named source with its own status and toggle. Admins add, edit and delete them on the **Connectors** page (name, URL, API key, TLS verification, mTLS certificate) and the change applies to the next lookup, no restart. The UI renders each with a shared card.
+
+Instances defined in `backend/.env` (the `MISP_<N>_*` block in `backend/.env.example`) keep working: they are used until the first MISP change on Connectors, which copies them into `backend/data/connectors.json` — from then on `MISP_<N>_*` is ignored. Instance ids (`misp_<N>`) are never reused after a delete, so a new instance doesn't inherit an old one's weights.
 
 - **Search** — by indicator value only (not MISP's `ip-src` / `ip-dst` / … attribute types), so it works the same for IP, domain, URL and hash regardless of how a community tags its attributes.
 - **Scoring** — only attributes flagged for detection (`to_ids`, shown as an **IDS** chip) count as a risk hit (subscore 9). A match whose attributes all have `to_ids` off — typically benign infrastructure referenced inside an event, like a public DNS resolver — adds to Knowledge but issues no risk verdict (and is never treated as clean).
-- **Weights** — `MISP_<N>_WEIGHT` / `MISP_<N>_KNOWLEDGE_WEIGHT` (0–10, defaults 0 / 9) only set the instance's initial weights; a value saved in Admin wins.
-- **Mutual TLS** — some instances (common on government / CERT deployments) reject requests without a client certificate. Drop the cert (and key, if separate) into `backend/certs/` (gitignored, mounted at `/app/certs`) and set `MISP_<N>_CLIENT_CERT` / `MISP_<N>_CLIENT_KEY` to the filenames. A combined cert+key PEM only needs `CLIENT_CERT`.
+- **Weights** — set on the Admin page. New instances start at 0 / 9; instances imported from `.env` start at `MISP_<N>_WEIGHT` / `MISP_<N>_KNOWLEDGE_WEIGHT`. A value saved in Admin wins.
+- **Mutual TLS** — some instances (common on government / CERT deployments) reject requests without a client certificate. Drop the cert (and key, if separate) into `backend/certs/` (gitignored, mounted read-only at `/app/certs`) and pick them in the instance's **Client certificate** / **Client key** on Connectors (or `MISP_<N>_CLIENT_CERT` / `_CLIENT_KEY` in `.env`). A combined cert+key PEM only needs the certificate.
 
 ## Roadmap
 
