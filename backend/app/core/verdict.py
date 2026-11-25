@@ -88,6 +88,8 @@ TRANSIENT_ERROR_CODES = {"RateLimitExceeded", "Timeout", "NetworkError", "Servic
 
 NO_DATA_ERROR_CODES = {"NotFound"}
 
+TRANCO_CLEAN_MAX_RANK = 100000
+
 
 def knowledge_from_sums(num: float, total: float, full_at_pct: float) -> float:
     if total <= 0:
@@ -299,6 +301,42 @@ def _tweetfeed_subscore(d: Any) -> float | None:
     return 5
 
 
+_CROWDSEC_SCORES = {"malicious": 9, "suspicious": 6, "known": 4}
+
+
+def _crowdsec_subscore(d: Any) -> float | None:
+    if not _truthy(_get(d, "found")):
+        return None
+    rep = _get(d, "reputation")
+    if len(_arr(_get(d, "classifications", "false_positives"))) > 0 or rep in ("safe", "benign"):
+        return 0
+    return _CROWDSEC_SCORES.get(rep) if isinstance(rep, str) else None
+
+
+def _hashlookup_subscore(d: Any) -> float | None:
+    if not _truthy(_get(d, "found")) or _truthy(_get(d, "KnownMalicious")):
+        return None
+    return 0
+
+
+def _rdap_subscore(d: Any) -> float | None:
+    age = _get(d, "age_days")
+    if not _truthy(_get(d, "found")) or not _is_num(age):
+        return None
+    if age < 7:
+        return 7
+    if age < 30:
+        return 5
+    return None
+
+
+def _tranco_subscore(d: Any) -> float | None:
+    rank = _get(d, "rank")
+    if not _truthy(_get(d, "found")) or _get(d, "exact") is not True or not _is_num(rank):
+        return None
+    return 0 if rank <= TRANCO_CLEAN_MAX_RANK else None
+
+
 def _misp_subscore(d: Any) -> float | None:
     attrs = _get(d, "Attribute")
     if not isinstance(attrs, list):
@@ -334,6 +372,10 @@ _VERDICT_NORMALIZERS: dict[str, dict] = {
     "hybridanalysis": _for(_ALL4, _hybrid_analysis_subscore),
     "safebrowsing": {"url": _safe_browsing_subscore},
     "tweetfeed": _for(_ALL4, _tweetfeed_subscore),
+    "crowdsec": {"ip": _crowdsec_subscore},
+    "hashlookup": {"hash": _hashlookup_subscore},
+    "rdap": _for(("domain", "url"), _rdap_subscore),
+    "tranco": {"domain": _tranco_subscore},
 }
 
 
@@ -485,6 +527,40 @@ def _tweetfeed_depth(d: Any) -> float:
     return 1 if s["users"] >= 2 or s["tweets"] >= 2 or s["in_campaign"] else 0.5
 
 
+def _crowdsec_depth(d: Any) -> float:
+    if not _truthy(_get(d, "found")):
+        return 0
+    if (len(_arr(_get(d, "behaviors"))) > 0 or len(_arr(_get(d, "classifications", "false_positives"))) > 0
+            or _get(d, "reputation") in ("malicious", "suspicious", "safe", "benign")):
+        return 1
+    return 0.5
+
+
+def _hashlookup_depth(d: Any) -> float:
+    if not _truthy(_get(d, "found")):
+        return 0
+    trust = _get(d, "hashlookup:trust")
+    parents = _get(d, "hashlookup:parent-total")
+    return 1 if (_is_num(trust) and trust > 50) or (_is_num(parents) and parents > 0) else 0.5
+
+
+def _rdap_depth(d: Any) -> float:
+    return 0.5 if _truthy(_get(d, "found")) else 0
+
+
+def _tranco_depth(d: Any) -> float:
+    rank = _get(d, "rank")
+    if not _truthy(_get(d, "found")) or _get(d, "exact") is not True or not _is_num(rank):
+        return 0
+    return 1 if rank <= TRANCO_CLEAN_MAX_RANK else 0.5
+
+
+def _malpedia_depth(d: Any) -> float:
+    if not _truthy(_get(d, "found")):
+        return 0
+    return 1 if len(_arr(_get(d, "families"))) > 0 or _truthy(_get(d, "description")) else 0.5
+
+
 _DEPTH_FNS = {
     "tweetfeed": _tweetfeed_depth,
     "virustotal": _vt_depth,
@@ -505,6 +581,11 @@ _DEPTH_FNS = {
     "torexitlist": _tor_depth,
     "ipinfo": _ipinfo_depth,
     "ripestat": _ripestat_depth,
+    "crowdsec": _crowdsec_depth,
+    "hashlookup": _hashlookup_depth,
+    "rdap": _rdap_depth,
+    "tranco": _tranco_depth,
+    "malpedia": _malpedia_depth,
 }
 
 

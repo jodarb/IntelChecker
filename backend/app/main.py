@@ -16,6 +16,7 @@ from app.services import (
     abuseipdb, virustotal, abusech, alienvault, ipinfo, shodan,
     torexitlist, urlhaus, mitreattack, ripestat, urlscan, malwarebazaar, phishtank,
     recordedfuture, anyrun, greynoise, hybridanalysis, safebrowsing, tweetfeed, misp,
+    crowdsec, hashlookup, rdap, tranco, malpedia,
 )
 
 
@@ -63,6 +64,11 @@ _SERVICES = {
     "hybridanalysis": hybridanalysis,
     "safebrowsing": safebrowsing,
     "tweetfeed": tweetfeed,
+    "crowdsec": crowdsec,
+    "hashlookup": hashlookup,
+    "rdap": rdap,
+    "tranco": tranco,
+    "malpedia": malpedia,
 }
 
 

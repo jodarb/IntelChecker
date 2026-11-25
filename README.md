@@ -57,6 +57,11 @@
 | [Hybrid Analysis](https://hybrid-analysis.com) *(Falcon Sandbox)* | ✅ | ✅ | ✅ | ✅ | | |
 | [Google Safe Browsing](https://safebrowsing.google.com) | | | ✅ | | | |
 | [TweetFeed](https://tweetfeed.live) | ✅ | ✅ | ✅ | ✅ | | |
+| [CrowdSec CTI](https://www.crowdsec.net/cti) | ✅ | | | | | |
+| [CIRCL hashlookup](https://hashlookup.circl.lu) *(known-good files)* | | | | ✅ | | |
+| RDAP *(domain registration / age)* | | ✅ | ✅ | | | |
+| [Tranco](https://tranco-list.eu) *(top 1M domains)* | | ✅ | | | | |
+| [Malpedia](https://malpedia.caad.fkie.fraunhofer.de) | | | | | | ✅ |
 
 Per-source notes (passive lookups, shared keys, limits, MISP multi-instance and mTLS) are in [docs/sources.md](docs/sources.md).
 
@@ -107,9 +112,11 @@ The variables below still work in `backend/.env` as a fallback (a key saved on C
 | `GREYNOISE_API_KEY` | [GreyNoise](https://viz.greynoise.io/account/) (Community) | ✅ 50/week |
 | `HYBRID_ANALYSIS_API_KEY` | [Hybrid Analysis](https://hybrid-analysis.com/my-account?tab=%23api-key-tab) | ✅ |
 | `GOOGLE_SAFE_BROWSING_API_KEY` | [Google Safe Browsing](https://developers.google.com/safe-browsing/v4/get-started) | ✅ |
+| `CROWDSEC_API_KEY` | [CrowdSec CTI](https://app.crowdsec.net/settings/cti-api-keys) | ✅ small monthly quota |
+| `MALPEDIA_API_KEY` *(optional)* | [Malpedia](https://malpedia.caad.fkie.fraunhofer.de/user/register) | ✅ |
 | `MISP_<N>_NAME` / `_URL` / `_KEY` / … | [MISP](https://www.misp-project.org) — any number of instances (better: add them on Connectors) | n/a |
 
-Tor Exit Nodes, MITRE ATT&CK, RIPEstat, PhishTank and TweetFeed need no key.
+Tor Exit Nodes, MITRE ATT&CK, RIPEstat, PhishTank, TweetFeed, CIRCL hashlookup, RDAP, Tranco and Malpedia need no key.
 
 ## 📚 Documentation
 

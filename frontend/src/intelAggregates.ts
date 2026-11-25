@@ -29,6 +29,7 @@ export type ProvField =
   | 'hybrid.family'
   | 'urlscan.tag'
   | 'mitre.group' | 'mitre.software'
+  | 'malpedia.actor' | 'malpedia.family'
   | 'misp.galaxyActor' | 'misp.galaxyFamily' | 'misp.tag'
   | 'rf.rule'
 
@@ -292,6 +293,19 @@ const EXTRACTORS: Record<string, (d: any) => EngineIntel> = {
   abuseipdb: d => {
     const out = empty()
     out.lastSeen.push(d?.data?.lastReportedAt)
+    return out
+  },
+  crowdsec: d => {
+    const out = empty()
+    out.firstSeen.push(d?.history?.first_seen)
+    out.lastSeen.push(d?.history?.last_seen)
+    return out
+  },
+  malpedia: d => {
+    const out = empty()
+    if (!d?.found) return out
+    if (str(d?.name)) out.actors.push({ value: d.name, field: 'malpedia.actor' })
+    out.families.push(...arr(d?.families).map(f => f?.common_name).map(it('malpedia.family')))
     return out
   },
   mitreattack: d => {

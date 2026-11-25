@@ -58,6 +58,10 @@ CONNECTORS: list[dict] = [
      "signup": "https://developers.google.com/safe-browsing/v4/get-started"},
     {"key": "PHISHTANK_API_KEY", "label": "PhishTank", "engines": ["phishtank"], "optional": True,
      "signup": "https://www.phishtank.com/api_register.php"},
+    {"key": "CROWDSEC_API_KEY", "label": "CrowdSec CTI", "engines": ["crowdsec"],
+     "signup": "https://app.crowdsec.net/settings/cti-api-keys"},
+    {"key": "MALPEDIA_API_KEY", "label": "Malpedia", "engines": ["malpedia"], "optional": True,
+     "signup": "https://malpedia.caad.fkie.fraunhofer.de/user/register"},
 ]
 _CONNECTOR_KEYS = {c["key"] for c in CONNECTORS}
 KEYED_ENGINES = {e for c in CONNECTORS for e in c["engines"]}

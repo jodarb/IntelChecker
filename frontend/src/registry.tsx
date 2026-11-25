@@ -19,6 +19,11 @@ import GreyNoiseCard from '@/components/results/GreyNoiseCard'
 import HybridAnalysisCard from '@/components/results/HybridAnalysisCard'
 import SafeBrowsingCard from '@/components/results/SafeBrowsingCard'
 import TweetFeedCard from '@/components/results/TweetFeedCard'
+import CrowdSecCard from '@/components/results/CrowdSecCard'
+import HashlookupCard from '@/components/results/HashlookupCard'
+import RdapCard from '@/components/results/RdapCard'
+import TrancoCard from '@/components/results/TrancoCard'
+import MalpediaCard from '@/components/results/MalpediaCard'
 
 export type IndicatorType = 'ip' | 'domain' | 'url' | 'hash' | 'asn' | 'threat-actor'
 
@@ -183,6 +188,41 @@ export const STATIC_ENGINES: EngineConfig[] = [
     supports: ['ip', 'domain', 'url', 'hash'],
     component: TweetFeedCard as React.ComponentType<CardProps>,
     logo: '/logos/tweetfeed.png',
+  },
+  {
+    id: 'crowdsec',
+    label: 'CrowdSec CTI',
+    supports: ['ip'],
+    component: CrowdSecCard as React.ComponentType<CardProps>,
+    logo: '/logos/crowdsec.ico',
+  },
+  {
+    id: 'hashlookup',
+    label: 'CIRCL hashlookup',
+    supports: ['hash'],
+    component: HashlookupCard as React.ComponentType<CardProps>,
+    logo: '/logos/hashlookup.ico',
+  },
+  {
+    id: 'rdap',
+    label: 'RDAP (domain registration)',
+    supports: ['domain', 'url'],
+    component: RdapCard as React.ComponentType<CardProps>,
+    logo: '/logos/rdap.ico',
+  },
+  {
+    id: 'tranco',
+    label: 'Tranco (top domains)',
+    supports: ['domain'],
+    component: TrancoCard as React.ComponentType<CardProps>,
+    logo: '/logos/tranco.svg',
+  },
+  {
+    id: 'malpedia',
+    label: 'Malpedia',
+    supports: ['threat-actor'],
+    component: MalpediaCard as React.ComponentType<CardProps>,
+    logo: '/logos/malpedia.png',
   },
 ]
 

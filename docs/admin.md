@@ -46,8 +46,8 @@ Any user can change their own password from **My account** (their name in the he
 - **Layout** — one table per section (API keys, MISP) with the columns *Source · Status · Key · Actions*, filter tabs with counts (**All / Configured / Not configured / Keyless**) and **Test all**, which tests every testable connector in view after confirming how many real requests it will send. Each row has two fixed action columns: the key (**Set key** or **Replace key**; **Complete** or **Edit** for MISP) and **Test**. The editor opens under the row with the `.env` variable name, a **Get a key** link and **Remove** (or **Delete** for a MISP instance). The editor shows two fields: **Current key** (masked, the eye reveals it) and **New key**. Test results also open under the row.
 - **API keys** — one row per key, with the types it supports or the sources it powers (the abuse.ch key serves ThreatFox, URLhaus and MalwareBazaar). **Set key / Replace** saves it; **Remove** deletes the value saved here. Status: *Configured* (saved here), *From .env* (only in `backend/.env`) or *Not configured*. A key saved here wins over `.env`; removing it falls back to the `.env` value, if any.
 - **MISP instances** — **Add instance** (name, URL, API key, *Verify TLS certificate*, optional mTLS client certificate / key chosen from the files in `backend/certs/`), **Edit** (leave the key empty to keep it) and **Delete**, inside the editor. Each instance is its own source; set its weights on the Admin page (new ones start at 0 / 9). Instances from `MISP_<N>_*` in `.env` are shown until the first MISP change here, which copies them over; from then on those variables are ignored.
-- **Sources without a key** — Tor Exit Nodes, MITRE ATT&CK, RIPEstat and TweetFeed need no credentials and are always active; they are listed so they can be tested too.
-- **Test** — every row has one (disabled until a required key is set). It runs one real lookup of a harmless indicator (8.8.8.8, example.com, the EICAR hash…) against each source the row powers — all three for the abuse.ch key — with a progress bar and elapsed time while it runs. The result shows under the row, per source: the **test artifact** sent and its type, the response time, the outcome — *OK* (data returned), *OK · no record* (answered and accepted the key, nothing known about the artifact) or *Error* with the reason — and the source's raw JSON response (**Show response**, truncated above 60 000 characters). **Hide result** folds it to a one-line summary (**Show result** brings it back) and ✕ dismisses it. Rows can be tested at the same time. It uses one request of the source's quota — mind GreyNoise Community's 50 per week.
+- **Sources without a key** — Tor Exit Nodes, MITRE ATT&CK, RIPEstat, TweetFeed, CIRCL hashlookup, RDAP and Tranco need no credentials and are always active; they are listed so they can be tested too.
+- **Test** — every row has one (disabled until a required key is set). It runs one real lookup of a harmless indicator (8.8.8.8, example.com, the EICAR hash…) against each source the row powers — all three for the abuse.ch key — with a progress bar and elapsed time while it runs. The result shows under the row, per source: the **test artifact** sent and its type, the response time, the outcome — *OK* (data returned), *OK · no record* (answered and accepted the key, nothing known about the artifact) or *Error* with the reason — and the source's raw JSON response (**Show response**, truncated above 60 000 characters). **Hide result** folds it to a one-line summary (**Show result** brings it back) and ✕ dismisses it. Rows can be tested at the same time. It uses one request of the source's quota — mind GreyNoise Community's 50 per week and CrowdSec's small monthly quota.
 
 The home page lists only configured sources, so this page is where unconfigured ones are found. Changes apply to the next lookup, no restart. The list only shows the last four characters of each key. The eye on *Current key* fetches the full key on demand: admins only, from a signed-in browser session (never with an API token), sent with `Cache-Control: no-store` and logged by the backend (`Admin <user> revealed the <VAR> key`). They are stored in `backend/data/connectors.json` with permissions 0600, **in clear** (like `backend/.env`): protect the data volume and its backups accordingly.
 
@@ -252,8 +252,15 @@ Archived history entries keep the value in force when they were run; entries sav
 | Tor Exit List | 5 | 2 | |
 | IPinfo | 0 | 1 | context only |
 | RIPEstat | 0 | 1 (ASN: 6) | context only |
+| CrowdSec CTI | 7 | 6 | |
+| Malpedia | 0 | 7 | context only |
+| CIRCL hashlookup | 4 | 5 | mostly clean verdicts |
+| RDAP | 4 | 3 | young domains only |
+| Tranco | 2 | 3 | clean verdicts only |
 
 ANY.RUN, Hybrid Analysis, GreyNoise and Safe Browsing ship with risk weight 0: they are scored, but don't move the Risk Score until you give them a weight.
+
+CIRCL hashlookup, Tranco and CrowdSec are the sources that most often issue an explicit **clean** verdict, which the *Known benign* quadrant needs. A clean verdict only counts with a risk weight above 0, and it also pulls the Risk Score down when other sources flag the indicator, which is why Tranco (popular domains can host abuse) and hashlookup (dual-use tools ship in distributions) have low risk weights.
 
 ### Risk subscore (0–10) per source
 
@@ -277,7 +284,11 @@ ANY.RUN, Hybrid Analysis, GreyNoise and Safe Browsing ship with risk weight 0: t
 | Tor Exit List | exit node → 7; otherwise no verdict |
 | MISP | matching attribute flagged `to_ids` (IDS) → 9; matches with `to_ids` off are context only (count for Knowledge, no risk verdict); no match → no verdict |
 | TweetFeed | not reported → no verdict; 1 reporter → 5; 2 → 6; ≥3, or a malware family / campaign → 7 (capped: reports are unvetted) |
-| Shodan, IPinfo, RIPEstat, MITRE ATT&CK | never return a risk subscore |
+| CrowdSec CTI | not reported or *unknown* → no verdict; known false positive, *safe* or *benign* → clean; *known* → 4; *suspicious* → 6; *malicious* → 9 |
+| CIRCL hashlookup | known file → clean; also flagged `KnownMalicious` → no verdict; not found → no verdict |
+| RDAP | domain registered < 7 days ago → 7; < 30 days → 5; older, unregistered or no date → no verdict |
+| Tranco | the registered domain itself in the top 100 000 → clean; lower rank, a subdomain, or not listed → no verdict |
+| Shodan, IPinfo, RIPEstat, MITRE ATT&CK, Malpedia | never return a risk subscore |
 
 ### Depth of record per source (Knowledge Score)
 
@@ -303,5 +314,10 @@ ANY.RUN, Hybrid Analysis, GreyNoise and Safe Browsing ship with risk weight 0: t
 | Tor Exit List | not an exit node | — | exit node |
 | IPinfo | bogon | any answer | — |
 | RIPEstat | no announced route | announced prefix (IP) | ASN holder found (ASN) |
+| CrowdSec CTI | not reported | *known* / *unknown*, no behaviours | behaviours, false positive, or a firm reputation |
+| CIRCL hashlookup | not found | single source (trust 50) | trust > 50 or parent packages |
+| RDAP | not registered | registration record | — |
+| Tranco | not listed or a subdomain | rank 100 001 – 1M | top 100 000 |
+| Malpedia | no actor matched | profile only | description or attributed families |
 
 These rules are fixed in code (`frontend/src/verdictEngine.ts`); the Admin page only changes how much each source's result counts.

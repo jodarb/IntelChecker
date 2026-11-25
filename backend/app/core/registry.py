@@ -30,6 +30,12 @@ STATIC_ENGINES: dict[str, dict] = {
     "hybridanalysis": _engine("Hybrid Analysis", _ALL, "HYBRID_ANALYSIS_API_KEY"),
     "safebrowsing":   _engine("Google Safe Browsing", ["url"], "GOOGLE_SAFE_BROWSING_API_KEY"),
     "tweetfeed":      _engine("TweetFeed", _ALL, None),
+    "crowdsec":       _engine("CrowdSec CTI", ["ip"], "CROWDSEC_API_KEY"),
+    "hashlookup":     _engine("CIRCL hashlookup", ["hash"], None),
+    "rdap":           _engine("RDAP (domain registration)", ["domain", "url"], None),
+    "tranco":         _engine("Tranco (top domains)", ["domain"], None),
+    # The API token is optional (higher rate limit): connected without it.
+    "malpedia":       _engine("Malpedia", ["threat-actor"], None),
 }
 
 # MISP is multi-instance: any number of servers, managed from the Connectors page

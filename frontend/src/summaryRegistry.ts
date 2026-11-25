@@ -118,6 +118,19 @@ export const SUMMARY_REGISTRY: Record<string, Partial<Record<IndicatorType, Summ
       },
     ],
   },
+  crowdsec: {
+    ip: [
+      { field: 'country', extract: (d) => ((d as any)?.location?.country) || null },
+      {
+        field: 'asn',
+        extract: (d) => {
+          const n = (d as any)?.as_num
+          return n != null ? `AS${n}` : null
+        },
+      },
+      { field: 'isp', extract: (d) => ((d as any)?.as_name) || null },
+    ],
+  },
   torexitlist: {
     ip: [
       { field: 'torExit', extract: (d) => ((d as any)?.is_tor_exit ? 'Yes' : null) },

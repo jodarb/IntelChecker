@@ -329,6 +329,56 @@ function tweetFeedSubscore(d: unknown): number | null {
   return 5
 }
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// CrowdSec CTI: reputation from the CrowdSec network's attack signals. An IP the
+// network lists as a false positive (public resolver, known scanner…) or rates
+// "safe"/"benign" is an explicit clean verdict; "unknown" or not reported is no data.
+function crowdsecSubscore(d: unknown): number | null {
+  const p = d as any
+  if (!p?.found) return null
+  const rep = p?.reputation
+  if (arr(p?.classifications?.false_positives).length > 0 || rep === 'safe' || rep === 'benign') return 0
+  if (rep === 'malicious') return 9
+  if (rep === 'suspicious') return 6
+  if (rep === 'known') return 4
+  return null
+}
+
+// CIRCL hashlookup: the file ships with known, legitimate software (NSRL, distro
+// packages…) — an explicit clean verdict, unless the same file is also recorded in a
+// malware repository (KnownMalicious: EICAR, dual-use tools), then no verdict.
+function hashlookupSubscore(d: unknown): number | null {
+  const p = d as any
+  if (!p?.found || p?.KnownMalicious) return null
+  return 0
+}
+
+// RDAP: a newly registered domain is a classic phishing/malware signal. An old one
+// proves nothing (compromised sites are old too), so age only ever raises risk.
+// age_days is frozen at lookup time by the backend.
+function rdapSubscore(d: unknown): number | null {
+  const p = d as any
+  const age = p?.age_days
+  if (!p?.found || typeof age !== 'number') return null
+  if (age < 7) return 7
+  if (age < 30) return 5
+  return null
+}
+
+/** Tranco: ranks at or above this one count as an explicit clean verdict. */
+export const TRANCO_CLEAN_MAX_RANK = 100000
+
+// Tranco: in the top 100k most popular domains → clean. Only when the lookup *is*
+// the ranked registered domain (exact): a subdomain of a popular parent
+// (evil.duckdns.org, x.blogspot.com) inherits nothing.
+function trancoSubscore(d: unknown): number | null {
+  const p = d as any
+  const rank = p?.rank
+  if (!p?.found || p?.exact !== true || typeof rank !== 'number') return null
+  return rank <= TRANCO_CLEAN_MAX_RANK ? 0 : null
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
 function mispSubscore(d: unknown): number | null {
   const attrs = (d as any)?.Attribute
   if (!Array.isArray(attrs)) return null
@@ -361,6 +411,10 @@ const VERDICT_NORMALIZERS: Record<string, Partial<Record<IndicatorType, (data: u
   hybridanalysis: { ip: hybridAnalysisSubscore, domain: hybridAnalysisSubscore, url: hybridAnalysisSubscore, hash: hybridAnalysisSubscore },
   safebrowsing: { url: safeBrowsingSubscore },
   tweetfeed: { ip: tweetFeedSubscore, domain: tweetFeedSubscore, url: tweetFeedSubscore, hash: tweetFeedSubscore },
+  crowdsec: { ip: crowdsecSubscore },
+  hashlookup: { hash: hashlookupSubscore },
+  rdap: { domain: rdapSubscore, url: rdapSubscore },
+  tranco: { domain: trancoSubscore },
 }
 
 // Per-engine 0-10 score for a single result, independent of weight — this is what
@@ -504,6 +558,35 @@ function tweetFeedDepth(d: any): Depth {
   return s.users >= 2 || s.tweets >= 2 || s.inCampaign ? 1 : 0.5
 }
 
+function crowdsecDepth(d: any): Depth {
+  if (!d?.found) return 0
+  if (arr(d?.behaviors).length > 0 || arr(d?.classifications?.false_positives).length > 0
+    || ['malicious', 'suspicious', 'safe', 'benign'].includes(d?.reputation)) return 1
+  return 0.5
+}
+
+function hashlookupDepth(d: any): Depth {
+  if (!d?.found) return 0
+  const trust = d?.['hashlookup:trust']
+  const parents = d?.['hashlookup:parent-total']
+  return (typeof trust === 'number' && trust > 50) || (typeof parents === 'number' && parents > 0) ? 1 : 0.5
+}
+
+function rdapDepth(d: any): Depth {
+  return d?.found ? 0.5 : 0
+}
+
+function trancoDepth(d: any): Depth {
+  const rank = d?.rank
+  if (!d?.found || d?.exact !== true || typeof rank !== 'number') return 0
+  return rank <= TRANCO_CLEAN_MAX_RANK ? 1 : 0.5
+}
+
+function malpediaDepth(d: any): Depth {
+  if (!d?.found) return 0
+  return arr(d?.families).length > 0 || d?.description ? 1 : 0.5
+}
+
 const DEPTH_FNS: Record<string, (data: any) => Depth> = {
   tweetfeed: tweetFeedDepth,
   virustotal: vtDepth,
@@ -524,6 +607,11 @@ const DEPTH_FNS: Record<string, (data: any) => Depth> = {
   torexitlist: torDepth,
   ipinfo: ipinfoDepth,
   ripestat: ripestatDepth,
+  crowdsec: crowdsecDepth,
+  hashlookup: hashlookupDepth,
+  rdap: rdapDepth,
+  tranco: trancoDepth,
+  malpedia: malpediaDepth,
 }
 
 /* eslint-enable @typescript-eslint/no-explicit-any */

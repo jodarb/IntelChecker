@@ -34,7 +34,8 @@ TYPES = ["ip", "domain", "url", "hash", "asn", "threat-actor"]
 ENGINE_IDS = [
     "abuseipdb", "virustotal", "abusech", "alienvault", "ipinfo", "shodan", "torexitlist", "urlhaus",
     "mitreattack", "ripestat", "urlscan", "malwarebazaar", "phishtank", "recordedfuture", "anyrun",
-    "greynoise", "hybridanalysis", "safebrowsing", "tweetfeed", "misp_1", "misp_2",
+    "greynoise", "hybridanalysis", "safebrowsing", "tweetfeed", "crowdsec", "hashlookup", "rdap", "tranco",
+    "malpedia", "misp_1", "misp_2",
 ]
 ERROR_CODES = ["NotFound", "MissingApiKey", "RateLimitExceeded", "Timeout", "NetworkError",
                "ServiceUnavailable", "HttpError", "Unauthorized", "UnsupportedType", "ApiError"]
@@ -113,6 +114,23 @@ def payload(r: random.Random, engine: str):
                    for _ in range(r.choice([0, 1, 2]))]
         return obj(found=m(r.choice([True, False])), records=m(records),
                    campaigns=m(r.choice([[], [{}]])), ai=m(obj(family=m(r.choice(["", "Emotet"])))))
+    if engine == "crowdsec":
+        return obj(found=m(r.choice([True, False])),
+                   reputation=m(r.choice(["malicious", "suspicious", "known", "safe", "benign", "unknown", "", 3])),
+                   behaviors=m(r.choice([[], [{"name": "ssh:bruteforce"}]])),
+                   classifications=m(obj(false_positives=m(r.choice([[], [{"name": "public_dns"}]])))))
+    if engine == "hashlookup":
+        return obj(found=m(r.choice([True, False])), KnownMalicious=m(r.choice(["", "malshare.com", None])),
+                   **{"hashlookup:trust": m(r.choice([50, 51, 100, 0, "60"])),
+                      "hashlookup:parent-total": m(r.choice([0, 1, 15]))})
+    if engine == "rdap":
+        return obj(found=m(r.choice([True, False])), age_days=m(r.choice([0, 6, 7, 29, 30, 365, 0.5, "3"])))
+    if engine == "tranco":
+        return obj(found=m(r.choice([True, False])), exact=m(r.choice([True, False, 1])),
+                   rank=m(r.choice([1, 99999, 100000, 100001, 999999, "5"])))
+    if engine == "malpedia":
+        return obj(found=m(r.choice([True, False])), families=m(r.choice([[], [{}]])),
+                   description=m(r.choice(["", "APT group"])))
     if engine.startswith("misp_"):
         to_ids = [True, False, 1, 0, "1", "0", None]
         return obj(Attribute=m([obj(to_ids=m(r.choice(to_ids)), event_id=m(r.choice(["1", "2", "3", None])),

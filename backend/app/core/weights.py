@@ -41,6 +41,11 @@ DEFAULT_ENGINE_WEIGHTS: dict[str, dict] = {
     "torexitlist":    {"risk": 5,  "knowledge": 2},
     "ipinfo":         {"risk": 0,  "knowledge": 1},
     "ripestat":       {"risk": 0,  "knowledge": 1, "knowledge_by_type": {"asn": 6}},
+    "crowdsec":       {"risk": 7,  "knowledge": 6},
+    "malpedia":       {"risk": 0,  "knowledge": 7},
+    "hashlookup":     {"risk": 4,  "knowledge": 5},
+    "rdap":           {"risk": 4,  "knowledge": 3},
+    "tranco":         {"risk": 2,  "knowledge": 3},
 }
 
 DEFAULT_THRESHOLDS = {"knowledge": 4, "risk": 5}
