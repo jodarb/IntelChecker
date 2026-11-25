@@ -12,6 +12,7 @@ import {
   type VerdictConfig,
 } from '@/verdictEngine'
 import type { CardWeight } from '@/components/results/WeightBadge'
+import { cardState, compareCards } from '@/resultOrder'
 import { useVerdictWeights } from '@/hooks/useVerdictWeights'
 import { useEngineToggles } from '@/hooks/useEngineToggles'
 import { useEngines } from '@/EnginesContext'
@@ -142,14 +143,28 @@ export default function ResultsPage() {
     return computeVerdict(config, activeEngines, results, type)
   }, [config, activeEngines, results, type])
 
-  // Highest-weighted engines float to the top (risk weight first, knowledge weight
-  // as tie-breaker) — Array#sort is stable, so ties keep their original order.
+  // Unconfigured sources aren't shown. The rest: results first (highest risk
+  // subscore, then Knowledge contribution), then loading, then no result / errors /
+  // switched off — see resultOrder.ts. Cards move up as their answers arrive.
   const sortedEngines = useMemo(() => {
-    if (!config) return engines
-    return [...engines].sort((a, b) =>
-      riskWeightOf(config, b.id) - riskWeightOf(config, a.id)
-      || knowledgeWeightOf(config, b.id, type) - knowledgeWeightOf(config, a.id, type))
-  }, [engines, config, type])
+    const ranked = engines
+      .filter(e => status?.[e.id]?.connected !== false)
+      .map(e => {
+        const result = results[e.id]
+        const a = getEngineAssessment(e.id, type, result)
+        return {
+          engine: e,
+          rank: {
+            state: disabled.has(e.id) ? 'off' as const : cardState(result, a),
+            subscore: a.subscore,
+            depth: a.depth,
+            riskWeight: config ? riskWeightOf(config, e.id) : 0,
+            knowledgeWeight: config ? knowledgeWeightOf(config, e.id, type) : 0,
+          },
+        }
+      })
+    return ranked.sort((x, y) => compareCards(x.rank, y.rank)).map(x => x.engine)
+  }, [engines, status, disabled, results, config, type])
 
   // Once every active engine has settled, log this query to the history DB —
   // once per indicator+type, not on every re-render (e.g. toggling an engine
@@ -226,9 +241,7 @@ export default function ResultsPage() {
           <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">{t('results.byEngine')}</p>
           <div className="grid grid-cols-1 gap-4">
             {sortedEngines.map(engine => (
-              isUnconfigured(engine.id)
-                ? <DisconnectedCard key={engine.id} label={engine.label} reason="missing-key" />
-                : disabled.has(engine.id)
+              disabled.has(engine.id)
                 ? <DisconnectedCard key={engine.id} label={engine.label} reason="disabled" />
                 : (
                   <EngineCard

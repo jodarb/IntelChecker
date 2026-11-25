@@ -15,7 +15,7 @@ import { useVerdictWeights } from '@/hooks/useVerdictWeights'
 import type { IndicatorType, QueryResult } from '@/registry'
 import { useI18n } from '@/i18n/useI18n'
 import { BACKEND_DOWN } from '@/i18n/errors'
-import DisconnectedCard from '@/components/results/DisconnectedCard'
+import { cardState, compareCards } from '@/resultOrder'
 
 interface StoredEngineResult {
   label: string
@@ -118,6 +118,27 @@ export default function HistoryDetailPage() {
   }
   const isLegacy = entry.knowledge_score == null && entry.contributions.knowledge.length === 0
 
+  // Same order as the live results page (resultOrder.ts), with the weights stored
+  // in the entry. Sources that had no API key at the time are not shown.
+  const weightsOf = (engineId: string) => ({
+    risk: entry.contributions.risk.find(c => c.engineId === engineId)?.weight ?? 0,
+    knowledge: entry.contributions.knowledge.find(c => c.engineId === engineId)?.weight ?? 0,
+  })
+  const orderedResults = Object.entries(entry.results)
+    .filter(([, stored]) => (stored.data as { error?: { code?: string } } | null)?.error?.code !== 'MissingApiKey')
+    .map(([engineId, stored]) => {
+      const a = assessments[engineId]
+      const w = weightsOf(engineId)
+      return {
+        engineId, stored,
+        rank: {
+          state: cardState(resultsForSummary[engineId], a), subscore: a.subscore, depth: a.depth,
+          riskWeight: w.risk, knowledgeWeight: w.knowledge,
+        },
+      }
+    })
+    .sort((x, y) => compareCards(x.rank, y.rank))
+
   return (
     <Layout>
       <main className="flex-1 px-6 py-6 w-full max-w-5xl mx-auto flex flex-col gap-6">
@@ -166,22 +187,15 @@ export default function HistoryDetailPage() {
         <div className="flex flex-col gap-3">
           <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">{t('results.byEngine')}</p>
           <div className="grid grid-cols-1 gap-4">
-            {Object.entries(entry.results).map(([engineId, stored]) => {
+            {orderedResults.map(({ engineId, stored }) => {
               const engine = engines.find(e => e.id === engineId)
               if (!engine) {
                 return <UnknownEngineCard key={engineId} label={stored.label} data={stored.data} />
               }
-              if ((stored.data as { error?: { code?: string } } | null)?.error?.code === 'MissingApiKey') {
-                return <DisconnectedCard key={engineId} label={stored.label} reason="missing-key" />
-              }
               const Component = engine.component
               const assessment = assessments[engineId]
               const score = assessment.subscore
-              const weight = {
-                risk: entry.contributions.risk.find(c => c.engineId === engineId)?.weight ?? 0,
-                knowledge: entry.contributions.knowledge.find(c => c.engineId === engineId)?.weight ?? 0,
-                depth: assessment.depth,
-              }
+              const weight = { ...weightsOf(engineId), depth: assessment.depth }
               return (
                 <Component
                   key={engineId}

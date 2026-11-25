@@ -12,7 +12,8 @@ Type an indicator on the home page, pick its type (IP, Domain, URL, File Hash, A
 
 - The source list under the search box shows only the configured sources (admins also see how many are missing, with a link to **Connectors**). Its switch turns a source off for that browser; disabled sources aren't queried and don't count in any score.
 - Each source shows its **R** (risk) and **K** (knowledge) weight. Sources are sorted by risk weight, then knowledge weight.
-- Sources without an API key are listed as **Not configured** and are left out of the lookup. On the results page they appear as a greyed-out **Off · not configured** card, never as an error.
+- Sources without an API key are left out of the lookup and **not shown on the results page** at all (the Summary says how many there are).
+- **Card order on the results page** (and in History entries): first the sources with a result, highest risk subscore first — clean (0) before context-only — and, on ties, the larger Knowledge contribution (knowledge weight × depth). Then the sources still loading, and at the end those without a result: no record, errors, and sources you switched off. Cards move up as their answers arrive.
 - Lookups are always live — nothing is cached.
 
 ## 2. The two scores
@@ -96,7 +97,7 @@ Each card links to the indicator on the original tool and has a `RAW` button wit
 | `No results` (soft, yellow) | The source has no record of the indicator. |
 | `No score` (soft, yellow) | Real data, but nothing to score (Shodan host, IPinfo geolocation). |
 | `Error` (soft, red) | The lookup failed; the card says why (invalid key, rate limit, timeout…). |
-| `Off · not configured` / `Disabled` (grey, power icon) | Not part of the lookup: no API key (set on the Connectors page), or switched off on the home page. Not queried, not counted in either score. History entries show it the same way. |
+| `Disabled` (grey, power icon) | Switched off on the home page: not queried, not counted in either score. Shown at the end of the list. (Sources without an API key are not shown at all.) |
 
 ## 4. History and search frequency
 
