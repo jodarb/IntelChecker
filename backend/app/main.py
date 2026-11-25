@@ -1,5 +1,7 @@
 import asyncio
+import json
 import logging
+import time
 from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from pydantic import BaseModel
@@ -281,25 +283,44 @@ def delete_misp_instance(instance_id: str):
     return Response(status_code=204)
 
 
+_TEST_RESPONSE_LIMIT = 60_000   # characters of raw response sent back to the UI
+
+
 @app.post("/connectors/test/{engine}", dependencies=[IsAdmin])
 async def test_connector(engine: str):
-    """Runs a real lookup of a harmless indicator against one source. "Not found"
-    counts as success: the source answered and accepted the credentials. Uses one
-    request of the source's quota."""
+    """Runs a real lookup of a harmless indicator against one source and returns
+    what was sent and what came back. "Not found" counts as success: the source
+    answered and accepted the credentials. Uses one request of the source's quota."""
     meta = current_engines().get(engine)
     service = _service(engine)
     if meta is None or service is None:
         raise auth.api_error(404, "ConnectorNotFound", f"Unknown source: {engine}.")
     type_ = next(t for t in ("ip", "domain", "url", "hash", "asn", "threat-actor") if t in meta["supports"])
+    indicator = _TEST_INDICATORS[type_]
+    result = {"engine": engine, "label": meta["label"], "indicator": indicator, "type": type_}
+    started = time.perf_counter()
     try:
-        data = await service.dispatch(_TEST_INDICATORS[type_], type_)
+        data = await service.dispatch(indicator, type_)
     except Exception:
         log.exception("Connector test of %s failed", engine)
-        return {"ok": False, "error": {"code": "InternalError", "message": f"{meta['label']} test failed unexpectedly."}}
+        return {**result, "ok": False, "outcome": "error", "duration_ms": round((time.perf_counter() - started) * 1000),
+                "error": {"code": "InternalError", "message": f"{meta['label']} test failed unexpectedly."},
+                "response": None, "truncated": False}
+    duration_ms = round((time.perf_counter() - started) * 1000)
     err = data.get("error") if isinstance(data, dict) else None
-    if isinstance(err, dict) and err.get("code") != "NotFound":
-        return {"ok": False, "error": err}
-    return {"ok": True, "error": None}
+    outcome = "error" if isinstance(err, dict) and err.get("code") != "NotFound" else (
+        "not_found" if isinstance(err, dict) else "ok")
+    raw = json.dumps(data, ensure_ascii=False, default=str)
+    truncated = len(raw) > _TEST_RESPONSE_LIMIT
+    return {
+        **result,
+        "ok": outcome != "error",
+        "outcome": outcome,
+        "duration_ms": duration_ms,
+        "error": err if outcome == "error" else None,
+        "response": raw[:_TEST_RESPONSE_LIMIT] if truncated else data,
+        "truncated": truncated,
+    }
 
 
 # ── Lookups ───────────────────────────────────────────────────────────────────

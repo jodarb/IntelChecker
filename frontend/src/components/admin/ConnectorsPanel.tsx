@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
-import { CheckCircle2, ExternalLink, FlaskConical, KeyRound, Pencil, Plus, ShieldOff, Trash2, XCircle } from 'lucide-react'
+import { ExternalLink, FlaskConical, KeyRound, Loader2, Pencil, Plus, ShieldOff, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { apiJson } from '@/lib/api'
 import { useEngines } from '@/EnginesContext'
 import { useI18n } from '@/i18n/useI18n'
 import { rich } from '@/i18n/rich'
-import { apiErrorText, authErrorText } from '@/i18n/errors'
+import { authErrorText } from '@/i18n/errors'
+import ConnectorTestPanel, { type EngineTestResult, type RowTest } from './ConnectorTest'
 
 interface KeyConnector {
   key: string
@@ -40,25 +41,7 @@ interface ConnectorsData {
   keyless: { id: string; label: string }[]
 }
 
-interface TestResult {
-  ok: boolean
-  error: { code?: string; message?: string } | null
-}
-
 type Message = { kind: 'ok' | 'error'; text: string }
-
-/** Inline result of the last test of one row. */
-function TestOutcome({ result }: { result?: Message }) {
-  if (!result) return null
-  const ok = result.kind === 'ok'
-  return (
-    <p role={ok ? 'status' : 'alert'}
-      className={`text-xs flex items-start gap-1.5 ${ok ? 'text-green-500' : 'text-red-400'}`}>
-      {ok ? <CheckCircle2 className="h-3.5 w-3.5 mt-px shrink-0" /> : <XCircle className="h-3.5 w-3.5 mt-px shrink-0" />}
-      <span>{result.text}</span>
-    </p>
-  )
-}
 
 function TestButton({ testing, disabled, title, onClick }: {
   testing: boolean; disabled: boolean; title: string; onClick: () => void
@@ -66,7 +49,7 @@ function TestButton({ testing, disabled, title, onClick }: {
   const { t } = useI18n()
   return (
     <Button variant="ghost" size="sm" disabled={disabled} onClick={onClick} title={title} className="h-9 gap-1 px-2 text-xs">
-      <FlaskConical className="h-3.5 w-3.5" />
+      {testing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FlaskConical className="h-3.5 w-3.5" />}
       {testing ? t('connectors.testing') : t('connectors.test')}
     </Button>
   )
@@ -98,8 +81,7 @@ export default function ConnectorsPanel() {
   const [data, setData] = useState<ConnectorsData | null>(null)
   const [loadFailed, setLoadFailed] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [testing, setTesting] = useState<string | null>(null)   // row id under test
-  const [testResults, setTestResults] = useState<Record<string, Message>>({})
+  const [tests, setTests] = useState<Record<string, RowTest>>({})   // last test of each row
   const [message, setMessage] = useState<Message | null>(null)
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [keyValue, setKeyValue] = useState('')
@@ -133,28 +115,31 @@ export default function ConnectorsPanel() {
     }
   }
 
-  /** Tests every source a row powers (the abuse.ch key serves three different APIs). */
+  const isTesting = (rowId: string) => tests[rowId] !== undefined && tests[rowId].finishedAt === null
+
+  /** Tests every source a row powers in parallel (the abuse.ch key serves three
+   *  different APIs); each result shows up as soon as its source answers. */
   const test = async (rowId: string, engineIds: string[]) => {
-    setTesting(rowId)
-    setTestResults(r => { const rest = { ...r }; delete rest[rowId]; return rest })
-    const outcomes = await Promise.all(engineIds.map(async id => {
-      const label = labelOf(id)
+    setTests(ts => ({ ...ts, [rowId]: { startedAt: Date.now(), finishedAt: null, engineIds, results: {} } }))
+    const setResult = (id: string, result: EngineTestResult) =>
+      setTests(ts => ts[rowId] ? { ...ts, [rowId]: { ...ts[rowId], results: { ...ts[rowId].results, [id]: result } } } : ts)
+    await Promise.all(engineIds.map(async id => {
       try {
-        const r = await apiJson<TestResult>(`/connectors/test/${encodeURIComponent(id)}`, 'POST')
-        return r.ok ? null : `${engineIds.length > 1 ? `${label}: ` : ''}${apiErrorText(i18n, r.error, label) ?? ''}`
+        setResult(id, await apiJson<EngineTestResult>(`/connectors/test/${encodeURIComponent(id)}`, 'POST'))
       } catch (err) {
-        return authErrorText(i18n, err)
+        setResult(id, {
+          engine: id, label: labelOf(id), indicator: null, type: null, ok: false, outcome: 'error',
+          duration_ms: null, error: { message: authErrorText(i18n, err) }, response: null, truncated: false,
+        })
       }
     }))
-    const failures = outcomes.filter((o): o is string => o !== null)
-    setTestResults(r => ({
-      ...r,
-      [rowId]: failures.length
-        ? { kind: 'error', text: failures.join(' · ') }
-        : { kind: 'ok', text: t('connectors.testOk') },
-    }))
-    setTesting(null)
+    setTests(ts => ts[rowId] ? { ...ts, [rowId]: { ...ts[rowId], finishedAt: Date.now() } } : ts)
   }
+
+  const closeTest = (rowId: string) => setTests(ts => { const rest = { ...ts }; delete rest[rowId]; return rest })
+
+  const testPanel = (rowId: string) =>
+    tests[rowId] && <ConnectorTestPanel test={tests[rowId]} labelOf={labelOf} onClose={() => closeTest(rowId)} />
 
   const saveKey = async (c: KeyConnector) => {
     const ok = await run(
@@ -226,8 +211,8 @@ export default function ConnectorsPanel() {
                           <ExternalLink className="h-3.5 w-3.5" /> {t('connectors.getKey')}
                         </a>
                       </Button>
-                      <TestButton testing={testing === c.key}
-                        disabled={busy || testing !== null || !(c.configured || c.optional)}
+                      <TestButton testing={isTesting(c.key)}
+                        disabled={busy || isTesting(c.key) || !(c.configured || c.optional)}
                         title={c.configured || c.optional ? t('connectors.testTitle') : t('connectors.testNeedsKey')}
                         onClick={() => test(c.key, c.engines)} />
                       {!editing && (
@@ -257,7 +242,7 @@ export default function ConnectorsPanel() {
                       </Button>
                     </form>
                   )}
-                  <TestOutcome result={testResults[c.key]} />
+                  {testPanel(c.key)}
                 </div>
               )
             })}
@@ -313,7 +298,7 @@ export default function ConnectorsPanel() {
                     </span>
                   </div>
                   <div className="flex items-center gap-1 justify-end">
-                    <TestButton testing={testing === m.id} disabled={busy || testing !== null || !m.connected}
+                    <TestButton testing={isTesting(m.id)} disabled={busy || isTesting(m.id) || !m.connected}
                       title={m.connected ? t('connectors.testTitle') : t('connectors.testNeedsKey')}
                       onClick={() => test(m.id, [m.id])} />
                     <Button variant="ghost" size="icon" disabled={busy}
@@ -337,7 +322,7 @@ export default function ConnectorsPanel() {
                       if (ok) setEditingMisp(null)
                     }} />
                 )}
-                <TestOutcome result={testResults[m.id]} />
+                {testPanel(m.id)}
               </div>
             ))}
           </section>
@@ -357,10 +342,10 @@ export default function ConnectorsPanel() {
                         ? <img src={logo} alt="" className="h-6 w-6 rounded-sm object-contain shrink-0" />
                         : <KeyRound className="h-5 w-5 text-muted-foreground shrink-0" />}
                       <span className="text-sm font-medium text-foreground flex-1 min-w-0 truncate">{k.label}</span>
-                      <TestButton testing={testing === k.id} disabled={busy || testing !== null}
+                      <TestButton testing={isTesting(k.id)} disabled={busy || isTesting(k.id)}
                         title={t('connectors.testTitle')} onClick={() => test(k.id, [k.id])} />
                     </div>
-                    <TestOutcome result={testResults[k.id]} />
+                    {testPanel(k.id)}
                   </div>
                 )
               })}
