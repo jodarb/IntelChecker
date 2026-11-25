@@ -139,7 +139,7 @@ export const docsEs: DocsContent = {
     head: ['Bloque', 'Qué muestra'],
     rows: [
       ['Marcado por', 'Dice “**N** fuentes lo marcan como malicioso · M han respondido · K sin configurar”: N fuentes devolvieron una señal de riesgo (cada una con su subpuntuación, de mayor a menor), M fuentes respondieron y K fuentes que admiten este tipo no tienen API key (solo aparece si hay alguna). Debajo se listan las fuentes que dieron un veredicto limpio. Las fuentes con peso Risk 0 aparecen con borde discontinuo: lo marcaron pero no cuentan en el Risk Score.'],
-      ['Familias de malware', 'Solo familias de campos estructurados (ThreatFox, MalwareBazaar, OTX, galaxias de MISP, VirusTotal, Hybrid Analysis, ANY.RUN, TweetFeed, Malpedia). Los alias se fusionan — p. ej. Qbot / QakBot / Pinkslipbot — con una tabla integrada más los alias de software de MITRE ATT&CK. Las familias que solo vienen de **pulses masivos de OTX** (resúmenes semanales, feeds con ≥ 100 indicadores) se descartan: describen el informe, no este indicador.'],
+      ['Familias de malware', 'Solo familias de campos estructurados (ThreatFox, MalwareBazaar, OTX, galaxias de MISP, VirusTotal, Hybrid Analysis, ANY.RUN, TweetFeed, Malpedia, SSLBL). Los alias se fusionan — p. ej. Qbot / QakBot / Pinkslipbot — con una tabla integrada más los alias de software de MITRE ATT&CK. Las familias que solo vienen de **pulses masivos de OTX** (resúmenes semanales, feeds con ≥ 100 indicadores) se descartan: describen el informe, no este indicador.'],
       ['Relación con actores de amenaza', 'Una fila por actor con **todas las fuentes que relacionan el indicador con él**: adversarios de pulses de OTX y el resumen de adversarios relacionados de OTX, galaxias de actor de MISP, el perfil de actor de Malpedia y nombres de actores encontrados en las etiquetas de cualquier fuente (comparados con los grupos y alias de MITRE ATT&CK). Las reglas “Linked to APT” de Recorded Future aparecen como relación sin nombre. Si las fuentes respondieron y ninguna lo relaciona con un actor, el bloque lo indica. Las campañas (TweetFeed) se listan debajo.'],
       ['Ventana de actividad', 'La primera fecha en que se vio y la última, entre todas las fuentes, con la fuente de cada una.'],
       ['GeoIP · ASN · ISP · Tor · Puertos', 'Contexto de red, con cuántas fuentes coinciden en cada valor.'],
@@ -178,7 +178,7 @@ export const docsEs: DocsContent = {
       ['Risk ≥', 'A partir de este Risk Score, es “riesgo alto” (ahora {tr}). También es el nivel que debe alcanzar una sola fuente para impedir “Conocido · Benigno”.', 'Menos alertas, menos falsos positivos.', 'Todo es riesgo alto.'],
     ],
     list: [
-      '**El peso Risk no hace nada en fuentes solo de contexto** (Shodan, IPinfo, RIPEstat, MITRE ATT&CK, Malpedia): nunca devuelven subpuntuación. Su valor está en el Knowledge.',
+      '**El peso Risk no hace nada en fuentes solo de contexto** (Shodan, IPinfo, RIPEstat, MITRE ATT&CK, Malpedia, CIRCL Passive DNS): nunca devuelven subpuntuación. Su valor está en el Knowledge.',
       'Mantén **bajos los pesos Knowledge de las fuentes que responden a casi todo** (IPinfo, RIPEstat) o que solo dicen sí/no (lista de salida Tor, Safe Browsing), para que no inflen el Knowledge.',
       '**Cuidado con un peso Risk dominante**: también amplifica las subpuntuaciones *bajas* de esa fuente y diluye las señales fuertes de las demás.',
       'Los umbrales solo cambian la **etiqueta**, nunca las dos puntuaciones.',
@@ -225,7 +225,11 @@ export const docsEs: DocsContent = {
       ['CIRCL hashlookup', 'fichero conocido de software legítimo → limpio; marcado además KnownMalicious → sin veredicto; no encontrado → sin veredicto.'],
       ['RDAP', 'dominio registrado hace < 7 días → 7, < 30 días → 5; más antiguo → sin veredicto (los sitios comprometidos también son antiguos).'],
       ['Tranco', 'el propio dominio registrado en el top 100 000 → limpio; posición inferior, un subdominio o no listado → sin veredicto.'],
-      ['Shodan, IPinfo, RIPEstat, MITRE ATT&CK, Malpedia', 'solo contexto — nunca dan subpuntuación.'],
+      ['Spamhaus', 'por código de respuesta: DROP, ASN-DROP, DBL phishing/malware/C&C → 9; SBL → 8; XBL, DBL spam → 7; CSS → 6; DBL legítimo abusado → 5–6; solo PBL o no listado → sin veredicto.'],
+      ['OpenPhish', 'URL listada → 9; dominio/IP que aloja phishing listado → 7; URL en un host que sirve otro phishing listado → 6; no listado → sin veredicto.'],
+      ['YARAify', 'firma de ClamAV → 7; solo reglas YARA o no encontrado → sin veredicto.'],
+      ['SSLBL', 'certificado (SHA-1) listado → 9; si no, sin veredicto.'],
+      ['Shodan, IPinfo, RIPEstat, MITRE ATT&CK, Malpedia, CIRCL Passive DNS', 'solo contexto — nunca dan subpuntuación.'],
     ],
   },
 
@@ -258,6 +262,11 @@ export const docsEs: DocsContent = {
       ['RDAP', 'no registrado', 'registro de alta', '—'],
       ['Tranco', 'no listado o un subdominio', 'posición 100 001 – 1M', 'top 100 000'],
       ['Malpedia', 'ningún actor coincide', 'solo perfil', 'descripción o familias atribuidas'],
+      ['Spamhaus', 'no listado', 'solo PBL', 'cualquier listado puntuado'],
+      ['OpenPhish', 'no listado', 'otras URLs del mismo host', 'listado él mismo / host que sirve phishing'],
+      ['YARAify', 'nunca enviado', 'enviado, sin coincidencias', 'coincidencias YARA o ClamAV'],
+      ['SSLBL', 'no listado / no es SHA-1', '—', 'listado'],
+      ['CIRCL Passive DNS', 'sin registros', '1–4 registros', '≥5 registros'],
     ],
   },
 

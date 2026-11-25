@@ -337,6 +337,51 @@ def _tranco_subscore(d: Any) -> float | None:
     return 0 if rank <= TRANCO_CLEAN_MAX_RANK else None
 
 
+SPAMHAUS_SCORES = {
+    "127.0.0.2": 8, "127.0.0.3": 6, "127.0.0.4": 7, "127.0.0.5": 7, "127.0.0.6": 7, "127.0.0.7": 7,
+    "127.0.0.9": 9,
+    "127.0.1.2": 7, "127.0.1.4": 9, "127.0.1.5": 9, "127.0.1.6": 9,
+    "127.0.1.102": 5, "127.0.1.103": 5, "127.0.1.104": 6, "127.0.1.105": 6, "127.0.1.106": 6,
+    "asndrop": 9,
+}
+
+
+def _spamhaus_scores(d: Any) -> list:
+    out = []
+    for item in _arr(_get(d, "listings")):
+        code = _get(item, "code")
+        if isinstance(code, str) and code in SPAMHAUS_SCORES:
+            out.append(SPAMHAUS_SCORES[code])
+    return out
+
+
+def _spamhaus_subscore(d: Any) -> float | None:
+    scores = _spamhaus_scores(d)
+    if len(scores) == 0:
+        return None
+    best = 0
+    for x in scores:
+        if x > best:
+            best = x
+    return best
+
+
+def _openphish_subscore(d: Any) -> float | None:
+    if _get(d, "exact") is True:
+        return 9 if _get(d, "kind") == "url" else 7
+    return 6 if len(_arr(_get(d, "matches"))) > 0 else None
+
+
+def _sslbl_subscore(d: Any) -> float | None:
+    return 9 if _get(d, "listed") is True else None
+
+
+def _yaraify_subscore(d: Any) -> float | None:
+    if not _truthy(_get(d, "found")) or len(_arr(_get(d, "clamav"))) == 0:
+        return None
+    return 7
+
+
 def _misp_subscore(d: Any) -> float | None:
     attrs = _get(d, "Attribute")
     if not isinstance(attrs, list):
@@ -376,6 +421,10 @@ _VERDICT_NORMALIZERS: dict[str, dict] = {
     "hashlookup": {"hash": _hashlookup_subscore},
     "rdap": _for(("domain", "url"), _rdap_subscore),
     "tranco": {"domain": _tranco_subscore},
+    "spamhaus": _for(("ip", "domain", "url", "asn"), _spamhaus_subscore),
+    "openphish": _for(("ip", "domain", "url"), _openphish_subscore),
+    "sslbl": {"hash": _sslbl_subscore},
+    "yaraify": {"hash": _yaraify_subscore},
 }
 
 
@@ -561,6 +610,35 @@ def _malpedia_depth(d: Any) -> float:
     return 1 if len(_arr(_get(d, "families"))) > 0 or _truthy(_get(d, "description")) else 0.5
 
 
+def _spamhaus_depth(d: Any) -> float:
+    if len(_spamhaus_scores(d)) > 0:
+        return 1
+    return 0.5 if len(_arr(_get(d, "listings"))) > 0 else 0
+
+
+def _openphish_depth(d: Any) -> float:
+    if _get(d, "exact") is True:
+        return 1
+    return 0.5 if len(_arr(_get(d, "matches"))) > 0 else 0
+
+
+def _sslbl_depth(d: Any) -> float:
+    return 1 if _get(d, "listed") is True else 0
+
+
+def _yaraify_depth(d: Any) -> float:
+    if not _truthy(_get(d, "found")):
+        return 0
+    return 1 if len(_arr(_get(d, "rules"))) > 0 or len(_arr(_get(d, "clamav"))) > 0 else 0.5
+
+
+def _circlpdns_depth(d: Any) -> float:
+    total = _get(d, "total")
+    if not _is_num(total) or total <= 0:
+        return 0
+    return 0.5 if total <= 4 else 1
+
+
 _DEPTH_FNS = {
     "tweetfeed": _tweetfeed_depth,
     "virustotal": _vt_depth,
@@ -586,6 +664,11 @@ _DEPTH_FNS = {
     "rdap": _rdap_depth,
     "tranco": _tranco_depth,
     "malpedia": _malpedia_depth,
+    "spamhaus": _spamhaus_depth,
+    "openphish": _openphish_depth,
+    "sslbl": _sslbl_depth,
+    "yaraify": _yaraify_depth,
+    "circlpdns": _circlpdns_depth,
 }
 
 

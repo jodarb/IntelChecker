@@ -377,6 +377,55 @@ function trancoSubscore(d: unknown): number | null {
   if (!p?.found || p?.exact !== true || typeof rank !== 'number') return null
   return rank <= TRANCO_CLEAN_MAX_RANK ? 0 : null
 }
+
+// Spamhaus: scored by return code (ZEN for IPs, DBL for domains, ASN-DROP for ASNs).
+// PBL (policy: dynamic ranges that shouldn't send mail) is context, not a verdict.
+// Not listed is no data, never clean.
+export const SPAMHAUS_SCORES: Record<string, number> = {
+  '127.0.0.2': 8, '127.0.0.3': 6, '127.0.0.4': 7, '127.0.0.5': 7, '127.0.0.6': 7, '127.0.0.7': 7,
+  '127.0.0.9': 9,
+  '127.0.1.2': 7, '127.0.1.4': 9, '127.0.1.5': 9, '127.0.1.6': 9,
+  '127.0.1.102': 5, '127.0.1.103': 5, '127.0.1.104': 6, '127.0.1.105': 6, '127.0.1.106': 6,
+  asndrop: 9,
+}
+
+function spamhausScores(d: any): number[] {
+  const out: number[] = []
+  for (const item of arr(d?.listings)) {
+    const code = item?.code
+    if (typeof code === 'string' && Object.prototype.hasOwnProperty.call(SPAMHAUS_SCORES, code)) out.push(SPAMHAUS_SCORES[code])
+  }
+  return out
+}
+
+function spamhausSubscore(d: unknown): number | null {
+  const scores = spamhausScores(d)
+  if (scores.length === 0) return null
+  let best = 0
+  for (const x of scores) if (x > best) best = x
+  return best
+}
+
+// OpenPhish: the URL itself listed → 9; a domain/IP that hosts listed phishing → 7;
+// a URL on a host serving other phishing URLs → 6. Not listed → no data.
+function openphishSubscore(d: unknown): number | null {
+  const p = d as any
+  if (p?.exact === true) return p?.kind === 'url' ? 9 : 7
+  return arr(p?.matches).length > 0 ? 6 : null
+}
+
+// SSLBL: certificate (SHA-1) used by a botnet C&C or malware → 9.
+function sslblSubscore(d: unknown): number | null {
+  return (d as any)?.listed === true ? 9 : null
+}
+
+// YARAify: ClamAV signatures are the maliciousness signal; community YARA rules are
+// often generic (Go binary, packer…), so they only feed Knowledge.
+function yaraifySubscore(d: unknown): number | null {
+  const p = d as any
+  if (!p?.found || arr(p?.clamav).length === 0) return null
+  return 7
+}
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 function mispSubscore(d: unknown): number | null {
@@ -415,6 +464,10 @@ const VERDICT_NORMALIZERS: Record<string, Partial<Record<IndicatorType, (data: u
   hashlookup: { hash: hashlookupSubscore },
   rdap: { domain: rdapSubscore, url: rdapSubscore },
   tranco: { domain: trancoSubscore },
+  spamhaus: { ip: spamhausSubscore, domain: spamhausSubscore, url: spamhausSubscore, asn: spamhausSubscore },
+  openphish: { ip: openphishSubscore, domain: openphishSubscore, url: openphishSubscore },
+  sslbl: { hash: sslblSubscore },
+  yaraify: { hash: yaraifySubscore },
 }
 
 // Per-engine 0-10 score for a single result, independent of weight — this is what
@@ -587,6 +640,31 @@ function malpediaDepth(d: any): Depth {
   return arr(d?.families).length > 0 || d?.description ? 1 : 0.5
 }
 
+function spamhausDepth(d: any): Depth {
+  if (spamhausScores(d).length > 0) return 1
+  return arr(d?.listings).length > 0 ? 0.5 : 0
+}
+
+function openphishDepth(d: any): Depth {
+  if (d?.exact === true) return 1
+  return arr(d?.matches).length > 0 ? 0.5 : 0
+}
+
+function sslblDepth(d: any): Depth {
+  return d?.listed === true ? 1 : 0
+}
+
+function yaraifyDepth(d: any): Depth {
+  if (!d?.found) return 0
+  return arr(d?.rules).length > 0 || arr(d?.clamav).length > 0 ? 1 : 0.5
+}
+
+function circlpdnsDepth(d: any): Depth {
+  const total = d?.total
+  if (typeof total !== 'number' || total <= 0) return 0
+  return total <= 4 ? 0.5 : 1
+}
+
 const DEPTH_FNS: Record<string, (data: any) => Depth> = {
   tweetfeed: tweetFeedDepth,
   virustotal: vtDepth,
@@ -612,6 +690,11 @@ const DEPTH_FNS: Record<string, (data: any) => Depth> = {
   rdap: rdapDepth,
   tranco: trancoDepth,
   malpedia: malpediaDepth,
+  spamhaus: spamhausDepth,
+  openphish: openphishDepth,
+  sslbl: sslblDepth,
+  yaraify: yaraifyDepth,
+  circlpdns: circlpdnsDepth,
 }
 
 /* eslint-enable @typescript-eslint/no-explicit-any */

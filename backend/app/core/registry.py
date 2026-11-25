@@ -36,6 +36,12 @@ STATIC_ENGINES: dict[str, dict] = {
     "tranco":         _engine("Tranco (top domains)", ["domain"], None),
     # The API token is optional (higher rate limit): connected without it.
     "malpedia":       _engine("Malpedia", ["threat-actor"], None),
+    # Works without the DQS key (own DNS resolver); the key is optional.
+    "spamhaus":       _engine("Spamhaus", ["ip", "domain", "url", "asn"], None),
+    "openphish":      _engine("OpenPhish", ["ip", "domain", "url"], None),
+    "yaraify":        _engine("YARAify · abuse.ch", ["hash"], "ABUSECH_AUTH_KEY"),
+    "sslbl":          _engine("SSLBL · abuse.ch", ["hash"], None),
+    "circlpdns":      _engine("CIRCL Passive DNS", ["ip", "domain"], "CIRCL_PDNS_CREDENTIALS"),
 }
 
 # MISP is multi-instance: any number of servers, managed from the Connectors page

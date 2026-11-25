@@ -30,6 +30,7 @@ export type ProvField =
   | 'urlscan.tag'
   | 'mitre.group' | 'mitre.software'
   | 'malpedia.actor' | 'malpedia.family'
+  | 'sslbl.reason'
   | 'misp.galaxyActor' | 'misp.galaxyFamily' | 'misp.tag'
   | 'rf.rule'
 
@@ -306,6 +307,14 @@ const EXTRACTORS: Record<string, (d: any) => EngineIntel> = {
     if (!d?.found) return out
     if (str(d?.name)) out.actors.push({ value: d.name, field: 'malpedia.actor' })
     out.families.push(...arr(d?.families).map(f => f?.common_name).map(it('malpedia.family')))
+    return out
+  },
+  sslbl: d => {
+    const out = empty()
+    // "Vidar C&C" → family "Vidar" (generic reasons like "Malware C&C" are dropped as GENERIC)
+    const family = str(d?.reason)?.replace(/\s+(C&C|C2|distribution|malware)$/i, '')
+    if (d?.listed && family) out.families.push({ value: family, field: 'sslbl.reason' })
+    if (d?.listed) out.firstSeen.push(d?.listing_date)
     return out
   },
   mitreattack: d => {

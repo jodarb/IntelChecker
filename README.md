@@ -62,6 +62,11 @@
 | RDAP *(domain registration / age)* | | ✅ | ✅ | | | |
 | [Tranco](https://tranco-list.eu) *(top 1M domains)* | | ✅ | | | | |
 | [Malpedia](https://malpedia.caad.fkie.fraunhofer.de) | | | | | | ✅ |
+| [Spamhaus](https://www.spamhaus.org) *(ZEN, DBL, ASN-DROP)* | ✅ | ✅ | ✅ | | ✅ | |
+| [OpenPhish](https://openphish.com) *(community feed)* | ✅ | ✅ | ✅ | | | |
+| [YARAify · abuse.ch](https://yaraify.abuse.ch) | | | | ✅ | | |
+| [SSLBL · abuse.ch](https://sslbl.abuse.ch) *(certificate SHA-1)* | | | | ✅ | | |
+| [CIRCL Passive DNS](https://www.circl.lu/services/passive-dns/) | ✅ | ✅ | | | | |
 
 Per-source notes (passive lookups, shared keys, limits, MISP multi-instance and mTLS) are in [docs/sources.md](docs/sources.md).
 
@@ -101,7 +106,7 @@ The variables below still work in `backend/.env` as a fallback (a key saved on C
 |---|---|:---:|
 | `ABUSEIPDB_API_KEY` | [AbuseIPDB](https://www.abuseipdb.com/api) | ✅ |
 | `VIRUSTOTAL_API_KEY` | [VirusTotal](https://www.virustotal.com/gui/join-us) | ✅ |
-| `ABUSECH_AUTH_KEY` | [ThreatFox, URLhaus & MalwareBazaar](https://auth.abuse.ch/register) | ✅ |
+| `ABUSECH_AUTH_KEY` | [ThreatFox, URLhaus, MalwareBazaar & YARAify](https://auth.abuse.ch/register) | ✅ |
 | `ALIENVAULT_API_KEY` | [AlienVault OTX](https://otx.alienvault.com) | ✅ |
 | `IPINFO_API_KEY` | [IPinfo](https://ipinfo.io/signup) | ✅ |
 | `SHODAN_API_KEY` | [Shodan](https://account.shodan.io/register) | ✅ |
@@ -114,9 +119,11 @@ The variables below still work in `backend/.env` as a fallback (a key saved on C
 | `GOOGLE_SAFE_BROWSING_API_KEY` | [Google Safe Browsing](https://developers.google.com/safe-browsing/v4/get-started) | ✅ |
 | `CROWDSEC_API_KEY` | [CrowdSec CTI](https://app.crowdsec.net/settings/cti-api-keys) | ✅ small monthly quota |
 | `MALPEDIA_API_KEY` *(optional)* | [Malpedia](https://malpedia.caad.fkie.fraunhofer.de/user/register) | ✅ |
+| `CIRCL_PDNS_CREDENTIALS` (`user:password`) | [CIRCL Passive DNS](https://www.circl.lu/services/passive-dns/) | ✅ on request |
+| `SPAMHAUS_DQS_KEY` *(optional)* | [Spamhaus DQS](https://www.spamhaus.com/free-trial/sign-up-for-a-free-data-query-service-account/) — only if your DNS resolver is a public one | ✅ |
 | `MISP_<N>_NAME` / `_URL` / `_KEY` / … | [MISP](https://www.misp-project.org) — any number of instances (better: add them on Connectors) | n/a |
 
-Tor Exit Nodes, MITRE ATT&CK, RIPEstat, PhishTank, TweetFeed, CIRCL hashlookup, RDAP, Tranco and Malpedia need no key.
+Tor Exit Nodes, MITRE ATT&CK, RIPEstat, PhishTank, TweetFeed, CIRCL hashlookup, RDAP, Tranco, Malpedia, Spamhaus, OpenPhish and SSLBL need no key.
 
 ## 📚 Documentation
 

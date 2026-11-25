@@ -46,7 +46,7 @@
 ## 4. Threat Intel Integrations (CTI Sources)
 The backend manages API authentication using server-side credentials managed by admins on the **Connectors** page (`backend/app/core/connectors.py` → `backend/data/connectors.json`, mode 0600, in clear; `backend/.env` is a fallback — a key saved on Connectors wins). Services must read keys at call time with `connectors.secret("<ENV_NAME>")`, never as module constants, and a new key needs an entry in `CONNECTORS`. MISP instances also live there (`connectors.misp_instances()`; `MISP_<N>_*` in `.env` only until the first MISP change from the UI), so the engine list is dynamic: use `registry.engines()` / `registry.is_connected()`, not a static dict. Engine capabilities (supported indicator types, required key) are declared in `backend/app/core/registry.py`; each source is a module in `backend/app/services/` and a card in `frontend/src/components/results/`, wired through `frontend/src/registry.tsx`, `summaryRegistry.ts` and `intelAggregates.ts` (tags, actors, first/last seen for the Summary). A source without its API key is reported as `MissingApiKey` and excluded from both scores.
 
-Implemented sources: VirusTotal, AlienVault OTX, AbuseIPDB, abuse.ch (ThreatFox), URLhaus, MalwareBazaar, Shodan, IPinfo, RIPEstat, Tor Exit List, MITRE ATT&CK, URLScan, PhishTank, Recorded Future, Any.run, GreyNoise, Hybrid Analysis, Google Safe Browsing, TweetFeed, CrowdSec CTI, CIRCL hashlookup, RDAP, Tranco, Malpedia, and N MISP instances (`MISP_<N>_*` env vars). The README's coverage table is the source of truth for which types each one supports.
+Implemented sources: VirusTotal, AlienVault OTX, AbuseIPDB, abuse.ch (ThreatFox), URLhaus, MalwareBazaar, Shodan, IPinfo, RIPEstat, Tor Exit List, MITRE ATT&CK, URLScan, PhishTank, Recorded Future, Any.run, GreyNoise, Hybrid Analysis, Google Safe Browsing, TweetFeed, CrowdSec CTI, CIRCL hashlookup, RDAP, Tranco, Malpedia, Spamhaus, OpenPhish, YARAify, SSLBL, CIRCL Passive DNS, and N MISP instances (`MISP_<N>_*` env vars). The README's coverage table is the source of truth for which types each one supports.
 
 ---
 
@@ -79,6 +79,7 @@ intelchecker/
 │   │   │   ├── auth.py        # Users, roles, sessions, API tokens, FastAPI permission dependencies
 │   │   │   ├── verdict.py     # Python mirror of verdictEngine.ts (POST /lookup)
 │   │   │   ├── domains.py     # Hostname → registered domain (bundled Public Suffix List, offline)
+│   │   │   ├── feeds.py       # Downloaded blocklists cached in memory (SSLBL, OpenPhish, ASN-DROP)
 │   │   │   └── db.py          # SQLite query history
 │   │   └── services/          # One async httpx client module per CTI source
 │   ├── data/                  # history.db, users.db, weights.json, connectors.json (Docker volume, gitignored)

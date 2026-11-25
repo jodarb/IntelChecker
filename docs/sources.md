@@ -6,7 +6,7 @@ Notes on each integration: how it is queried, what it needs and anything that af
 
 ## Sources without an API key
 
-**Tor Exit Nodes, MITRE ATT&CK, RIPEstat, PhishTank, TweetFeed, CIRCL hashlookup, RDAP, Tranco and Malpedia** are free public datasets/APIs: always on, toggleable like any other source.
+**Tor Exit Nodes, MITRE ATT&CK, RIPEstat, PhishTank, TweetFeed, CIRCL hashlookup, RDAP, Tranco, Malpedia, Spamhaus, OpenPhish and SSLBL** are free public datasets/APIs: always on, toggleable like any other source.
 
 - **MITRE ATT&CK** — the backend downloads the ~50 MB STIX dataset from GitHub and caches it in memory for 24 h (the first lookup after a cold start takes a few seconds). Besides actor lookups, it feeds the Summary's actor detection and malware alias merging (`GET /mitre/aliases`). Without internet those fall back to the built-in family table.
 - **RIPEstat** — routing (ASN / prefix) and abuse-contact data from the RIPE NCC registry.
@@ -18,6 +18,11 @@ Notes on each integration: how it is queried, what it needs and anything that af
 - **Tranco** — research-grade ranking of the top 1M domains (aggregated over 30 days, hard to manipulate). A registered domain in the top 100 000 is an explicit **clean** verdict; outside it, context only. A **subdomain never inherits** its parent's rank (`evil.duckdns.org` → `duckdns.org` is #134): it shows as context with a warning. Popular ≠ safe content, so the risk weight is low (2). The API allows about one request per second; the backend spaces requests.
 - **Malpedia** (Fraunhofer FKIE) — threat actor profiles with synonyms, suspected sponsor, targeted sectors, references and the **malware families attributed to the actor**, which feed the Summary's families and actor relations. Name search matches synonyms ("Fancy Bear" → APT28). Works without a key; an optional `MALPEDIA_API_KEY` raises the rate limit.
 
+- **Spamhaus** — DNS queries to **ZEN** for IPs (SBL, CSS, XBL, DROP, PBL) and to the **DBL** for domains and URL hosts (the registered domain and, if different, the full host), plus the **ASN-DROP** list for ASNs (downloaded, cached 12 h) — the only source that gives ASNs a risk verdict. Scored by return code: DROP / ASN-DROP and DBL phishing / malware / C&C → 9, SBL → 8, XBL and DBL spam → 7, CSS → 6, abused legitimate domains → 5–6; the PBL (dynamic / end-user ranges) is context only. **Spamhaus refuses queries arriving through public resolvers** (8.8.8.8, 1.1.1.1…): the backend uses the container's resolver, i.e. the host's; set `SPAMHAUS_DNS_SERVER` in `backend/.env` to choose one, or add a free **DQS key** (`SPAMHAUS_DQS_KEY`, Connectors), which works from any resolver. A refused query shows as `ResolverBlocked`. Free for low-volume, non-commercial use — check [the terms](https://www.spamhaus.org/organization/dnsblusage/).
+- **OpenPhish** — the community feed (a few hundred currently active phishing URLs), downloaded and kept for an hour. URL: listed itself → 9, another listed URL on the same host → 6. Domain / IP: phishing URLs whose host *is* that domain (or `www.`) or IP → 7; subdomains' URLs never count for the parent. Not listed is no data — the feed is small.
+- **SSLBL (abuse.ch)** — the SSL certificate blacklist (SHA-1 fingerprints of certificates used by botnet C&C / malware servers), downloaded and kept for an hour. It only answers for 40-character hashes; any other hash is reported as not applicable. Its IP and JA3 blacklists are no longer maintained (deprecated in 2025 / 2021) and are not used. The listing reason ("Vidar C&C") feeds the Summary's malware families.
+- **Feodo Tracker** is deliberately not integrated: after the Emotet / QakBot takedowns its list holds a handful of entries, so it would almost never match while still diluting Knowledge for every IP.
+
 ## Passive lookups (nothing is submitted)
 
 - **urlscan.io** queries the public index of scans already submitted by others — it never submits your indicator, so nothing you look up becomes visible to third parties.
@@ -26,10 +31,12 @@ Notes on each integration: how it is queried, what it needs and anything that af
 
 ## Shared credentials and limits
 
-- **ThreatFox, URLhaus and MalwareBazaar** share the unified abuse.ch key (`ABUSECH_AUTH_KEY`), but are independent, individually toggleable sources.
+- **ThreatFox, URLhaus, MalwareBazaar and YARAify** share the unified abuse.ch key (`ABUSECH_AUTH_KEY`), but are independent, individually toggleable sources.
 - **AlienVault OTX** threat-actor lookups use the [pulse search API](https://otx.alienvault.com/api/v1/search/pulses) with the same `ALIENVAULT_API_KEY`. It is a full-text search over community reports, not a curated actor database: results can take up to ~20 s, and MITRE ATT&CK remains the more authoritative actor profile.
 - **GreyNoise** uses the free Community API: it classifies an IP as an internet-wide scanner (noise) and/or a known-good business service (RIOT). Capped at 50 lookups/week per key.
 - **CrowdSec CTI** (`CROWDSEC_API_KEY`) — IP reputation built from attacks seen by the CrowdSec network: reputation (malicious / suspicious / known / safe / benign), behaviours, attack scenarios, MITRE techniques and CVEs. A known false positive (public resolver, known scanner…) or a *safe* / *benign* reputation is a clean verdict. **The free Community key has a small monthly quota** (around 120 lookups/month): consider disabling it on the home page for bulk work, and mind it when using **Test**.
+- **YARAify (abuse.ch)** uses the unified `ABUSECH_AUTH_KEY`: YARA rule and ClamAV matches across every submission of a file (merged; only the latest tasks are kept). Community YARA rules are often generic (Go binary, packer…), so they only feed Knowledge; a ClamAV signature → 7.
+- **CIRCL Passive DNS** (`CIRCL_PDNS_CREDENTIALS` as `user:password`, free for security teams on request) — DNS resolution history: what a domain resolved to, or which names pointed to an IP, with first / last seen. Context only (Knowledge), never a risk verdict.
 - **Google Safe Browsing** only supports URLs. It is a real-time check against Google's threat lists, so — unlike most sources — a clean result is a genuine verdict, not just "no data".
 
 ## MISP (any number of instances)

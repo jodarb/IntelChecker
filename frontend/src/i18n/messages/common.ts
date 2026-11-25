@@ -40,6 +40,7 @@ const en = {
   'apiError.NotFound': 'Indicator not found in {source}.',
   'apiError.UnsupportedType': '{source} does not support this indicator type.',
   'apiError.ServiceUnavailable': '{source} is temporarily unavailable.',
+  'apiError.ResolverBlocked': '{source} refuses queries from public DNS resolvers: set SPAMHAUS_DNS_SERVER to your own resolver or add a free DQS key on Connectors.',
 }
 
 const es: Record<keyof typeof en, string> = {
@@ -82,6 +83,7 @@ const es: Record<keyof typeof en, string> = {
   'apiError.NotFound': 'Indicador no encontrado en {source}.',
   'apiError.UnsupportedType': '{source} no admite este tipo de indicador.',
   'apiError.ServiceUnavailable': '{source} no está disponible temporalmente.',
+  'apiError.ResolverBlocked': '{source} rechaza consultas desde resolvers DNS públicos: configura SPAMHAUS_DNS_SERVER con tu propio resolver o añade una key DQS gratuita en Connectors.',
 }
 
 export default { en, es }

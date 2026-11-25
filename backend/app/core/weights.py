@@ -46,6 +46,11 @@ DEFAULT_ENGINE_WEIGHTS: dict[str, dict] = {
     "hashlookup":     {"risk": 4,  "knowledge": 5},
     "rdap":           {"risk": 4,  "knowledge": 3},
     "tranco":         {"risk": 2,  "knowledge": 3},
+    "spamhaus":       {"risk": 8,  "knowledge": 5, "knowledge_by_type": {"asn": 6}},
+    "openphish":      {"risk": 7,  "knowledge": 3},
+    "yaraify":        {"risk": 5,  "knowledge": 4},
+    "sslbl":          {"risk": 8,  "knowledge": 1},
+    "circlpdns":      {"risk": 0,  "knowledge": 4},
 }
 
 DEFAULT_THRESHOLDS = {"knowledge": 4, "risk": 5}

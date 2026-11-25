@@ -17,6 +17,7 @@ from app.services import (
     torexitlist, urlhaus, mitreattack, ripestat, urlscan, malwarebazaar, phishtank,
     recordedfuture, anyrun, greynoise, hybridanalysis, safebrowsing, tweetfeed, misp,
     crowdsec, hashlookup, rdap, tranco, malpedia,
+    spamhaus, openphish, yaraify, sslbl, circlpdns,
 )
 
 
@@ -69,6 +70,11 @@ _SERVICES = {
     "rdap": rdap,
     "tranco": tranco,
     "malpedia": malpedia,
+    "spamhaus": spamhaus,
+    "openphish": openphish,
+    "yaraify": yaraify,
+    "sslbl": sslbl,
+    "circlpdns": circlpdns,
 }
 
 

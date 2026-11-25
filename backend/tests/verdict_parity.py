@@ -35,7 +35,7 @@ ENGINE_IDS = [
     "abuseipdb", "virustotal", "abusech", "alienvault", "ipinfo", "shodan", "torexitlist", "urlhaus",
     "mitreattack", "ripestat", "urlscan", "malwarebazaar", "phishtank", "recordedfuture", "anyrun",
     "greynoise", "hybridanalysis", "safebrowsing", "tweetfeed", "crowdsec", "hashlookup", "rdap", "tranco",
-    "malpedia", "misp_1", "misp_2",
+    "malpedia", "spamhaus", "openphish", "sslbl", "yaraify", "circlpdns", "misp_1", "misp_2",
 ]
 ERROR_CODES = ["NotFound", "MissingApiKey", "RateLimitExceeded", "Timeout", "NetworkError",
                "ServiceUnavailable", "HttpError", "Unauthorized", "UnsupportedType", "ApiError"]
@@ -131,6 +131,20 @@ def payload(r: random.Random, engine: str):
     if engine == "malpedia":
         return obj(found=m(r.choice([True, False])), families=m(r.choice([[], [{}]])),
                    description=m(r.choice(["", "APT group"])))
+    if engine == "spamhaus":
+        codes = ["127.0.0.2", "127.0.0.3", "127.0.0.4", "127.0.0.9", "127.0.0.10", "127.0.0.11", "127.0.1.2",
+                 "127.0.1.6", "127.0.1.104", "asndrop", "127.0.0.99", "constructor", 2, None]
+        return obj(listings=m([obj(code=m(r.choice(codes))) for _ in range(r.choice([0, 1, 2, 3]))]))
+    if engine == "openphish":
+        return obj(kind=m(r.choice(["url", "host", ""])), exact=m(r.choice([True, False, 1])),
+                   matches=m(r.choice([[], ["https://a/"], ["https://a/", "https://a/b"]])))
+    if engine == "sslbl":
+        return obj(listed=m(r.choice([True, False, 1])), applicable=m(r.choice([True, False])))
+    if engine == "yaraify":
+        return obj(found=m(r.choice([True, False])), rules=m(r.choice([[], [{}]])),
+                   clamav=m(r.choice([[], ["Win.Trojan.X"]])))
+    if engine == "circlpdns":
+        return obj(total=m(r.choice([0, 1, 4, 5, 100, "7", -1])))
     if engine.startswith("misp_"):
         to_ids = [True, False, 1, 0, "1", "0", None]
         return obj(Attribute=m([obj(to_ids=m(r.choice(to_ids)), event_id=m(r.choice(["1", "2", "3", None])),

@@ -24,6 +24,11 @@ import HashlookupCard from '@/components/results/HashlookupCard'
 import RdapCard from '@/components/results/RdapCard'
 import TrancoCard from '@/components/results/TrancoCard'
 import MalpediaCard from '@/components/results/MalpediaCard'
+import SpamhausCard from '@/components/results/SpamhausCard'
+import OpenPhishCard from '@/components/results/OpenPhishCard'
+import YaraifyCard from '@/components/results/YaraifyCard'
+import SslblCard from '@/components/results/SslblCard'
+import CirclPdnsCard from '@/components/results/CirclPdnsCard'
 
 export type IndicatorType = 'ip' | 'domain' | 'url' | 'hash' | 'asn' | 'threat-actor'
 
@@ -223,6 +228,41 @@ export const STATIC_ENGINES: EngineConfig[] = [
     supports: ['threat-actor'],
     component: MalpediaCard as React.ComponentType<CardProps>,
     logo: '/logos/malpedia.png',
+  },
+  {
+    id: 'spamhaus',
+    label: 'Spamhaus',
+    supports: ['ip', 'domain', 'url', 'asn'],
+    component: SpamhausCard as React.ComponentType<CardProps>,
+    logo: '/logos/spamhaus.ico',
+  },
+  {
+    id: 'openphish',
+    label: 'OpenPhish',
+    supports: ['ip', 'domain', 'url'],
+    component: OpenPhishCard as React.ComponentType<CardProps>,
+    logo: '/logos/openphish.svg',
+  },
+  {
+    id: 'yaraify',
+    label: 'YARAify · abuse.ch',
+    supports: ['hash'],
+    component: YaraifyCard as React.ComponentType<CardProps>,
+    logo: '/logos/yaraify.png',
+  },
+  {
+    id: 'sslbl',
+    label: 'SSLBL · abuse.ch',
+    supports: ['hash'],
+    component: SslblCard as React.ComponentType<CardProps>,
+    logo: '/logos/sslbl.png',
+  },
+  {
+    id: 'circlpdns',
+    label: 'CIRCL Passive DNS',
+    supports: ['ip', 'domain'],
+    component: CirclPdnsCard as React.ComponentType<CardProps>,
+    logo: '/logos/circlpdns.ico',
   },
 ]
 

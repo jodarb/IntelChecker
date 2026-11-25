@@ -36,7 +36,7 @@ CONNECTORS: list[dict] = [
      "signup": "https://www.virustotal.com/gui/my-apikey"},
     {"key": "ABUSEIPDB_API_KEY", "label": "AbuseIPDB", "engines": ["abuseipdb"],
      "signup": "https://www.abuseipdb.com/account/api"},
-    {"key": "ABUSECH_AUTH_KEY", "label": "abuse.ch", "engines": ["abusech", "urlhaus", "malwarebazaar"],
+    {"key": "ABUSECH_AUTH_KEY", "label": "abuse.ch", "engines": ["abusech", "urlhaus", "malwarebazaar", "yaraify"],
      "signup": "https://auth.abuse.ch/"},
     {"key": "ALIENVAULT_API_KEY", "label": "AlienVault OTX", "engines": ["alienvault"],
      "signup": "https://otx.alienvault.com/api"},
@@ -62,6 +62,10 @@ CONNECTORS: list[dict] = [
      "signup": "https://app.crowdsec.net/settings/cti-api-keys"},
     {"key": "MALPEDIA_API_KEY", "label": "Malpedia", "engines": ["malpedia"], "optional": True,
      "signup": "https://malpedia.caad.fkie.fraunhofer.de/user/register"},
+    {"key": "CIRCL_PDNS_CREDENTIALS", "label": "CIRCL Passive DNS (user:password)", "engines": ["circlpdns"],
+     "signup": "https://www.circl.lu/services/passive-dns/"},
+    {"key": "SPAMHAUS_DQS_KEY", "label": "Spamhaus DQS", "engines": ["spamhaus"], "optional": True,
+     "signup": "https://www.spamhaus.com/free-trial/sign-up-for-a-free-data-query-service-account/"},
 ]
 _CONNECTOR_KEYS = {c["key"] for c in CONNECTORS}
 KEYED_ENGINES = {e for c in CONNECTORS for e in c["engines"]}
