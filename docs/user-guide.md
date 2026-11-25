@@ -10,7 +10,7 @@ Sign in with the account your admin gave you (the first time you'll be asked to 
 
 Type an indicator on the home page, pick its type (IP, Domain, URL, File Hash, ASN, Threat Actor) and press **Analyze**. Every source that supports the type is queried **in parallel**, and each card appears as soon as its own source answers.
 
-- The source list under the search box shows which sources are connected. Its switch turns a source off for that browser; disabled sources aren't queried and don't count in any score.
+- The source list under the search box shows only the configured sources (admins also see how many are missing, with a link to **Connectors**). Its switch turns a source off for that browser; disabled sources aren't queried and don't count in any score.
 - Each source shows its **R** (risk) and **K** (knowledge) weight. Sources are sorted by risk weight, then knowledge weight.
 - Sources without an API key are listed as **Not configured** and are left out of the lookup. On the results page they appear as a greyed-out **Off · not configured** card, never as an error.
 - Lookups are always live — nothing is cached.

@@ -48,7 +48,7 @@ export const docsEn = {
     list: [
       'Use the switch next to a source to turn it off; disabled sources aren\'t queried and don\'t count in either score. The choice is remembered on this browser only.',
       'Each source shows two chips: **R** (its risk weight) and **K** (its knowledge weight). Sources are sorted by risk weight, then knowledge weight.',
-      'Sources without an API key are listed under **Not configured** and are left out of the lookup entirely.',
+      'Only configured sources are listed. Sources without an API key are left out of the lookup entirely; admins see how many there are and a link to [Connectors](/connectors) to set them up.',
       'Lookups are always live — nothing is cached. Every completed lookup is saved to [History](/history) together with the user who ran it.',
       'Running lookups needs the **Analyst** or **Admin** role. **Readers** can only browse History; they don\'t see the home page search.',
       'The **EN / ES** selector in the header switches the interface language; the choice is remembered on this browser.',
@@ -189,7 +189,7 @@ export const docsEn = {
       ['Discard changes', 'Drops unsaved edits.'],
       ['Reset to defaults', 'After confirmation, deletes all admin changes and restores the built-in values. Cannot be undone.'],
     ],
-    note: 'Changes apply to **new lookups**; an open results page keeps the values it loaded (reload it). History entries keep the weights in force when they were run. The home page and results order also follow the new weights. Only **Admin** users see the Admin page and the [Users](/users) and [Connectors](/connectors) pages next to it in the header. **Connectors** holds the API key of every source and the MISP instances: set, replace or remove a key, add / edit / delete MISP instances (name, URL, key, TLS verification, mTLS certificate from `backend/certs/`) and **Test** a connection with one real lookup of a harmless indicator. Keys apply to the next lookup without a restart and are never shown again, only their last four characters. **Users** lists every account, creates users and changes their role (Admin · Analyst · Reader), resets passwords, disables or deletes accounts. Passwords set by an admin are temporary: the user must choose their own on next sign-in. There is always at least one active admin, and admins can\'t demote, disable or delete themselves.',
+    note: 'Changes apply to **new lookups**; an open results page keeps the values it loaded (reload it). History entries keep the weights in force when they were run. The home page and results order also follow the new weights. Only **Admin** users see the Admin page and the [Users](/users) and [Connectors](/connectors) pages next to it in the header. **Connectors** holds the API key of every source and the MISP instances: set, replace or remove a key, add / edit / delete MISP instances (name, URL, key, TLS verification, mTLS certificate from `backend/certs/`) and **Test** any connector — keyless sources included — with one real lookup of a harmless indicator; the result shows under its row. Keys apply to the next lookup without a restart and are never shown again, only their last four characters. **Users** lists every account, creates users and changes their role (Admin · Analyst · Reader), resets passwords, disables or deletes accounts. Passwords set by an admin are temporary: the user must choose their own on next sign-in. There is always at least one active admin, and admins can\'t demote, disable or delete themselves.',
   },
 
   weights: {

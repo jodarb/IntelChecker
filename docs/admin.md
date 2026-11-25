@@ -45,9 +45,10 @@ Any user can change their own password from **My account** (their name in the he
 
 - **API keys** — one row per key, with the sources it powers (the abuse.ch key serves ThreatFox, URLhaus and MalwareBazaar) and a link to get one. **Set key / Replace** saves it; **Remove** (bin icon) deletes the value saved here. Status: *Configured* (saved here), *From .env* (only in `backend/.env`) or *Not configured*. A key saved here wins over `.env`; removing it falls back to the `.env` value, if any.
 - **MISP instances** — **Add instance** (name, URL, API key, *Verify TLS certificate*, optional mTLS client certificate / key chosen from the files in `backend/certs/`), **Edit** (pencil; leave the key empty to keep it) and **Delete**. Each instance is its own source; set its weights on the Admin page (new ones start at 0 / 9). Instances from `MISP_<N>_*` in `.env` are shown until the first MISP change here, which copies them over; from then on those variables are ignored.
-- **Test** — runs one real lookup of a harmless indicator (8.8.8.8, example.com, the EICAR hash…) against the source and shows whether it answered and accepted the key ("not found" counts as OK). It uses one request of the source's quota — mind GreyNoise Community's 50 per week.
+- **Sources without a key** — Tor Exit Nodes, MITRE ATT&CK, RIPEstat and TweetFeed need no credentials and are always active; they are listed so they can be tested too.
+- **Test** — every row has one (disabled until a required key is set). It runs one real lookup of a harmless indicator (8.8.8.8, example.com, the EICAR hash…) against each source the row powers — all three for the abuse.ch key — and shows the result under the row: OK if it answered and accepted the key ("not found" counts as OK), or the reason it failed. It uses one request of the source's quota — mind GreyNoise Community's 50 per week.
 
-Changes apply to the next lookup, no restart. Keys are never returned by the API once saved, only their last four characters. They are stored in `backend/data/connectors.json` with permissions 0600, **in clear** (like `backend/.env`): protect the data volume and its backups accordingly.
+The home page lists only configured sources, so this page is where unconfigured ones are found. Changes apply to the next lookup, no restart. Keys are never returned by the API once saved, only their last four characters. They are stored in `backend/data/connectors.json` with permissions 0600, **in clear** (like `backend/.env`): protect the data volume and its backups accordingly.
 
 ---
 

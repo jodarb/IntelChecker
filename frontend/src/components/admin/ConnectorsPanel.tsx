@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ExternalLink, FlaskConical, KeyRound, Pencil, Plus, ShieldOff, Trash2 } from 'lucide-react'
+import { CheckCircle2, ExternalLink, FlaskConical, KeyRound, Pencil, Plus, ShieldOff, Trash2, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { apiJson } from '@/lib/api'
@@ -37,6 +37,7 @@ interface ConnectorsData {
   misp: MispInstance[]
   misp_from_env: boolean
   cert_files: string[]
+  keyless: { id: string; label: string }[]
 }
 
 interface TestResult {
@@ -45,6 +46,31 @@ interface TestResult {
 }
 
 type Message = { kind: 'ok' | 'error'; text: string }
+
+/** Inline result of the last test of one row. */
+function TestOutcome({ result }: { result?: Message }) {
+  if (!result) return null
+  const ok = result.kind === 'ok'
+  return (
+    <p role={ok ? 'status' : 'alert'}
+      className={`text-xs flex items-start gap-1.5 ${ok ? 'text-green-500' : 'text-red-400'}`}>
+      {ok ? <CheckCircle2 className="h-3.5 w-3.5 mt-px shrink-0" /> : <XCircle className="h-3.5 w-3.5 mt-px shrink-0" />}
+      <span>{result.text}</span>
+    </p>
+  )
+}
+
+function TestButton({ testing, disabled, title, onClick }: {
+  testing: boolean; disabled: boolean; title: string; onClick: () => void
+}) {
+  const { t } = useI18n()
+  return (
+    <Button variant="ghost" size="sm" disabled={disabled} onClick={onClick} title={title} className="h-9 gap-1 px-2 text-xs">
+      <FlaskConical className="h-3.5 w-3.5" />
+      {testing ? t('connectors.testing') : t('connectors.test')}
+    </Button>
+  )
+}
 
 const selectClass =
   'h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50'
@@ -72,7 +98,8 @@ export default function ConnectorsPanel() {
   const [data, setData] = useState<ConnectorsData | null>(null)
   const [loadFailed, setLoadFailed] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [testing, setTesting] = useState<string | null>(null)
+  const [testing, setTesting] = useState<string | null>(null)   // row id under test
+  const [testResults, setTestResults] = useState<Record<string, Message>>({})
   const [message, setMessage] = useState<Message | null>(null)
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [keyValue, setKeyValue] = useState('')
@@ -106,19 +133,27 @@ export default function ConnectorsPanel() {
     }
   }
 
-  const test = async (engineId: string, label: string) => {
-    setTesting(engineId)
-    setMessage(null)
-    try {
-      const r = await apiJson<TestResult>(`/connectors/test/${encodeURIComponent(engineId)}`, 'POST')
-      setMessage(r.ok
-        ? { kind: 'ok', text: t('connectors.testOk', { label }) }
-        : { kind: 'error', text: t('connectors.testFail', { label, error: apiErrorText(i18n, r.error, label) ?? '' }) })
-    } catch (err) {
-      setMessage({ kind: 'error', text: authErrorText(i18n, err) })
-    } finally {
-      setTesting(null)
-    }
+  /** Tests every source a row powers (the abuse.ch key serves three different APIs). */
+  const test = async (rowId: string, engineIds: string[]) => {
+    setTesting(rowId)
+    setTestResults(r => { const rest = { ...r }; delete rest[rowId]; return rest })
+    const outcomes = await Promise.all(engineIds.map(async id => {
+      const label = labelOf(id)
+      try {
+        const r = await apiJson<TestResult>(`/connectors/test/${encodeURIComponent(id)}`, 'POST')
+        return r.ok ? null : `${engineIds.length > 1 ? `${label}: ` : ''}${apiErrorText(i18n, r.error, label) ?? ''}`
+      } catch (err) {
+        return authErrorText(i18n, err)
+      }
+    }))
+    const failures = outcomes.filter((o): o is string => o !== null)
+    setTestResults(r => ({
+      ...r,
+      [rowId]: failures.length
+        ? { kind: 'error', text: failures.join(' · ') }
+        : { kind: 'ok', text: t('connectors.testOk') },
+    }))
+    setTesting(null)
   }
 
   const saveKey = async (c: KeyConnector) => {
@@ -191,14 +226,10 @@ export default function ConnectorsPanel() {
                           <ExternalLink className="h-3.5 w-3.5" /> {t('connectors.getKey')}
                         </a>
                       </Button>
-                      {c.configured && (
-                        <Button variant="ghost" size="sm" disabled={busy || testing !== null}
-                          onClick={() => test(c.engines[0], c.label)} title={t('connectors.testTitle')}
-                          className="h-9 gap-1 px-2 text-xs">
-                          <FlaskConical className="h-3.5 w-3.5" />
-                          {testing === c.engines[0] ? t('connectors.testing') : t('connectors.test')}
-                        </Button>
-                      )}
+                      <TestButton testing={testing === c.key}
+                        disabled={busy || testing !== null || !(c.configured || c.optional)}
+                        title={c.configured || c.optional ? t('connectors.testTitle') : t('connectors.testNeedsKey')}
+                        onClick={() => test(c.key, c.engines)} />
                       {!editing && (
                         <Button variant="outline" size="sm" disabled={busy}
                           onClick={() => { setEditingKey(c.key); setKeyValue('') }} className="h-9 text-xs">
@@ -226,6 +257,7 @@ export default function ConnectorsPanel() {
                       </Button>
                     </form>
                   )}
+                  <TestOutcome result={testResults[c.key]} />
                 </div>
               )
             })}
@@ -281,13 +313,9 @@ export default function ConnectorsPanel() {
                     </span>
                   </div>
                   <div className="flex items-center gap-1 justify-end">
-                    {m.connected && (
-                      <Button variant="ghost" size="sm" disabled={busy || testing !== null}
-                        onClick={() => test(m.id, m.name)} title={t('connectors.testTitle')} className="h-9 gap-1 px-2 text-xs">
-                        <FlaskConical className="h-3.5 w-3.5" />
-                        {testing === m.id ? t('connectors.testing') : t('connectors.test')}
-                      </Button>
-                    )}
+                    <TestButton testing={testing === m.id} disabled={busy || testing !== null || !m.connected}
+                      title={m.connected ? t('connectors.testTitle') : t('connectors.testNeedsKey')}
+                      onClick={() => test(m.id, [m.id])} />
                     <Button variant="ghost" size="icon" disabled={busy}
                       onClick={() => setEditingMisp(e => (e === m.id ? null : m.id))} aria-expanded={editingMisp === m.id}
                       title={t('connectors.mispEdit')} aria-label={t('connectors.mispEdit')}
@@ -309,9 +337,35 @@ export default function ConnectorsPanel() {
                       if (ok) setEditingMisp(null)
                     }} />
                 )}
+                <TestOutcome result={testResults[m.id]} />
               </div>
             ))}
           </section>
+
+          {data.keyless.length > 0 && (
+            <section className="flex flex-col gap-2">
+              <div>
+                <h3 className="text-xs text-muted-foreground uppercase tracking-wide font-medium">{t('connectors.keyless')}</h3>
+                <p className="text-sm text-muted-foreground mt-1">{t('connectors.keylessSubtitle')}</p>
+              </div>
+              {data.keyless.map(k => {
+                const logo = logoOf(k.id)
+                return (
+                  <div key={k.id} className="rounded-lg border border-border bg-muted/20 px-3 py-2.5 flex flex-col gap-2">
+                    <div className="flex flex-wrap items-center gap-3">
+                      {logo
+                        ? <img src={logo} alt="" className="h-6 w-6 rounded-sm object-contain shrink-0" />
+                        : <KeyRound className="h-5 w-5 text-muted-foreground shrink-0" />}
+                      <span className="text-sm font-medium text-foreground flex-1 min-w-0 truncate">{k.label}</span>
+                      <TestButton testing={testing === k.id} disabled={busy || testing !== null}
+                        title={t('connectors.testTitle')} onClick={() => test(k.id, [k.id])} />
+                    </div>
+                    <TestOutcome result={testResults[k.id]} />
+                  </div>
+                )
+              })}
+            </section>
+          )}
         </>
       )}
     </div>

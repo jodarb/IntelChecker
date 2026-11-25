@@ -59,6 +59,7 @@ CONNECTORS: list[dict] = [
      "signup": "https://www.phishtank.com/api_register.php"},
 ]
 _CONNECTOR_KEYS = {c["key"] for c in CONNECTORS}
+KEYED_ENGINES = {e for c in CONNECTORS for e in c["engines"]}
 
 DEFAULT_MISP_WEIGHT = 0
 DEFAULT_MISP_KNOWLEDGE_WEIGHT = 9

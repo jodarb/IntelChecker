@@ -5,6 +5,8 @@ import WeightBadge, { type CardWeight } from '@/components/results/WeightBadge'
 import { knowledgeWeightOf, riskWeightOf } from '@/verdictEngine'
 import type { IndicatorType } from '@/registry'
 import { useI18n } from '@/i18n/useI18n'
+import { rich } from '@/i18n/rich'
+import { useAuth } from '@/auth/context'
 
 interface Props {
   selectedType: string
@@ -108,6 +110,7 @@ export default function EngineStatusPanel({ selectedType }: Props) {
   const { disabled, toggle } = useEngineToggles()
   const config = useVerdictWeights()
   const { t } = useI18n()
+  const { can } = useAuth()
 
   if (!status) return null
 
@@ -130,7 +133,8 @@ export default function EngineStatusPanel({ selectedType }: Props) {
     }
   })
 
-  // Within each group, engines supporting the selected indicator type float to
+  // Only configured sources are shown: the rest are listed (and set up) on the
+  // Connectors page. Engines supporting the selected indicator type float to
   // the top, and within that, higher-weighted engines come first — Array#sort is
   // stable, so anything still tied keeps its original relative order.
   const configured = enriched
@@ -164,27 +168,10 @@ export default function EngineStatusPanel({ selectedType }: Props) {
         </div>
       </div>
 
-      {notConfigured.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">
-            {t('home.notConfigured', { n: notConfigured.length })}
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {notConfigured.map(({ engine, connected, supports, relevant, enabled, weight }) => (
-              <EngineCard
-                key={engine.id}
-                engine={engine}
-                connected={connected}
-                supports={supports}
-                relevant={relevant}
-                enabled={enabled}
-                selectedType={selectedType}
-                weight={weight}
-                onToggle={() => toggle(engine.id)}
-              />
-            ))}
-          </div>
-        </div>
+      {notConfigured.length > 0 && can('admin') && (
+        <p className="text-xs text-muted-foreground">
+          {rich(t('home.notConfiguredLink', { n: notConfigured.length }))}
+        </p>
       )}
     </div>
   )

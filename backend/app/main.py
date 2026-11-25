@@ -7,7 +7,7 @@ from app.core import auth
 from app.core import db as history_db
 from app.core import weights as weights_store
 from app.core import connectors
-from app.core.registry import INDICATOR_TYPES, engines as current_engines, is_connected
+from app.core.registry import INDICATOR_TYPES, STATIC_ENGINES, engines as current_engines, is_connected
 from app.core.verdict import compute_verdict, get_engine_assessment
 from app.services import (
     abuseipdb, virustotal, abusech, alienvault, ipinfo, shodan,
@@ -244,6 +244,12 @@ def list_connectors():
         "misp": connectors.list_misp(),
         "misp_from_env": not connectors.misp_managed_in_ui(),
         "cert_files": connectors.list_cert_files(),
+        # Sources that need no key at all: listed so they can be tested too.
+        "keyless": [
+            {"id": eid, "label": meta["label"]}
+            for eid, meta in STATIC_ENGINES.items()
+            if meta["key"] is None and eid not in connectors.KEYED_ENGINES
+        ],
     }
 
 

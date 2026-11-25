@@ -4,7 +4,7 @@ const en = {
   'home.placeholder': 'Enter an IP, domain, URL, ASN or threat actor...',
   'home.analyze': 'Analyze',
   'home.connected': 'Connected sources ({n})',
-  'home.notConfigured': 'Not configured ({n})',
+  'home.notConfiguredLink': '{n} more sources are not configured — set them up on [Connectors](/connectors).',
   'home.disableSource': 'Disable this source for the next search',
   'home.enableSource': 'Enable this source',
 }
@@ -14,7 +14,7 @@ const es: Record<keyof typeof en, string> = {
   'home.placeholder': 'Introduce una IP, dominio, URL, ASN o actor de amenaza...',
   'home.analyze': 'Analizar',
   'home.connected': 'Fuentes conectadas ({n})',
-  'home.notConfigured': 'Sin configurar ({n})',
+  'home.notConfiguredLink': 'Hay {n} fuentes más sin configurar — configúralas en [Conectores](/connectors).',
   'home.disableSource': 'Desactivar esta fuente para la próxima búsqueda',
   'home.enableSource': 'Activar esta fuente',
 }
