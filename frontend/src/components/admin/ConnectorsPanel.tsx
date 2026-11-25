@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
-import { ExternalLink, FlaskConical, KeyRound, Loader2, Pencil, Plus, ShieldOff, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { ExternalLink, Eye, EyeOff, FlaskConical, Loader2, Plus, ShieldOff, Trash2, KeyRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { apiJson } from '@/lib/api'
 import { useEngines } from '@/EnginesContext'
+import type { IndicatorType } from '@/registry'
 import { useI18n } from '@/i18n/useI18n'
 import { rich } from '@/i18n/rich'
 import { authErrorText } from '@/i18n/errors'
@@ -42,35 +43,147 @@ interface ConnectorsData {
 }
 
 type Message = { kind: 'ok' | 'error'; text: string }
+type Filter = 'all' | 'configured' | 'pending' | 'keyless'
+type Status = 'ui' | 'env' | 'none' | 'incomplete'
 
-function TestButton({ testing, disabled, title, onClick }: {
-  testing: boolean; disabled: boolean; title: string; onClick: () => void
+/** Columns shared by the header and every row of a table (stacked below md). */
+/** Action slots: key (Set / Replace, or Complete / Edit for MISP) · Test — fixed so buttons line up across rows. */
+const ACTION_GRID = 'grid grid-cols-[8rem_6.5rem] gap-1.5 items-center'
+const ROW_GRID = 'grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_9.5rem_7.5rem_15rem] gap-x-3 gap-y-2 md:items-center'
+
+const selectClass =
+  'h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50'
+
+function Logo({ src }: { src?: string }) {
+  return (
+    <span className="h-7 w-7 shrink-0 rounded-md bg-white border border-border/50 flex items-center justify-center overflow-hidden">
+      {src ? <img src={src} alt="" className="h-5 w-5 object-contain" /> : <KeyRound className="h-4 w-4 text-slate-500" />}
+    </span>
+  )
+}
+
+function StatusCell({ status }: { status: Status }) {
+  const { t } = useI18n()
+  const look = {
+    ui: { dot: 'bg-green-500', text: 'text-green-600 dark:text-green-400', label: t('connectors.status.ui') },
+    env: { dot: 'bg-sky-500', text: 'text-sky-600 dark:text-sky-400', label: t('connectors.status.env') },
+    none: { dot: 'border-2 border-amber-500', text: 'text-amber-600 dark:text-amber-400', label: t('connectors.status.none') },
+    incomplete: { dot: 'border-2 border-amber-500', text: 'text-amber-600 dark:text-amber-400', label: t('connectors.mispIncomplete') },
+  }[status]
+  return (
+    <span className={`flex items-center gap-2 text-sm ${look.text}`}>
+      <span aria-hidden="true" className={`h-2 w-2 shrink-0 rounded-full box-border ${look.dot}`} />
+      {look.label}
+    </span>
+  )
+}
+
+function KeyCell({ hint, has }: { hint: string; has: boolean }) {
+  return (
+    <span className="font-mono text-xs text-muted-foreground">
+      {has ? `•••• ${hint || '••••'}` : '—'}
+    </span>
+  )
+}
+
+function TestButton({ testing, disabled, title, onClick, className = '' }: {
+  testing: boolean; disabled: boolean; title: string; onClick: () => void; className?: string
 }) {
   const { t } = useI18n()
   return (
-    <Button variant="ghost" size="sm" disabled={disabled} onClick={onClick} title={title} className="h-9 gap-1 px-2 text-xs">
+    <Button variant="outline" size="sm" disabled={disabled} onClick={onClick} title={title} className={`h-8 w-full gap-1.5 px-2.5 text-xs ${className}`}>
       {testing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FlaskConical className="h-3.5 w-3.5" />}
       {testing ? t('connectors.testing') : t('connectors.test')}
     </Button>
   )
 }
 
-const selectClass =
-  'h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50'
-
-function StatusBadge({ source, hint }: { source: KeyConnector['source']; hint: string }) {
+/** The stored key, masked; the eye fetches it from the backend (admin, browser
+ *  session only, logged) and toggles it. Nothing is loaded until asked. */
+function CurrentSecret({ hint, revealPath, label }: { hint: string; revealPath: string; label: string }) {
   const { t } = useI18n()
-  const styles = {
-    ui: 'border-green-500/40 bg-green-500/10 text-green-600 dark:text-green-400',
-    env: 'border-sky-500/40 bg-sky-500/10 text-sky-600 dark:text-sky-400',
-    none: 'border-border bg-muted/40 text-muted-foreground',
+  const [value, setValue] = useState<string | null>(null)
+  const [visible, setVisible] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(false)
+
+  const toggle = async () => {
+    if (visible) { setVisible(false); return }
+    if (value === null) {
+      setLoading(true)
+      setError(false)
+      try {
+        const r = await apiJson<{ value: string }>(revealPath)
+        setValue(r.value)
+      } catch {
+        setError(true)
+        return
+      } finally {
+        setLoading(false)
+      }
+    }
+    setVisible(true)
   }
-  const kind = source ?? 'none'
+
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs whitespace-nowrap ${styles[kind]}`}>
-      {t(`connectors.status.${kind}`)}
-      {source && hint && <span className="font-mono opacity-80">· {t('connectors.status.hint', { hint: `…${hint}` })}</span>}
-    </span>
+    <div className="flex flex-col gap-1">
+      <div className="relative">
+        <Input readOnly value={visible && value !== null ? value : `•••• •••• ${hint || '••••'}`} aria-label={label}
+          className="h-9 w-full pr-10 font-mono text-muted-foreground read-only:bg-muted/40" />
+        <button type="button" onClick={toggle} disabled={loading} aria-pressed={visible}
+          aria-label={visible ? t('connectors.hideKey') : t('connectors.showKey')} title={visible ? t('connectors.hideKey') : t('connectors.showKey')}
+          className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-50">
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+      {error && <span role="alert" className="text-xs text-red-400">{t('connectors.revealError')}</span>}
+    </div>
+  )
+}
+
+function TableHeader({ title, action }: { title: string; action?: ReactNode }) {
+  const { t } = useI18n()
+  return (
+    <div className={`${ROW_GRID} px-4 py-2.5 border-b border-border text-xs uppercase tracking-wide text-muted-foreground font-medium`}>
+      <span className="flex items-center justify-between gap-3">{title}<span className="md:hidden">{action}</span></span>
+      <span className="hidden md:block">{t('connectors.col.status')}</span>
+      <span className="hidden md:block">{t('connectors.col.key')}</span>
+      <span className="hidden md:flex justify-end normal-case tracking-normal">{action}</span>
+    </div>
+  )
+}
+
+/** One table row plus whatever it expands into (key form, MISP form, test result). */
+function Row({ logo, title, subtitle, status, keyCell, setup, testButton, children }: {
+  logo?: string
+  title: ReactNode
+  subtitle: ReactNode
+  status: Status
+  keyCell: ReactNode
+  /** Set / Replace key (Complete / Edit for MISP) */
+  setup?: ReactNode
+  testButton?: ReactNode
+  children?: ReactNode
+}) {
+  return (
+    <div className="border-b border-border/60 last:border-b-0">
+      <div className={`${ROW_GRID} px-4 py-2.5 min-h-[3.25rem]`}>
+        <div className="flex items-center gap-3 min-w-0">
+          <Logo src={logo} />
+          <div className="flex flex-col min-w-0">
+            <span className="text-sm font-medium text-foreground truncate">{title}</span>
+            <span className="text-xs text-muted-foreground truncate">{subtitle}</span>
+          </div>
+        </div>
+        <div className="pl-10 md:pl-0"><StatusCell status={status} /></div>
+        <div className="pl-10 md:pl-0">{keyCell}</div>
+        <div className={`${ACTION_GRID} pl-10 md:pl-0 md:justify-end`}>
+          <div>{setup}</div>
+          <div>{testButton}</div>
+        </div>
+      </div>
+      {children && <div className="flex flex-col gap-2 px-4 pb-3 md:pl-14">{children}</div>}
+    </div>
   )
 }
 
@@ -86,9 +199,12 @@ export default function ConnectorsPanel() {
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [keyValue, setKeyValue] = useState('')
   const [editingMisp, setEditingMisp] = useState<string | null>(null)   // id, or 'new'
+  const [filter, setFilter] = useState<Filter>('all')
 
-  const labelOf = (id: string) => engines.find(e => e.id === id)?.label ?? id
-  const logoOf = (id: string) => engines.find(e => e.id === id)?.logo
+  const engineOf = (id: string) => engines.find(e => e.id === id)
+  const labelOf = (id: string) => engineOf(id)?.label ?? id
+  const typesOf = (id: string) =>
+    (engineOf(id)?.supports ?? []).map(ty => t(`typeShort.${ty as IndicatorType}`)).join(' · ')
 
   const load = useCallback(() => {
     apiJson<ConnectorsData>('/connectors')
@@ -141,6 +257,8 @@ export default function ConnectorsPanel() {
   const testPanel = (rowId: string) =>
     tests[rowId] && <ConnectorTestPanel test={tests[rowId]} labelOf={labelOf} onClose={() => closeTest(rowId)} />
 
+  const toggleKeyEditor = (c: KeyConnector) => { setEditingKey(k => (k === c.key ? null : c.key)); setKeyValue('') }
+
   const saveKey = async (c: KeyConnector) => {
     const ok = await run(
       () => apiJson(`/connectors/keys/${c.key}`, 'PUT', { value: keyValue.trim() }),
@@ -162,110 +280,167 @@ export default function ConnectorsPanel() {
     run(() => apiJson(`/connectors/misp/${m.id}`, 'DELETE'), t('connectors.mispDeleted', { name: m.name }))
   }
 
+  if (loadFailed) {
+    return (
+      <div className="flex items-center gap-3">
+        <p className="text-sm text-red-400">{t('connectors.loadError')}</p>
+        <Button size="sm" variant="ghost" onClick={load}>{t('common.retry')}</Button>
+      </div>
+    )
+  }
+  if (!data) return <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+
+  const keyStatus = (c: KeyConnector): Status => c.source ?? 'none'
+  const mispStatus = (m: MispInstance): Status => (!m.connected ? 'incomplete' : data.misp_from_env ? 'env' : 'ui')
+  const isPending = (s: Status) => s === 'none' || s === 'incomplete'
+
+  const counts = {
+    all: data.keys.length + data.misp.length + data.keyless.length,
+    configured: data.keys.filter(c => !isPending(keyStatus(c))).length + data.misp.filter(m => m.connected).length,
+    pending: data.keys.filter(c => isPending(keyStatus(c))).length + data.misp.filter(m => !m.connected).length,
+    keyless: data.keyless.length,
+  }
+  const shows = (s: Status | 'keyless') =>
+    filter === 'all'
+    || (filter === 'keyless' && s === 'keyless')
+    || (filter === 'pending' && s !== 'keyless' && isPending(s))
+    || (filter === 'configured' && s !== 'keyless' && !isPending(s))
+
+  const keys = data.keys.filter(c => shows(keyStatus(c)))
+  const misp = data.misp.filter(m => shows(mispStatus(m)))
+  const showKeyless = shows('keyless')
+  const showMisp = filter === 'all' || misp.length > 0 || (filter === 'pending' && editingMisp === 'new')
+
+  // Every testable row in view: configured keys (and optional ones), complete MISP instances, keyless sources.
+  const testable: [string, string[]][] = [
+    ...keys.filter(c => c.configured || c.optional).map(c => [c.key, c.engines] as [string, string[]]),
+    ...misp.filter(m => m.connected).map(m => [m.id, [m.id]] as [string, string[]]),
+    ...(showKeyless ? data.keyless.map(k => [k.id, [k.id]] as [string, string[]]) : []),
+  ]
+  const testableRequests = testable.reduce((n, [, ids]) => n + ids.length, 0)
+  const testAll = () => {
+    if (!window.confirm(t('connectors.testAllConfirm', { n: testableRequests }))) return
+    testable.forEach(([row, ids]) => { if (!isTesting(row)) test(row, ids) })
+  }
+
+  const tabs: Filter[] = ['all', 'configured', 'pending', 'keyless']
+
   return (
-    <div className="flex flex-col gap-6">
-      <p className="text-sm text-muted-foreground">{rich(t('connectors.storageNote'))}</p>
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div role="tablist" aria-label={t('connectors.filter.label')}
+          className="flex flex-wrap gap-1 rounded-lg border border-border bg-muted/30 p-1">
+          {tabs.map(f => (
+            <button key={f} type="button" role="tab" aria-selected={filter === f} onClick={() => setFilter(f)}
+              className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
+                filter === f ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              } ${f === 'pending' && counts.pending > 0 && filter !== f ? 'text-amber-600 dark:text-amber-400' : ''}`}>
+              {t(`connectors.filter.${f}`)} <span className="tabular-nums opacity-70">{counts[f]}</span>
+            </button>
+          ))}
+        </div>
+        <Button variant="outline" size="sm" disabled={busy || testable.length === 0} onClick={testAll}
+          title={t('connectors.testTitle')} className="gap-1.5">
+          <FlaskConical className="h-4 w-4" /> {t('connectors.testAll')}
+        </Button>
+      </div>
 
       {message && (
         <p role={message.kind === 'error' ? 'alert' : 'status'}
-          className={`text-sm ${message.kind === 'ok' ? 'text-green-400' : 'text-red-400'}`}>
+          className={`text-sm ${message.kind === 'ok' ? 'text-green-500' : 'text-red-400'}`}>
           {message.text}
         </p>
       )}
 
-      {loadFailed && (
-        <div className="flex items-center gap-3">
-          <p className="text-sm text-red-400">{t('connectors.loadError')}</p>
-          <Button size="sm" variant="ghost" onClick={load}>{t('common.retry')}</Button>
-        </div>
-      )}
-      {!loadFailed && data === null && <p className="text-sm text-muted-foreground">{t('common.loading')}</p>}
-
-      {data && (
-        <>
-          <section className="flex flex-col gap-2">
-            <h3 className="text-xs text-muted-foreground uppercase tracking-wide font-medium">{t('connectors.keys')}</h3>
-            {data.keys.map(c => {
-              const logo = logoOf(c.engines[0])
-              const editing = editingKey === c.key
-              return (
-                <div key={c.key} className="rounded-lg border border-border bg-muted/20 px-3 py-2.5 flex flex-col gap-2">
-                  <div className="flex flex-wrap items-center gap-3">
-                    {logo
-                      ? <img src={logo} alt="" className="h-6 w-6 rounded-sm object-contain shrink-0" />
-                      : <KeyRound className="h-5 w-5 text-muted-foreground shrink-0" />}
-                    <div className="flex flex-col min-w-0 flex-1">
-                      <span className="text-sm font-medium text-foreground flex items-center gap-2 flex-wrap">
-                        {c.label}
-                        <StatusBadge source={c.source} hint={c.hint} />
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {c.engines.length > 1 && <>{t('connectors.powers', { sources: c.engines.map(labelOf).join(', ') })} · </>}
-                        <code className="font-mono">{c.key}</code>
-                        {c.optional && <> · {t('connectors.optional')}</>}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 justify-end">
-                      <Button variant="ghost" size="sm" asChild className="h-9 gap-1 px-2 text-xs">
-                        <a href={c.signup} target="_blank" rel="noreferrer noopener">
-                          <ExternalLink className="h-3.5 w-3.5" /> {t('connectors.getKey')}
-                        </a>
-                      </Button>
-                      <TestButton testing={isTesting(c.key)}
-                        disabled={busy || isTesting(c.key) || !(c.configured || c.optional)}
-                        title={c.configured || c.optional ? t('connectors.testTitle') : t('connectors.testNeedsKey')}
-                        onClick={() => test(c.key, c.engines)} />
-                      {!editing && (
-                        <Button variant="outline" size="sm" disabled={busy}
-                          onClick={() => { setEditingKey(c.key); setKeyValue('') }} className="h-9 text-xs">
-                          {c.configured ? t('connectors.replace') : t('connectors.set')}
-                        </Button>
+      {keys.length > 0 && (
+        <section className="rounded-xl border border-border bg-muted/10 overflow-visible">
+          <TableHeader title={t('connectors.keys')} />
+          {keys.map(c => {
+            const status = keyStatus(c)
+            const canTest = c.configured || c.optional
+            const subtitle = [
+              c.engines.length > 1 ? t('connectors.powers', { sources: c.engines.map(labelOf).join(', ') }) : typesOf(c.engines[0]),
+              c.optional ? t('connectors.optionalShort') : '',
+            ].filter(Boolean).join(' · ')
+            return (
+              <Row key={c.key} logo={engineOf(c.engines[0])?.logo} title={c.label} subtitle={subtitle} status={status}
+                keyCell={<KeyCell hint={c.hint} has={c.configured} />}
+                setup={c.configured
+                  ? <Button variant="outline" size="sm" disabled={busy} onClick={() => toggleKeyEditor(c)}
+                      aria-expanded={editingKey === c.key} className="h-8 w-full px-2 text-xs">
+                      {t('connectors.replace')}
+                    </Button>
+                  : <Button size="sm" disabled={busy} onClick={() => toggleKeyEditor(c)}
+                      aria-expanded={editingKey === c.key} className="h-8 w-full px-2 text-xs">
+                      {t('connectors.set')}
+                    </Button>}
+                testButton={canTest && (
+                  <TestButton testing={isTesting(c.key)} disabled={busy || isTesting(c.key)}
+                    title={t('connectors.testTitle')} onClick={() => test(c.key, c.engines)} />
+                )}
+                >
+                {editingKey === c.key && (
+                  <form onSubmit={e => { e.preventDefault(); saveKey(c) }}
+                    className="flex flex-col gap-2 rounded-lg border border-border bg-background/40 p-3">
+                    <div className={`grid grid-cols-1 gap-3 ${c.configured ? 'md:grid-cols-2' : ''}`}>
+                      {c.configured && (
+                        <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                          <span>{t('connectors.currentKey')}{c.source === 'env' && <> · {t('connectors.status.env')}</>}</span>
+                          <CurrentSecret hint={c.hint} revealPath={`/connectors/keys/${c.key}/reveal`}
+                            label={`${c.label} — ${t('connectors.currentKey')}`} />
+                        </div>
                       )}
-                      {c.source === 'ui' && (
-                        <Button variant="ghost" size="icon" disabled={busy} onClick={() => removeKey(c)}
-                          title={t('connectors.remove')} aria-label={t('connectors.remove')} className="h-9 w-9 hover:text-red-400">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
+                      <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                        {t('connectors.newKey')}
+                        <Input type="password" value={keyValue} onChange={e => setKeyValue(e.target.value)}
+                          placeholder={t('connectors.keyPlaceholder')} autoComplete="off" spellCheck={false} autoFocus
+                          className="h-9 font-mono" />
+                      </label>
                     </div>
-                  </div>
-                  {editing && (
-                    <form onSubmit={e => { e.preventDefault(); saveKey(c) }} className="flex flex-wrap items-center gap-2">
-                      <Input type="password" value={keyValue} onChange={e => setKeyValue(e.target.value)}
-                        placeholder={t('connectors.keyPlaceholder')} aria-label={`${c.label} — ${t('connectors.keyPlaceholder')}`}
-                        autoComplete="off" spellCheck={false} autoFocus className="h-9 flex-1 min-w-56 font-mono" />
+                    <div className="flex flex-wrap items-center gap-2">
                       <Button type="submit" size="sm" disabled={busy || !keyValue.trim()}>
                         {busy ? t('connectors.saving') : t('connectors.save')}
                       </Button>
                       <Button type="button" size="sm" variant="ghost" onClick={() => { setEditingKey(null); setKeyValue('') }}>
                         {t('connectors.cancel')}
                       </Button>
-                    </form>
-                  )}
-                  {testPanel(c.key)}
-                </div>
-              )
-            })}
-          </section>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                      <span>{t('connectors.envVar')} <code className="font-mono text-foreground">{c.key}</code></span>
+                      <a href={c.signup} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 text-primary hover:underline">
+                        <ExternalLink className="h-3 w-3" /> {t('connectors.getKey')}
+                      </a>
+                      {c.source === 'ui' && (
+                        <button type="button" disabled={busy} onClick={() => removeKey(c)}
+                          className="ml-auto inline-flex items-center gap-1 text-red-500 dark:text-red-400 hover:underline disabled:opacity-50">
+                          <Trash2 className="h-3 w-3" /> {t('connectors.remove')}
+                        </button>
+                      )}
+                    </div>
+                  </form>
+                )}
+                {testPanel(c.key)}
+              </Row>
+            )
+          })}
+        </section>
+      )}
 
-          <section className="flex flex-col gap-2">
-            <div className="flex items-end justify-between gap-3">
-              <div>
-                <h3 className="text-xs text-muted-foreground uppercase tracking-wide font-medium">{t('connectors.misp')}</h3>
-                <p className="text-sm text-muted-foreground mt-1">{t('connectors.mispSubtitle')}</p>
-              </div>
-              {editingMisp !== 'new' && (
-                <Button size="sm" disabled={busy} onClick={() => setEditingMisp('new')} className="gap-1.5 shrink-0">
-                  <Plus className="h-4 w-4" /> {t('connectors.mispAdd')}
-                </Button>
-              )}
-            </div>
-            {data.misp_from_env && data.misp.length > 0 && (
-              <p className="text-xs rounded-md border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-sky-700 dark:text-sky-300">
-                {rich(t('connectors.mispFromEnv'))}
-              </p>
-            )}
-            {editingMisp === 'new' && (
+      {showMisp && (
+        <section className="rounded-xl border border-border bg-muted/10 overflow-visible">
+          <TableHeader title={t('connectors.misp')} action={editingMisp !== 'new' && (
+            <Button size="sm" disabled={busy} onClick={() => setEditingMisp('new')} className="h-7 gap-1 px-2.5 text-xs">
+              <Plus className="h-3.5 w-3.5" /> {t('connectors.mispAdd')}
+            </Button>
+          )} />
+          {data.misp_from_env && data.misp.length > 0 && (
+            <p className="mx-4 mt-3 text-xs rounded-md border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-sky-700 dark:text-sky-300">
+              {rich(t('connectors.mispFromEnv'))}
+            </p>
+          )}
+          {editingMisp === 'new' && (
+            <div className="p-4 border-b border-border/60 flex flex-col gap-2">
+              <p className="text-xs text-muted-foreground">{t('connectors.mispSubtitle')}</p>
               <MispForm certFiles={data.cert_files} busy={busy}
                 onCancel={() => setEditingMisp(null)}
                 onSubmit={async body => {
@@ -273,86 +448,69 @@ export default function ConnectorsPanel() {
                     t('connectors.mispCreated', { name: body.name ?? '' }))
                   if (ok) setEditingMisp(null)
                 }} />
-            )}
-            {data.misp.length === 0 && editingMisp !== 'new' && (
-              <p className="text-sm text-muted-foreground">{t('connectors.mispEmpty')}</p>
-            )}
-            {data.misp.map(m => (
-              <div key={m.id} className="rounded-lg border border-border bg-muted/20 px-3 py-2.5 flex flex-col gap-2">
-                <div className="flex flex-wrap items-center gap-3">
-                  <img src="/logos/misp.png" alt="" className="h-6 w-6 rounded-sm object-contain shrink-0" />
-                  <div className="flex flex-col min-w-0 flex-1">
-                    <span className="text-sm font-medium text-foreground flex items-center gap-2 flex-wrap">
-                      {m.name}
-                      {m.connected
-                        ? <StatusBadge source={data.misp_from_env ? 'env' : 'ui'} hint={m.hint} />
-                        : <span className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-2 py-0.5 text-xs text-yellow-700 dark:text-yellow-300">
-                            {t('connectors.mispIncomplete')}
-                          </span>}
-                    </span>
-                    <span className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
-                      <span className="font-mono truncate">{m.url || '—'}</span>
-                      {!m.verify_ssl && <span className="inline-flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
-                        <ShieldOff className="h-3 w-3" /> {t('connectors.mispVerifySslOff')}</span>}
-                      {m.client_cert && <span>· mTLS <code className="font-mono">{m.client_cert}</code></span>}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1 justify-end">
-                    <TestButton testing={isTesting(m.id)} disabled={busy || isTesting(m.id) || !m.connected}
-                      title={m.connected ? t('connectors.testTitle') : t('connectors.testNeedsKey')}
-                      onClick={() => test(m.id, [m.id])} />
-                    <Button variant="ghost" size="icon" disabled={busy}
-                      onClick={() => setEditingMisp(e => (e === m.id ? null : m.id))} aria-expanded={editingMisp === m.id}
-                      title={t('connectors.mispEdit')} aria-label={t('connectors.mispEdit')}
-                      className={`h-9 w-9 ${editingMisp === m.id ? 'bg-muted/60' : ''}`}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" disabled={busy} onClick={() => removeMisp(m)}
-                      title={t('connectors.mispDelete')} aria-label={t('connectors.mispDelete')} className="h-9 w-9 hover:text-red-400">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                {editingMisp === m.id && (
-                  <MispForm instance={m} certFiles={data.cert_files} busy={busy}
-                    onCancel={() => setEditingMisp(null)}
-                    onSubmit={async body => {
-                      const ok = await run(() => apiJson(`/connectors/misp/${m.id}`, 'PATCH', body),
-                        t('connectors.mispUpdated', { name: body.name ?? m.name }))
-                      if (ok) setEditingMisp(null)
-                    }} />
-                )}
-                {testPanel(m.id)}
-              </div>
-            ))}
-          </section>
-
-          {data.keyless.length > 0 && (
-            <section className="flex flex-col gap-2">
-              <div>
-                <h3 className="text-xs text-muted-foreground uppercase tracking-wide font-medium">{t('connectors.keyless')}</h3>
-                <p className="text-sm text-muted-foreground mt-1">{t('connectors.keylessSubtitle')}</p>
-              </div>
-              {data.keyless.map(k => {
-                const logo = logoOf(k.id)
-                return (
-                  <div key={k.id} className="rounded-lg border border-border bg-muted/20 px-3 py-2.5 flex flex-col gap-2">
-                    <div className="flex flex-wrap items-center gap-3">
-                      {logo
-                        ? <img src={logo} alt="" className="h-6 w-6 rounded-sm object-contain shrink-0" />
-                        : <KeyRound className="h-5 w-5 text-muted-foreground shrink-0" />}
-                      <span className="text-sm font-medium text-foreground flex-1 min-w-0 truncate">{k.label}</span>
-                      <TestButton testing={isTesting(k.id)} disabled={busy || isTesting(k.id)}
-                        title={t('connectors.testTitle')} onClick={() => test(k.id, [k.id])} />
-                    </div>
-                    {testPanel(k.id)}
-                  </div>
-                )
-              })}
-            </section>
+            </div>
           )}
-        </>
+          {data.misp.length === 0 && editingMisp !== 'new' && (
+            <p className="px-4 py-4 text-sm text-muted-foreground">{t('connectors.mispEmpty')}</p>
+          )}
+          {misp.map(m => (
+            <Row key={m.id} logo="/logos/misp.png" title={m.name} status={mispStatus(m)}
+              subtitle={<>
+                <span className="font-mono">{m.url || '—'}</span>
+                {!m.verify_ssl && <span className="text-amber-600 dark:text-amber-400"> · <ShieldOff className="inline h-3 w-3 -mt-0.5" /> {t('connectors.mispVerifySslOff')}</span>}
+                {m.client_cert && <> · mTLS</>}
+              </>}
+              keyCell={<KeyCell hint={m.hint} has={m.has_key} />}
+              setup={
+                <Button variant={m.connected ? 'outline' : 'default'} size="sm" disabled={busy}
+                  onClick={() => setEditingMisp(e => (e === m.id ? null : m.id))} aria-expanded={editingMisp === m.id}
+                  className="h-8 w-full px-2 text-xs">
+                  {m.connected ? t('connectors.mispEdit') : t('connectors.complete')}
+                </Button>
+              }
+              testButton={m.connected && (
+                <TestButton testing={isTesting(m.id)} disabled={busy || isTesting(m.id)}
+                  title={t('connectors.testTitle')} onClick={() => test(m.id, [m.id])} />
+              )}
+              >
+              {editingMisp === m.id && (
+                <MispForm instance={m} certFiles={data.cert_files} busy={busy}
+                  onCancel={() => setEditingMisp(null)} onDelete={() => removeMisp(m)}
+                  onSubmit={async body => {
+                    const ok = await run(() => apiJson(`/connectors/misp/${m.id}`, 'PATCH', body),
+                      t('connectors.mispUpdated', { name: body.name ?? m.name }))
+                    if (ok) setEditingMisp(null)
+                  }} />
+              )}
+              {testPanel(m.id)}
+            </Row>
+          ))}
+        </section>
       )}
+
+      {showKeyless && data.keyless.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h3 className="text-xs uppercase tracking-wide text-muted-foreground font-medium">{t('connectors.keylessHeading')}</h3>
+          <div className="flex flex-wrap gap-2">
+            {data.keyless.map(k => (
+              <span key={k.id} className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/10 py-1 pl-1.5 pr-1 text-sm">
+                <Logo src={engineOf(k.id)?.logo} />
+                <span aria-hidden="true" className="h-2 w-2 rounded-full bg-green-500" />
+                {k.label}
+                <TestButton testing={isTesting(k.id)} disabled={busy || isTesting(k.id)}
+                  title={t('connectors.testTitle')} onClick={() => test(k.id, [k.id])} className="h-7 !w-auto rounded-full" />
+              </span>
+            ))}
+          </div>
+          {data.keyless.map(k => tests[k.id] && <div key={k.id}>{testPanel(k.id)}</div>)}
+        </section>
+      )}
+
+      {keys.length === 0 && !showMisp && !showKeyless && (
+        <p className="text-sm text-muted-foreground">{t('connectors.noMatches')}</p>
+      )}
+
+      <p className="text-xs text-muted-foreground">{rich(t('connectors.storageNote'))}</p>
     </div>
   )
 }
@@ -366,12 +524,13 @@ interface MispBody {
   client_key?: string
 }
 
-function MispForm({ instance, certFiles, busy, onSubmit, onCancel }: {
+function MispForm({ instance, certFiles, busy, onSubmit, onCancel, onDelete }: {
   instance?: MispInstance
   certFiles: string[]
   busy: boolean
   onSubmit: (body: MispBody) => void
   onCancel: () => void
+  onDelete?: () => void
 }) {
   const { t } = useI18n()
   const [name, setName] = useState(instance?.name ?? '')
@@ -407,11 +566,18 @@ function MispForm({ instance, certFiles, busy, onSubmit, onCancel }: {
           <Input type="url" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://misp.example.org"
             required className="h-9 font-mono" />
         </label>
-        <label className={`${fieldLabel} md:col-span-2`}>
-          {t('connectors.mispKey')}
+        {instance?.has_key && (
+          <div className={fieldLabel}>
+            {t('connectors.currentKey')}
+            <CurrentSecret hint={instance.hint} revealPath={`/connectors/misp/${instance.id}/reveal`}
+              label={`${instance.name} — ${t('connectors.currentKey')}`} />
+          </div>
+        )}
+        <label className={`${fieldLabel} ${instance?.has_key ? '' : 'md:col-span-2'}`}>
+          {instance?.has_key ? t('connectors.newKey') : t('connectors.mispKey')}
           <Input type="password" value={key} onChange={e => setKey(e.target.value)} autoComplete="off" spellCheck={false}
             required={isNew || !instance?.has_key} className="h-9 font-mono"
-            placeholder={instance?.has_key ? t('connectors.mispKeyKeep') + (instance.hint ? ` (…${instance.hint})` : '') : ''} />
+            placeholder={instance?.has_key ? t('connectors.mispKeyKeep') : ''} />
         </label>
         <label className={fieldLabel}>
           {t('connectors.mispClientCert')}
@@ -438,6 +604,12 @@ function MispForm({ instance, certFiles, busy, onSubmit, onCancel }: {
           {busy ? (isNew ? t('connectors.mispAdding') : t('connectors.saving')) : (isNew ? t('connectors.mispAdd') : t('connectors.save'))}
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={onCancel}>{t('connectors.cancel')}</Button>
+        {onDelete && (
+          <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={onDelete}
+            className="ml-auto gap-1.5 text-red-500 dark:text-red-400 hover:text-red-500">
+            <Trash2 className="h-3.5 w-3.5" /> {t('connectors.mispDelete')}
+          </Button>
+        )}
       </div>
     </form>
   )

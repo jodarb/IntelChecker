@@ -4,6 +4,7 @@ import logging
 import time
 from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from app.core import auth
 from app.core import db as history_db
@@ -212,7 +213,8 @@ def delete_token(user_id: int, token_id: int):
 
 # ── Connectors (admin) ────────────────────────────────────────────────────────
 # API keys and MISP instances (app/core/connectors.py). Stored keys are never
-# returned, only their last four characters.
+# listed, only their last four characters; /reveal returns one on demand (admin
+# browser session only, logged).
 
 class SecretRequest(BaseModel):
     value: str
@@ -253,6 +255,31 @@ def list_connectors():
             if meta["key"] is None and eid not in connectors.KEYED_ENGINES
         ],
     }
+
+
+def _admin_in_browser(user: dict = IsAdmin) -> dict:
+    """Revealing a stored key needs an admin signed in interactively: an API token
+    can't read credentials back."""
+    if user.get("auth") != "session":
+        raise auth.api_error(403, "SessionRequired", "This action requires signing in, not an API token.")
+    return user
+
+
+_NO_STORE = {"Cache-Control": "no-store", "Pragma": "no-cache"}
+
+
+@app.get("/connectors/keys/{env_name}/reveal")
+def reveal_connector_key(env_name: str, user: dict = Depends(_admin_in_browser)):
+    result = connectors.reveal_key(env_name)
+    log.warning("Admin %s revealed the %s key (source: %s)", user["username"], env_name, result["source"])
+    return JSONResponse(result, headers=_NO_STORE)
+
+
+@app.get("/connectors/misp/{instance_id}/reveal")
+def reveal_misp_key(instance_id: str, user: dict = Depends(_admin_in_browser)):
+    result = connectors.reveal_misp_key(instance_id)
+    log.warning("Admin %s revealed the API key of MISP instance %s", user["username"], instance_id)
+    return JSONResponse(result, headers=_NO_STORE)
 
 
 @app.put("/connectors/keys/{env_name}", dependencies=[IsAdmin], status_code=204)

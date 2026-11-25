@@ -101,6 +101,7 @@ Response:
 | `GET /auth/me` | any | The user behind the token/session and their permissions. |
 | `GET /connectors` | admin | API keys (status, source `ui`/`env`, last 4 chars — never the key), MISP instances, files in `backend/certs/`. |
 | `PUT` / `DELETE /connectors/keys/{ENV_NAME}` `{value}` | admin | Save / remove a source's key (e.g. `VIRUSTOTAL_API_KEY`). |
+| `GET /connectors/keys/{ENV_NAME}/reveal` · `GET /connectors/misp/{id}/reveal` | admin, browser session | The full key in force `{value, source}`. Rejected with an API token (`403 SessionRequired`); `Cache-Control: no-store`; logged. |
 | `POST /connectors/misp` · `PATCH` / `DELETE /connectors/misp/{id}` | admin | Add / edit / delete a MISP instance (`name`, `url`, `key`, `verify_ssl`, `client_cert`, `client_key`; omit `key` on edit to keep it). |
 | `POST /connectors/test/{engine}` | admin | One real lookup of a harmless indicator: `{ok, outcome (ok/not_found/error), indicator, type, duration_ms, error, response, truncated}`. Uses one request of the source's quota. |
 

@@ -88,7 +88,7 @@ docker compose up --build -d      # add `build --no-cache` if a container serves
 
 ## 🔑 API keys
 
-Admins manage every key from the **Connectors** page (header → **Connectors**): set / replace / remove a key, **Test** it, and add or edit MISP instances — no restart needed. Keys are stored in `backend/data/connectors.json` (permissions 0600, in clear like `.env`: protect the volume and its backups) and are never shown again, only their last four characters.
+Admins manage every key from the **Connectors** page (header → **Connectors**): set / replace / remove a key, **Test** it, and add or edit MISP instances — no restart needed. Keys are stored in `backend/data/connectors.json` (permissions 0600, in clear like `.env`: protect the volume and its backups) and listed by their last four characters (an admin can reveal one on demand; it's logged).
 
 The variables below still work in `backend/.env` as a fallback (a key saved on Connectors wins). `MISP_<N>_*` instances in `.env` are used until the first MISP change on Connectors, which copies them over.
 

@@ -3,8 +3,9 @@ Connectors page (admin only).
 
 Persisted to backend/data/connectors.json (Docker volume, gitignored), written with
 0600 permissions. Keys are stored in clear, like backend/.env — protect the volume
-and its backups the same way. The API never returns a stored key, only its last
-four characters.
+and its backups the same way. The list endpoints never return a stored key, only
+its last four characters; an admin can reveal one on demand (GET …/reveal, browser
+session only, logged).
 
   * API keys: a key saved here wins over the same variable in backend/.env; removing
     it from here falls back to the .env value (if any). So existing deployments keep
@@ -147,6 +148,21 @@ def delete_key(env_name: str) -> None:
         data = _copy()
         (data.get("keys") or {}).pop(env_name, None)
         _write(data)
+
+
+def reveal_key(env_name: str) -> dict:
+    """The key in force (Connectors first, then .env) and where it comes from."""
+    _check_connector(env_name)
+    stored = (_load().get("keys") or {}).get(env_name) or ""
+    env_value = os.environ.get(env_name, "").strip()
+    return {"value": stored or env_value, "source": "ui" if stored else ("env" if env_value else None)}
+
+
+def reveal_misp_key(instance_id: str) -> dict:
+    inst = get_misp(instance_id)
+    if inst is None:
+        raise api_error(404, "MispNotFound", "That MISP instance no longer exists.")
+    return {"value": inst["key"], "source": "ui" if misp_managed_in_ui() else "env"}
 
 
 def list_keys() -> list[dict]:
