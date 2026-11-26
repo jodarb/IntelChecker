@@ -415,6 +415,22 @@ def _epss_subscore(d: Any) -> float | None:
     return 0
 
 
+OPENTIP_ZONE_SCORES = {"Red": 9, "Orange": 7, "Yellow": 5, "Green": 0}
+
+
+def _opentip_subscore(d: Any) -> float | None:
+    zone = _get(d, "Zone")
+    if _get(d, "applicable") is False or not isinstance(zone, str):
+        return None
+    return OPENTIP_ZONE_SCORES.get(zone)
+
+
+def _vulncheck_kev_subscore(d: Any) -> float | None:
+    if _get(d, "listed") is not True:
+        return None
+    return 10 if _get(d, "ransomware") == "Known" else 9
+
+
 def _misp_subscore(d: Any) -> float | None:
     attrs = _get(d, "Attribute")
     if not isinstance(attrs, list):
@@ -484,6 +500,8 @@ _VERDICT_NORMALIZERS: dict[str, dict] = {
     "nvd": {"cve": _nvd_subscore},
     "cisakev": {"cve": _kev_subscore},
     "epss": {"cve": _epss_subscore},
+    "opentip": _for(_ALL4, _opentip_subscore),
+    "vulncheckkev": {"cve": _vulncheck_kev_subscore},
 }
 
 
@@ -527,6 +545,11 @@ def _alienvault_depth(d: Any) -> float:
 
 
 def _recorded_future_depth(d: Any) -> float:
+    if _get(d, "kind") == "actor":
+        if not _truthy(_get(d, "found")):
+            return 0
+        links = _get(d, "insikt_links")
+        return 1 if isinstance(links, dict) and len(links) > 0 else 0.5
     if not _truthy(_get(d, "risk")) and not _truthy(_get(d, "entity")):
         return 0
     return 1 if len(_arr(_get(d, "risk", "evidenceDetails"))) > 0 else 0.5
@@ -728,6 +751,17 @@ def _opencti_depth(d: Any) -> float:
     return 0.5
 
 
+def _opentip_depth(d: Any) -> float:
+    zone = _get(d, "Zone")
+    if _get(d, "applicable") is False or not isinstance(zone, str):
+        return 0
+    return 1 if zone in OPENTIP_ZONE_SCORES else 0.5
+
+
+def _vulncheck_kev_depth(d: Any) -> float:
+    return 1 if _get(d, "listed") is True else 0
+
+
 _DEPTH_FNS = {
     "tweetfeed": _tweetfeed_depth,
     "virustotal": _vt_depth,
@@ -761,6 +795,8 @@ _DEPTH_FNS = {
     "nvd": _nvd_depth,
     "cisakev": _kev_depth,
     "epss": _epss_depth,
+    "opentip": _opentip_depth,
+    "vulncheckkev": _vulncheck_kev_depth,
 }
 
 

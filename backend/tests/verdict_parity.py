@@ -35,7 +35,7 @@ ENGINE_IDS = [
     "abuseipdb", "virustotal", "abusech", "alienvault", "ipinfo", "shodan", "torexitlist", "urlhaus",
     "mitreattack", "ripestat", "urlscan", "malwarebazaar", "phishtank", "recordedfuture", "anyrun",
     "greynoise", "hybridanalysis", "safebrowsing", "tweetfeed", "crowdsec", "hashlookup", "rdap", "tranco",
-    "malpedia", "spamhaus", "openphish", "sslbl", "yaraify", "circlpdns", "nvd", "cisakev", "epss",
+    "malpedia", "spamhaus", "openphish", "sslbl", "yaraify", "circlpdns", "nvd", "cisakev", "epss", "opentip", "vulncheckkev",
     "misp_1", "misp_2", "opencti_1", "opencti_2",
 ]
 ERROR_CODES = ["NotFound", "MissingApiKey", "RateLimitExceeded", "Timeout", "NetworkError",
@@ -83,6 +83,9 @@ def payload(r: random.Random, engine: str):
         return obj(query_status=m(r.choice(["ok", "no_results"])),
                    data=m(r.choice([[], [obj(confidence_level=m(num(r, (0, 50, 75, 100))))],
                                     [obj(confidence_level=m(25)), obj(confidence_level=m(100))]])))
+    if engine == "recordedfuture" and r.random() < 0.3:
+        return obj(kind=m(r.choice(["actor", "", None])), found=m(r.choice([True, False, 1])),
+                   insikt_links=m(r.choice([{}, {"malware": [{}]}, [], [{}], "ab", 3, None])))
     if engine == "recordedfuture":
         return obj(risk=m(obj(score=m(num(r, (0, 5, 25, 65, 89, 99))),
                               evidenceDetails=m(r.choice([[], [{}], [{}, {}]])))), entity=m(r.choice([{}, {"id": "x"}])))
@@ -156,6 +159,11 @@ def payload(r: random.Random, engine: str):
     if engine == "epss":
         return obj(found=m(r.choice([True, False])),
                    epss=m(r.choice([0, 0.00042, 0.0099, 0.01, 0.049, 0.05, 0.2, 0.4999, 0.5, 0.97, 1, "0.5", True])))
+    if engine == "opentip":
+        return obj(Zone=m(r.choice(["Red", "Orange", "Yellow", "Green", "Grey", "red", "", "constructor", 3])),
+                   applicable=m(r.choice([True, False, None])))
+    if engine == "vulncheckkev":
+        return obj(listed=m(r.choice([True, False, 1])), ransomware=m(r.choice(["Known", "Unknown", ""])))
     if engine.startswith("opencti_"):
         inds = [obj(active=m(r.choice([True, False, 1])), score=m(r.choice([0, 15, 50, 80, 100, 120, "80", None])))
                 for _ in range(r.choice([0, 1, 2, 3]))]

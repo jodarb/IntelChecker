@@ -33,7 +33,7 @@ const en = {
   'summaryField.torExit': 'Tor Exit Node',
   'summaryField.openPorts': 'Open Ports',
   'summaryField.cvss': 'CVSS',
-  'summaryField.kev': 'Exploited in the wild (CISA KEV)',
+  'summaryField.kev': 'Exploited in the wild (KEV)',
   'summaryField.epss': 'Exploitation probability (EPSS, 30 days)',
   'summary.clickSource': "Click to see where it comes from",
   'summary.provTitle': "Where “{value}” comes from",
@@ -83,6 +83,8 @@ const en = {
   'summary.unnamedActor': "Linked to an APT / threat actor — the source doesn’t name it.",
   'prov.otx.related': "adversary in OTX’s pulse summary",
   'prov.rf.rule': "risk rule",
+  'prov.rf.link': "actor linked by Recorded Future",
+  'prov.rf.malware': "malware linked by Recorded Future",
 }
 const es: Record<keyof typeof en, string> = {
   'summary.title': 'Resumen',
@@ -119,7 +121,7 @@ const es: Record<keyof typeof en, string> = {
   'summaryField.torExit': 'Nodo de salida Tor',
   'summaryField.openPorts': 'Puertos abiertos',
   'summaryField.cvss': 'CVSS',
-  'summaryField.kev': 'Explotada activamente (CISA KEV)',
+  'summaryField.kev': 'Explotada activamente (KEV)',
   'summaryField.epss': 'Probabilidad de explotación (EPSS, 30 días)',
   'summary.clickSource': "Pulsa para ver de dónde sale",
   'summary.provTitle': "De dónde sale «{value}»",
@@ -169,5 +171,7 @@ const es: Record<keyof typeof en, string> = {
   'summary.unnamedActor': "Relacionado con un APT / actor de amenaza — la fuente no lo nombra.",
   'prov.otx.related': "adversario en el resumen de pulses de OTX",
   'prov.rf.rule': "regla de riesgo",
+  'prov.rf.link': "actor relacionado por Recorded Future",
+  'prov.rf.malware': "malware relacionado por Recorded Future",
 }
 export default { en, es }

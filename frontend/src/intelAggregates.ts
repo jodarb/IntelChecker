@@ -33,7 +33,7 @@ export type ProvField =
   | 'sslbl.reason'
   | 'misp.galaxyActor' | 'misp.galaxyFamily' | 'misp.tag'
   | 'opencti.malware' | 'opencti.actor' | 'opencti.campaign' | 'opencti.label'
-  | 'rf.rule'
+  | 'rf.rule' | 'rf.link' | 'rf.malware'
 
 /** A raw value plus where it came from. */
 interface Item {
@@ -73,6 +73,10 @@ const str = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? 
  * are ignored, but its malware families, adversary and dates still count.
  */
 const MAX_TAGS_PER_PULSE = 15
+
+/** Recorded Future risk from which an IOC's Insikt links (actors, malware) describe the
+ *  IOC itself and feed the Summary ("Suspicious" and above). Below it they're only shown on the card. */
+export const RF_LINKS_MIN_RISK = 25
 
 /** An OTX pulse with at least this many indicators is a bulk feed / report. */
 export const BULK_PULSE_MIN = 100
@@ -232,6 +236,21 @@ const EXTRACTORS: Record<string, (d: any) => EngineIntel> = {
   },
   recordedfuture: d => {
     const out = empty()
+    const links = d?.insikt_links ?? {}
+    if (d?.kind === 'actor') {
+      // The profile itself is the looked-up actor under RF's name (APT28 → BlueDelta):
+      // listing it as a "related" actor would relate the actor to itself.
+      if (!d?.found) return out
+      out.actors.push(...arr(links.actors).map(a => a?.name).map(it('rf.link')))
+      out.families.push(...arr(links.malware).map(m => m?.name).map(it('rf.malware')))
+      return out
+    }
+    // Links say what uses this infrastructure; on a benign IOC (8.8.8.8, google.com)
+    // that's every malware that queries it. Only a risky IOC's links describe it.
+    const score = d?.risk?.score
+    const indirect = !(typeof score === 'number' && score >= RF_LINKS_MIN_RISK)
+    out.actors.push(...arr(links.actors).map(a => a?.name).map(it('rf.link', { indirect })))
+    out.families.push(...arr(links.malware).map(m => m?.name).map(it('rf.malware', { indirect })))
     for (const e of arr(d?.risk?.evidenceDetails)) {
       const rule = str(e?.rule)
       if (!rule || !/linked to (apt|threat actor)/i.test(rule)) continue

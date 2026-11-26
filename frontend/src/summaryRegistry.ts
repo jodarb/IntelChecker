@@ -51,6 +51,9 @@ export const SUMMARY_REGISTRY: Record<string, Partial<Record<IndicatorType, Summ
   cisakev: {
     cve: [{ field: 'kev', extract: (d) => ((d as { listed?: unknown } | null)?.listed === true ? 'Yes' : null) }],
   },
+  vulncheckkev: {
+    cve: [{ field: 'kev', extract: (d) => ((d as { listed?: unknown } | null)?.listed === true ? 'Yes' : null) }],
+  },
   epss: {
     cve: [
       {

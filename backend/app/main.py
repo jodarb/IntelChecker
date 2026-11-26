@@ -18,7 +18,7 @@ from app.services import (
     recordedfuture, anyrun, greynoise, hybridanalysis, safebrowsing, tweetfeed, misp, opencti,
     crowdsec, hashlookup, rdap, tranco, malpedia,
     spamhaus, openphish, yaraify, sslbl, circlpdns,
-    nvd, cisakev, epss,
+    nvd, cisakev, epss, opentip, vulncheckkev,
 )
 
 
@@ -79,6 +79,8 @@ _SERVICES = {
     "nvd": nvd,
     "cisakev": cisakev,
     "epss": epss,
+    "opentip": opentip,
+    "vulncheckkev": vulncheckkev,
 }
 
 

@@ -69,6 +69,10 @@ CONNECTORS: list[dict] = [
      "signup": "https://www.spamhaus.com/free-trial/sign-up-for-a-free-data-query-service-account/"},
     {"key": "NVD_API_KEY", "label": "NVD (NIST)", "engines": ["nvd"], "optional": True,
      "signup": "https://nvd.nist.gov/developers/request-an-api-key"},
+    {"key": "KASPERSKY_OPENTIP_API_KEY", "label": "Kaspersky OpenTIP", "engines": ["opentip"],
+     "signup": "https://opentip.kaspersky.com/token"},
+    {"key": "VULNCHECK_API_KEY", "label": "VulnCheck", "engines": ["vulncheckkev"],
+     "signup": "https://vulncheck.com/settings/tokens"},
 ]
 _CONNECTOR_KEYS = {c["key"] for c in CONNECTORS}
 KEYED_ENGINES = {e for c in CONNECTORS for e in c["engines"]}

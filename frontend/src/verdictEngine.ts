@@ -467,6 +467,23 @@ function epssSubscore(d: unknown): number | null {
   for (const [floor, score] of EPSS_TIERS) if (prob >= floor) return score
   return 0
 }
+/** Kaspersky OpenTIP zone → subscore. Green is an explicit clean verdict; Grey (not
+ *  categorised) and anything else is no verdict. */
+export const OPENTIP_ZONE_SCORES: Record<string, number> = { Red: 9, Orange: 7, Yellow: 5, Green: 0 }
+
+function opentipSubscore(d: unknown): number | null {
+  const zone = (d as any)?.Zone
+  if ((d as any)?.applicable === false || typeof zone !== 'string') return null
+  return Object.prototype.hasOwnProperty.call(OPENTIP_ZONE_SCORES, zone) ? OPENTIP_ZONE_SCORES[zone] : null
+}
+
+// VulnCheck KEV: exploitation reported publicly or seen by VulnCheck's canaries → 9;
+// used in ransomware campaigns → 10. Not listed is no data, never clean.
+function vulncheckKevSubscore(d: unknown): number | null {
+  const p = d as any
+  if (p?.listed !== true) return null
+  return p?.ransomware === 'Known' ? 10 : 9
+}
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 function mispSubscore(d: unknown): number | null {
@@ -537,6 +554,8 @@ const VERDICT_NORMALIZERS: Record<string, Partial<Record<IndicatorType, (data: u
   nvd: { cve: nvdSubscore },
   cisakev: { cve: kevSubscore },
   epss: { cve: epssSubscore },
+  opentip: { ip: opentipSubscore, domain: opentipSubscore, url: opentipSubscore, hash: opentipSubscore },
+  vulncheckkev: { cve: vulncheckKevSubscore },
 }
 
 // Per-engine 0-10 score for a single result, independent of weight — this is what
@@ -585,6 +604,12 @@ function alienvaultDepth(d: any): Depth {
 }
 
 function recordedFutureDepth(d: any): Depth {
+  // Threat actor profile: rich when RF links it to malware, techniques, infrastructure…
+  if (d?.kind === 'actor') {
+    const links = d?.insikt_links
+    if (!d?.found) return 0
+    return links && typeof links === 'object' && !Array.isArray(links) && Object.keys(links).length > 0 ? 1 : 0.5
+  }
   if (!d?.risk && !d?.entity) return 0
   return arr(d?.risk?.evidenceDetails).length > 0 ? 1 : 0.5
 }
@@ -759,6 +784,17 @@ function openctiDepth(d: any): Depth {
   return arr(d?.indicators).length > 0 || arr(d?.relations).length > 0 || (typeof reports === 'number' && reports > 0) ? 1 : 0.5
 }
 
+// OpenTIP: a categorised zone is a full record; Grey (known but not categorised) is basic.
+function opentipDepth(d: any): Depth {
+  const zone = d?.Zone
+  if (d?.applicable === false || typeof zone !== 'string') return 0
+  return Object.prototype.hasOwnProperty.call(OPENTIP_ZONE_SCORES, zone) ? 1 : 0.5
+}
+
+function vulncheckKevDepth(d: any): Depth {
+  return d?.listed === true ? 1 : 0
+}
+
 const DEPTH_FNS: Record<string, (data: any) => Depth> = {
   tweetfeed: tweetFeedDepth,
   virustotal: vtDepth,
@@ -792,6 +828,8 @@ const DEPTH_FNS: Record<string, (data: any) => Depth> = {
   nvd: nvdDepth,
   cisakev: kevDepth,
   epss: epssDepth,
+  opentip: opentipDepth,
+  vulncheckkev: vulncheckKevDepth,
 }
 
 /* eslint-enable @typescript-eslint/no-explicit-any */

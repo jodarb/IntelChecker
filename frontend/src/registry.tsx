@@ -32,6 +32,8 @@ import CirclPdnsCard from '@/components/results/CirclPdnsCard'
 import NvdCard from '@/components/results/NvdCard'
 import CisaKevCard from '@/components/results/CisaKevCard'
 import EpssCard from '@/components/results/EpssCard'
+import OpenTipCard from '@/components/results/OpenTipCard'
+import VulnCheckKevCard from '@/components/results/VulnCheckKevCard'
 
 export type IndicatorType = 'ip' | 'domain' | 'url' | 'hash' | 'asn' | 'threat-actor' | 'cve'
 
@@ -161,7 +163,7 @@ export const STATIC_ENGINES: EngineConfig[] = [
   {
     id: 'recordedfuture',
     label: 'Recorded Future',
-    supports: ['ip', 'domain', 'url', 'hash'],
+    supports: ['ip', 'domain', 'url', 'hash', 'threat-actor'],
     component: RecordedFutureCard as React.ComponentType<CardProps>,
     logo: '/logos/recordedfuture.ico',
   },
@@ -290,6 +292,20 @@ export const STATIC_ENGINES: EngineConfig[] = [
     supports: ['cve'],
     component: EpssCard as React.ComponentType<CardProps>,
     logo: '/logos/epss.png',
+  },
+  {
+    id: 'opentip',
+    label: 'Kaspersky OpenTIP',
+    supports: ['ip', 'domain', 'url', 'hash'],
+    component: OpenTipCard as React.ComponentType<CardProps>,
+    logo: '/logos/opentip.ico',
+  },
+  {
+    id: 'vulncheckkev',
+    label: 'VulnCheck KEV',
+    supports: ['cve'],
+    component: VulnCheckKevCard as React.ComponentType<CardProps>,
+    logo: '/logos/vulncheckkev.png',
   },
 ]
 

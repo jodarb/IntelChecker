@@ -267,12 +267,14 @@ Archived history entries keep the value in force when they were run; entries sav
 | NVD | 6 | 9 | CVE only |
 | EPSS | 8 | 6 | CVE only |
 | CISA KEV | 10 | 3 | CVE only; listed CVEs only |
+| VulnCheck KEV | 10 | 4 | CVE only; listed CVEs only |
+| Kaspersky OpenTIP | 8 | 6 | also issues clean verdicts (Green) |
 
 ANY.RUN, Hybrid Analysis, GreyNoise and Safe Browsing ship with risk weight 0: they are scored, but don't move the Risk Score until you give them a weight.
 
 For **CVEs** the Risk Score means *exploitation risk*: NVD brings severity (CVSS), EPSS the probability of exploitation and CISA KEV confirmed exploitation, which is why KEV has the top risk weight and a low knowledge weight (most CVEs are not in it). The quadrants keep their logic but get vulnerability wording (*High exploitation risk*, *Known · Moderate risk*…).
 
-CIRCL hashlookup, Tranco, CrowdSec and EPSS are the sources that most often issue an explicit **clean** verdict, which the *Known benign* quadrant needs. A clean verdict only counts with a risk weight above 0, and it also pulls the Risk Score down when other sources flag the indicator, which is why Tranco (popular domains can host abuse) and hashlookup (dual-use tools ship in distributions) have low risk weights.
+CIRCL hashlookup, Tranco, CrowdSec, Kaspersky OpenTIP and EPSS are the sources that most often issue an explicit **clean** verdict, which the *Known benign* quadrant needs. A clean verdict only counts with a risk weight above 0, and it also pulls the Risk Score down when other sources flag the indicator, which is why Tranco (popular domains can host abuse) and hashlookup (dual-use tools ship in distributions) have low risk weights.
 
 ### Risk subscore (0–10) per source
 
@@ -286,7 +288,7 @@ CIRCL hashlookup, Tranco, CrowdSec and EPSS are the sources that most often issu
 | ThreatFox | no match → no verdict; match → 7 + (confidence ÷ 100 × 3) |
 | URLhaus | no match → no verdict; URL online → 9, offline → 6 |
 | MalwareBazaar | sample on file → 10, otherwise no verdict |
-| Recorded Future | risk score ÷ 9.9. Score 0 with no risk rules triggered → no verdict. |
+| Recorded Future | risk score ÷ 9.9. Score 0 with no risk rules triggered → no verdict. Threat actor → context only. |
 | urlscan.io | prior scans: 0 → no verdict, 1–2 → 3, 3–5 → 5, >5 → 6 |
 | PhishTank | not in DB → no verdict; marked invalid → clean; unverified → 5; verified → 10 |
 | ANY.RUN | no record → no verdict; threat level 0 → clean; 1 (suspicious) → 5; 2 (malicious) → 9 |
@@ -308,13 +310,15 @@ CIRCL hashlookup, Tranco, CrowdSec and EPSS are the sources that most often issu
 | NVD | CVSS base score as is (newest version: 4.0 → 3.1 → 3.0 → 2.0, NVD's own assessment first); rejected, not found or not scored yet → no verdict |
 | CISA KEV | listed (exploited in the wild) → 9; also used in ransomware campaigns → 10; not listed → no verdict |
 | EPSS | 30-day exploitation probability: ≥ 50 % → 10, ≥ 20 % → 8, ≥ 5 % → 6, ≥ 1 % → 3, < 1 % → clean; no score → no verdict |
+| VulnCheck KEV | listed (exploitation reported publicly or seen by VulnCheck's canaries) → 9; also used in ransomware → 10; not listed → no verdict. |
+| Kaspersky OpenTIP | Zone: Red → 9, Orange → 7, Yellow → 5, Green → clean; Grey (not categorised), not found or a SHA-512 → no verdict. |
 | Shodan, IPinfo, RIPEstat, MITRE ATT&CK, Malpedia, CIRCL Passive DNS | never return a risk subscore |
 
 ### Depth of record per source (Knowledge Score)
 
 | Source | None (0) | Basic (0.5) | Rich (1) |
 |---|---|---|---|
-| Recorded Future | not found | record without risk rules | ≥1 risk rule |
+| Recorded Future | not found | record without risk rules; actor profile with no links | ≥1 risk rule; actor linked to malware / techniques / infrastructure |
 | MISP | 0 attributes | 1–2 attributes | ≥3 attributes or ≥2 events |
 | OpenCTI | no match | entity with no indicators, relationships or reports | indicators, relationships or reports |
 | MITRE ATT&CK | not found | profile without techniques | techniques or software |
@@ -348,5 +352,7 @@ CIRCL hashlookup, Tranco, CrowdSec and EPSS are the sources that most often issu
 | NVD | not found | rejected, or no CVSS yet | scored record |
 | CISA KEV | not listed | — | listed |
 | EPSS | no score | — | scored |
+| VulnCheck KEV | not listed | — | listed |
+| Kaspersky OpenTIP | not found / not applicable | Grey (known, not categorised) | Red / Orange / Yellow / Green |
 
 These rules are fixed in code (`frontend/src/verdictEngine.ts`); the Admin page only changes how much each source's result counts.

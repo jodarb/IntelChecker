@@ -24,7 +24,7 @@ STATIC_ENGINES: dict[str, dict] = {
     "urlscan":        _engine("urlscan.io", ["url", "domain"], "URLSCAN_API_KEY"),
     "malwarebazaar":  _engine("MalwareBazaar · abuse.ch", ["hash"], "ABUSECH_AUTH_KEY"),
     "phishtank":      _engine("PhishTank", ["url"], None),
-    "recordedfuture": _engine("Recorded Future", _ALL, "RECORDED_FUTURE_API_KEY"),
+    "recordedfuture": _engine("Recorded Future", [*_ALL, "threat-actor"], "RECORDED_FUTURE_API_KEY"),
     "anyrun":         _engine("ANY.RUN", _ALL, "ANYRUN_API_KEY"),
     "greynoise":      _engine("GreyNoise", ["ip"], "GREYNOISE_API_KEY"),
     "hybridanalysis": _engine("Hybrid Analysis", _ALL, "HYBRID_ANALYSIS_API_KEY"),
@@ -46,6 +46,8 @@ STATIC_ENGINES: dict[str, dict] = {
     "nvd":            _engine("NVD (NIST)", ["cve"], None),
     "cisakev":        _engine("CISA KEV", ["cve"], None),
     "epss":           _engine("EPSS · FIRST", ["cve"], None),
+    "opentip":        _engine("Kaspersky OpenTIP", ["ip", "domain", "url", "hash"], "KASPERSKY_OPENTIP_API_KEY"),
+    "vulncheckkev":   _engine("VulnCheck KEV", ["cve"], "VULNCHECK_API_KEY"),
 }
 
 # MISP and OpenCTI are multi-instance: any number of servers, managed from the Connectors page

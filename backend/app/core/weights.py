@@ -54,6 +54,8 @@ DEFAULT_ENGINE_WEIGHTS: dict[str, dict] = {
     "nvd":            {"risk": 6,  "knowledge": 9},
     "epss":           {"risk": 8,  "knowledge": 6},
     "cisakev":        {"risk": 10, "knowledge": 3},
+    "opentip":        {"risk": 8,  "knowledge": 6},
+    "vulncheckkev":   {"risk": 10, "knowledge": 4},
 }
 
 DEFAULT_THRESHOLDS = {"knowledge": 4, "risk": 5}

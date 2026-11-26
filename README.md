@@ -26,7 +26,7 @@ Triage a suspicious IP the usual way and you end up with ten browser tabs, ten d
 
 IntelChecker replaces that routine with **one search**:
 
-- **Every source at once.** VirusTotal, AbuseIPDB, OTX, abuse.ch, Shodan, GreyNoise, Recorded Future, your own **MISP** and **OpenCTI** servers, and more, all queried in parallel. Each result card appears the moment its source answers.
+- **Every source at once.** VirusTotal, Kaspersky OpenTIP, AbuseIPDB, OTX, abuse.ch, Shodan, GreyNoise, Recorded Future, your own **MISP** and **OpenCTI** servers, and more, all queried in parallel. Each result card appears the moment its source answers.
 - **A verdict you can defend.** Two independent scores tell apart *"we know a lot and it's bad"* and *"one feed says it's bad, and nobody else has heard of it"*. Every number can be traced back to the source and the field it came from.
 - **Absence of data is never a clean bill of health.** A source with no record lowers confidence. It never lowers risk.
 - **Yours to run.** Self-hosted with Docker Compose, built for internal networks and VPNs. API keys and history stay on your server. Lookups only go to the sources you leave enabled.
@@ -65,7 +65,7 @@ For CVEs the quadrants are worded as exploitation risk. Weights and thresholds a
 | 📊 **Cross-source Summary** | Who flagged it, malware families (aliases merged), threat actor relations, campaigns, first / last seen, GeoIP · ASN · ISP, CVSS · KEV · EPSS, each value traceable to its source |
 | 🗺️ **Explainable** | The matrix view replays, source by source, how each answer moved both scores; *How is this calculated?* lists every contribution |
 | 🏢 **Your own intel** | Any number of **MISP** and **OpenCTI** instances (partners, ISACs, internal), with TLS / mTLS, added at runtime from the UI |
-| 🐞 **Vulnerabilities** | CVE lookups across NVD, CISA KEV, EPSS, OTX and OpenCTI: severity, exploitation probability, known exploitation, public exploits |
+| 🐞 **Vulnerabilities** | CVE lookups across NVD, CISA KEV, VulnCheck KEV, EPSS, OTX and OpenCTI: severity, exploitation probability, known exploitation, public exploits |
 | 🔌 **API** | `POST /lookup` with per-user tokens: every source plus the same verdict in one call, logged in History, ready for SOAR / scripts |
 | 🔐 **Access control** | Sign-in required; Admin · Analyst · Reader roles; server-side sessions; keys managed and tested from the **Connectors** page |
 | 🕓 **History** | Every lookup is stored with a frozen snapshot of every source's answer; recurring indicators are flagged |
@@ -73,16 +73,16 @@ For CVEs the quadrants are worded as exploitation risk. Weights and thresholds a
 
 ## 🔎 Sources
 
-**34 integrations across 7 indicator types.** 15 of them work with no API key at all, and most others have a free tier.
+**36 integrations across 7 indicator types.** 15 of them work with no API key at all, and most others have a free tier.
 
 | Category | Sources |
 |---|---|
-| **Reputation & detections** | VirusTotal · AbuseIPDB · AlienVault OTX · Recorded Future · CrowdSec CTI · GreyNoise · Spamhaus · Google Safe Browsing |
+| **Reputation & detections** | VirusTotal · Kaspersky OpenTIP · AbuseIPDB · AlienVault OTX · Recorded Future · CrowdSec CTI · GreyNoise · Spamhaus · Google Safe Browsing |
 | **Malware & IOC feeds** | ThreatFox · URLhaus · MalwareBazaar · YARAify · SSLBL · OpenPhish · PhishTank · TweetFeed |
 | **Sandboxes** | ANY.RUN · Hybrid Analysis · urlscan.io |
 | **Infrastructure context** | Shodan · IPinfo · RIPEstat · Tor exit nodes · RDAP · Tranco · CIRCL Passive DNS · CIRCL hashlookup |
-| **Threat actors** | MITRE ATT&CK · Malpedia · OTX · OpenCTI |
-| **Vulnerabilities** | NVD · CISA KEV · EPSS · OTX · OpenCTI |
+| **Threat actors** | MITRE ATT&CK · Malpedia · Recorded Future · OTX · OpenCTI |
+| **Vulnerabilities** | NVD · CISA KEV · VulnCheck KEV · EPSS · OTX · OpenCTI |
 | **Your platforms** | MISP (N instances) · OpenCTI (N instances, 6.0+) |
 
 <details>
@@ -105,7 +105,7 @@ For CVEs the quadrants are worded as exploitation risk. Weights and thresholds a
 | [PhishTank](https://phishtank.org) | | | ✅ | | | | |
 | [MISP](https://www.misp-project.org) *(any number of instances)* | ✅ | ✅ | ✅ | ✅ | | | |
 | [OpenCTI](https://filigran.io/platforms/opencti/) *(any number of instances, 6.0+)* | ✅ | ✅ | ✅ | ✅ | | ✅ | ✅ |
-| [Recorded Future](https://www.recordedfuture.com) | ✅ | ✅ | ✅ | ✅ | | | |
+| [Recorded Future](https://www.recordedfuture.com) *(+ Insikt links, Threat Map)* | ✅ | ✅ | ✅ | ✅ | | ✅ | |
 | [ANY.RUN](https://any.run) *(TI Lookup)* | ✅ | ✅ | ✅ | ✅ | | | |
 | [GreyNoise](https://greynoise.io) *(Community)* | ✅ | | | | | | |
 | [Hybrid Analysis](https://hybrid-analysis.com) *(Falcon Sandbox)* | ✅ | ✅ | ✅ | ✅ | | | |
@@ -124,6 +124,8 @@ For CVEs the quadrants are worded as exploitation risk. Weights and thresholds a
 | [NVD (NIST)](https://nvd.nist.gov) *(CVSS, CWE, affected products)* | | | | | | | ✅ |
 | [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) *(known exploited)* | | | | | | | ✅ |
 | [EPSS · FIRST](https://www.first.org/epss) *(exploitation probability)* | | | | | | | ✅ |
+| [Kaspersky OpenTIP](https://opentip.kaspersky.com) | ✅ | ✅ | ✅ | ✅ | | | |
+| [VulnCheck KEV](https://vulncheck.com/kev) *(known exploited, earlier and wider than CISA)* | | | | | | | ✅ |
 
 </details>
 
@@ -187,6 +189,8 @@ The variables below still work in `backend/.env` as a fallback; a key saved on C
 | `MALPEDIA_API_KEY` *(optional)* | [Malpedia](https://malpedia.caad.fkie.fraunhofer.de/user/register) | ✅ |
 | `CIRCL_PDNS_CREDENTIALS` (`user:password`) | [CIRCL Passive DNS](https://www.circl.lu/services/passive-dns/) | ✅ on request |
 | `NVD_API_KEY` *(optional)* | [NVD](https://nvd.nist.gov/developers/request-an-api-key) — raises the limit from 5 to 50 requests / 30 s | ✅ |
+| `KASPERSKY_OPENTIP_API_KEY` | [Kaspersky OpenTIP](https://opentip.kaspersky.com/token) | ✅ daily quota |
+| `VULNCHECK_API_KEY` | [VulnCheck](https://vulncheck.com/settings/tokens) (Community) | ✅ |
 | `SPAMHAUS_DQS_KEY` *(optional)* | [Spamhaus DQS](https://www.spamhaus.com/free-trial/sign-up-for-a-free-data-query-service-account/) — only if your DNS resolver is a public one | ✅ |
 | `MISP_<N>_NAME` / `_URL` / `_KEY` / … | [MISP](https://www.misp-project.org) — any number of instances (better: add them on Connectors) | n/a |
 | `OPENCTI_<N>_NAME` / `_URL` / `_KEY` / … | [OpenCTI](https://filigran.io/platforms/opencti/) — any number of instances; `KEY` is a user's API token (better: add them on Connectors) | n/a |
