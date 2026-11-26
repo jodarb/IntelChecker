@@ -29,8 +29,14 @@ import OpenPhishCard from '@/components/results/OpenPhishCard'
 import YaraifyCard from '@/components/results/YaraifyCard'
 import SslblCard from '@/components/results/SslblCard'
 import CirclPdnsCard from '@/components/results/CirclPdnsCard'
+import NvdCard from '@/components/results/NvdCard'
+import CisaKevCard from '@/components/results/CisaKevCard'
+import EpssCard from '@/components/results/EpssCard'
 
-export type IndicatorType = 'ip' | 'domain' | 'url' | 'hash' | 'asn' | 'threat-actor'
+export type IndicatorType = 'ip' | 'domain' | 'url' | 'hash' | 'asn' | 'threat-actor' | 'cve'
+
+/** Every indicator type, in the order of the search box and the Docs coverage table. */
+export const INDICATOR_TYPES: IndicatorType[] = ['ip', 'domain', 'url', 'hash', 'asn', 'threat-actor', 'cve']
 
 export interface CardProps {
   loading: boolean
@@ -263,6 +269,27 @@ export const STATIC_ENGINES: EngineConfig[] = [
     supports: ['ip', 'domain'],
     component: CirclPdnsCard as React.ComponentType<CardProps>,
     logo: '/logos/circlpdns.ico',
+  },
+  {
+    id: 'nvd',
+    label: 'NVD (NIST)',
+    supports: ['cve'],
+    component: NvdCard as React.ComponentType<CardProps>,
+    logo: '/logos/nvd.png',
+  },
+  {
+    id: 'cisakev',
+    label: 'CISA KEV',
+    supports: ['cve'],
+    component: CisaKevCard as React.ComponentType<CardProps>,
+    logo: '/logos/cisakev.png',
+  },
+  {
+    id: 'epss',
+    label: 'EPSS · FIRST',
+    supports: ['cve'],
+    component: EpssCard as React.ComponentType<CardProps>,
+    logo: '/logos/epss.png',
   },
 ]
 

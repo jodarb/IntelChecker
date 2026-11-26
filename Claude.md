@@ -33,7 +33,7 @@
 
 ## 3. Architecture & Data Flow
 
-1.  **User Input:** The analyst inputs an indicator via the UI and either explicitly selects its type (IP, URL, Domain, ASN, Threat Actor) or chooses the **"Free Text"** option.
+1.  **User Input:** The analyst inputs an indicator via the UI and either explicitly selects its type (IP, URL, Domain, File Hash, ASN, Threat Actor, Vulnerability/CVE) or chooses the **"Free Text"** option.
 2.  **Ingestion & Validation (Backend):**
     * Typed inputs are routed directly to their respective API endpoint managers.
     * "Free Text" inputs trigger an internal parser/regex evaluation pipeline to dynamically classify the IoC type before routing.
@@ -46,7 +46,7 @@
 ## 4. Threat Intel Integrations (CTI Sources)
 The backend manages API authentication using server-side credentials managed by admins on the **Connectors** page (`backend/app/core/connectors.py` → `backend/data/connectors.json`, mode 0600, in clear; `backend/.env` is a fallback — a key saved on Connectors wins). Services must read keys at call time with `connectors.secret("<ENV_NAME>")`, never as module constants, and a new key needs an entry in `CONNECTORS`. MISP instances also live there (`connectors.misp_instances()`; `MISP_<N>_*` in `.env` only until the first MISP change from the UI), so the engine list is dynamic: use `registry.engines()` / `registry.is_connected()`, not a static dict. Engine capabilities (supported indicator types, required key) are declared in `backend/app/core/registry.py`; each source is a module in `backend/app/services/` and a card in `frontend/src/components/results/`, wired through `frontend/src/registry.tsx`, `summaryRegistry.ts` and `intelAggregates.ts` (tags, actors, first/last seen for the Summary). A source without its API key is reported as `MissingApiKey` and excluded from both scores.
 
-Implemented sources: VirusTotal, AlienVault OTX, AbuseIPDB, abuse.ch (ThreatFox), URLhaus, MalwareBazaar, Shodan, IPinfo, RIPEstat, Tor Exit List, MITRE ATT&CK, URLScan, PhishTank, Recorded Future, Any.run, GreyNoise, Hybrid Analysis, Google Safe Browsing, TweetFeed, CrowdSec CTI, CIRCL hashlookup, RDAP, Tranco, Malpedia, Spamhaus, OpenPhish, YARAify, SSLBL, CIRCL Passive DNS, and N MISP instances (`MISP_<N>_*` env vars). The README's coverage table is the source of truth for which types each one supports.
+Implemented sources: VirusTotal, AlienVault OTX, AbuseIPDB, abuse.ch (ThreatFox), URLhaus, MalwareBazaar, Shodan, IPinfo, RIPEstat, Tor Exit List, MITRE ATT&CK, URLScan, PhishTank, Recorded Future, Any.run, GreyNoise, Hybrid Analysis, Google Safe Browsing, TweetFeed, CrowdSec CTI, CIRCL hashlookup, RDAP, Tranco, Malpedia, Spamhaus, OpenPhish, YARAify, SSLBL, CIRCL Passive DNS, NVD, CISA KEV, EPSS (the three `cve` sources; CVE ids normalised by `backend/app/core/cve.py`), and N MISP instances (`MISP_<N>_*` env vars). The README's coverage table is the source of truth for which types each one supports.
 
 ---
 
@@ -56,7 +56,7 @@ Implemented in `frontend/src/verdictEngine.ts` (`computeVerdict`) and mirrored l
 * **Per-engine assessment:** each engine's result is normalized to an outcome — `hit` / `clean` / `context` / `no_data` / `excluded` — with a risk **subscore** (0–10, only for hit/clean) and a **depth of record** (0 / 0.5 / 1). "Not found" is `no_data`, never `clean`: absence of data is not a benign confirmation.
 * **Knowledge (0–10):** `coverage = Σ(kw × depth) / Σ(kw of every counted source for the type)`, `knowledge = round(10 × min(1, coverage ÷ full_at))` with `full_at` = `scoring.knowledge_full_at` % (Admin, default 70, 10–100; 100 = no saturation). Sources still loading or with a persistent error (bad key…) count in the denominator with depth 0; sources that failed for a **transient** reason (`TRANSIENT_ERROR_CODES`: rate limit, timeout, network, HTTP/5xx, or the frontend couldn't reach the backend) are left out (`inTotal: false` in the contribution). Contributions store `knowledgeFullAt` so the matrix replays history with the value in force then (missing = 100).
 * **Risk (0–10):** `round(Σ(rw × subscore) / Σ(rw))` over hit/clean sources only; `null` ("No data") if no source issued a verdict.
-* **Quadrants** (`frontend/src/quadrants.ts`): confirmed_malicious, isolated_signal, known_benign (requires ≥1 explicit clean verdict and no single source ≥ risk threshold), known_low_signals, known_no_verdict, unknown. Default thresholds: knowledge 4, risk 5.
+* **Quadrants** (`frontend/src/quadrants.ts`; CVE lookups use their own wording, `quadrant.cve.*`, via `quadrantLabel(q, t, type)`): confirmed_malicious, isolated_signal, known_benign (requires ≥1 explicit clean verdict and no single source ≥ risk threshold), known_low_signals, known_no_verdict, unknown. Default thresholds: knowledge 4, risk 5.
 * **Weights:** defaults in `backend/app/core/weights.py`, editable from the Admin page (`GET/PUT /weights`, `POST /weights/reset`), persisted to `backend/data/weights.json`. Supports per-type knowledge overrides. MISP initial weights come from `MISP_<N>_WEIGHT` / `MISP_<N>_KNOWLEDGE_WEIGHT`.
 * **Matrix view:** `frontend/src/trajectory.ts` replays the verdict source by source from (0, 0) for `MatrixModal.tsx`, using only the saved contributions so it works for history entries too.
 * History entries store `score`, `knowledge_score`, `quadrant` and contributions at save time; they are never recomputed.
@@ -79,7 +79,8 @@ intelchecker/
 │   │   │   ├── auth.py        # Users, roles, sessions, API tokens, FastAPI permission dependencies
 │   │   │   ├── verdict.py     # Python mirror of verdictEngine.ts (POST /lookup)
 │   │   │   ├── domains.py     # Hostname → registered domain (bundled Public Suffix List, offline)
-│   │   │   ├── feeds.py       # Downloaded blocklists cached in memory (SSLBL, OpenPhish, ASN-DROP)
+│   │   │   ├── feeds.py       # Downloaded blocklists cached in memory (SSLBL, OpenPhish, ASN-DROP, CISA KEV)
+│   │   │   ├── cve.py         # CVE identifier normalisation (NVD, CISA KEV, EPSS)
 │   │   │   └── db.py          # SQLite query history
 │   │   └── services/          # One async httpx client module per CTI source
 │   ├── data/                  # history.db, users.db, weights.json, connectors.json (Docker volume, gitignored)

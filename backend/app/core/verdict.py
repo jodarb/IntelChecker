@@ -90,6 +90,9 @@ NO_DATA_ERROR_CODES = {"NotFound"}
 
 TRANCO_CLEAN_MAX_RANK = 100000
 
+# EPSS probability floor → subscore; below the last floor is an explicit clean (0).
+EPSS_TIERS = ((0.5, 10), (0.2, 8), (0.05, 6), (0.01, 3))
+
 
 def knowledge_from_sums(num: float, total: float, full_at_pct: float) -> float:
     if total <= 0:
@@ -382,6 +385,29 @@ def _yaraify_subscore(d: Any) -> float | None:
     return 7
 
 
+def _nvd_subscore(d: Any) -> float | None:
+    score = _get(d, "cvss", "score")
+    if not _truthy(_get(d, "found")) or _truthy(_get(d, "rejected")) or not _is_num(score):
+        return None
+    return max(0, min(10, score))
+
+
+def _kev_subscore(d: Any) -> float | None:
+    if _get(d, "listed") is not True:
+        return None
+    return 10 if _get(d, "ransomware") == "Known" else 9
+
+
+def _epss_subscore(d: Any) -> float | None:
+    p = _get(d, "epss")
+    if not _truthy(_get(d, "found")) or not _is_num(p):
+        return None
+    for floor, score in EPSS_TIERS:
+        if p >= floor:
+            return score
+    return 0
+
+
 def _misp_subscore(d: Any) -> float | None:
     attrs = _get(d, "Attribute")
     if not isinstance(attrs, list):
@@ -425,6 +451,9 @@ _VERDICT_NORMALIZERS: dict[str, dict] = {
     "openphish": _for(("ip", "domain", "url"), _openphish_subscore),
     "sslbl": {"hash": _sslbl_subscore},
     "yaraify": {"hash": _yaraify_subscore},
+    "nvd": {"cve": _nvd_subscore},
+    "cisakev": {"cve": _kev_subscore},
+    "epss": {"cve": _epss_subscore},
 }
 
 
@@ -639,6 +668,22 @@ def _circlpdns_depth(d: Any) -> float:
     return 0.5 if total <= 4 else 1
 
 
+def _nvd_depth(d: Any) -> float:
+    if not _truthy(_get(d, "found")):
+        return 0
+    if _truthy(_get(d, "rejected")):
+        return 0.5
+    return 1 if _is_num(_get(d, "cvss", "score")) else 0.5
+
+
+def _kev_depth(d: Any) -> float:
+    return 1 if _get(d, "listed") is True else 0
+
+
+def _epss_depth(d: Any) -> float:
+    return 1 if _truthy(_get(d, "found")) and _is_num(_get(d, "epss")) else 0
+
+
 _DEPTH_FNS = {
     "tweetfeed": _tweetfeed_depth,
     "virustotal": _vt_depth,
@@ -669,6 +714,9 @@ _DEPTH_FNS = {
     "sslbl": _sslbl_depth,
     "yaraify": _yaraify_depth,
     "circlpdns": _circlpdns_depth,
+    "nvd": _nvd_depth,
+    "cisakev": _kev_depth,
+    "epss": _epss_depth,
 }
 
 

@@ -44,6 +44,7 @@ export const docsEn = {
       ['File Hash', 'MD5, SHA-1 or SHA-256'],
       ['ASN', '`AS13335`'],
       ['Threat Actor', '`APT28`, `Kimsuky` (names and aliases)'],
+      ['Vulnerability (CVE)', '`CVE-2021-44228` (any case; normalised to upper case)'],
     ],
     list: [
       'Use the switch next to a source to turn it off; disabled sources aren\'t queried and don\'t count in either score. The choice is remembered on this browser only.',
@@ -131,6 +132,7 @@ export const docsEn = {
       known_no_verdict: ['Sources have context but none issued a risk verdict.', 'Not a benign confirmation.'],
       unknown: ['Little or no information.', 'Absence of data is not evidence of safety.'],
     },
+    cve: '**Vulnerabilities (CVE)** use the same quadrants, but Risk means *exploitation risk* (NVD’s CVSS, EPSS probability, CISA KEV), so the labels read differently: *High exploitation risk*, *High risk · Little data*, *Known · Low risk*, *Known · Moderate risk* (e.g. severe but unlikely to be exploited), *Known · Not scored* and *Unknown CVE*.',
   },
 
   summary: {
@@ -143,6 +145,7 @@ export const docsEn = {
       ['Threat actor relations', 'One row per actor with **every source that relates the indicator to it**: OTX pulse adversaries and OTX’s related-adversary summary, MISP threat-actor galaxies, the Malpedia actor profile, and actor names found in any source’s tags (matched against MITRE ATT&CK groups and aliases). Recorded Future “Linked to APT” rules appear as an unnamed relation. If sources answered and none relates it to an actor, the block says so. Campaigns (TweetFeed) are listed underneath.'],
       ['Activity window', 'Earliest first-seen and latest last-seen date across all sources, with the source each came from.'],
       ['GeoIP · ASN · ISP · Tor · Ports', 'Network context, with how many sources agree on each value.'],
+      ['CVSS · KEV · EPSS', 'For CVEs: CVSS score and severity, whether it is in CISA KEV (reported by both NVD and the catalog) and the EPSS probability with its percentile. The NVD publication date is the CVE’s first seen.'],
     ],
     note: 'Every family chip shows the sources that reported it. **Click it** to see exactly where it comes from: source, field (e.g. *malware family of the IOC*), the value as the source wrote it, and the pulse or MISP event it was found in.',
   },
@@ -229,6 +232,9 @@ export const docsEn = {
       ['OpenPhish', 'URL listed → 9; domain/IP hosting listed phishing → 7; URL on a host serving other listed phishing → 6; not listed → no verdict.'],
       ['YARAify', 'ClamAV signature → 7; YARA rules only or not found → no verdict.'],
       ['SSLBL', 'certificate (SHA-1) listed → 9; otherwise no verdict.'],
+      ['NVD', 'CVSS base score as is (newest version, NVD’s own assessment first); rejected, not found or not scored yet → no verdict.'],
+      ['CISA KEV', 'listed (exploited in the wild) → 9; also used in ransomware → 10; not listed → no verdict.'],
+      ['EPSS', '30-day exploitation probability: ≥ 50 % → 10, ≥ 20 % → 8, ≥ 5 % → 6, ≥ 1 % → 3, < 1 % → clean; no score → no verdict.'],
       ['Shodan, IPinfo, RIPEstat, MITRE ATT&CK, Malpedia, CIRCL Passive DNS', 'context only — never a subscore.'],
     ],
   },
@@ -267,6 +273,9 @@ export const docsEn = {
       ['YARAify', 'never submitted', 'submitted, no matches', 'YARA or ClamAV matches'],
       ['SSLBL', 'not listed / not a SHA-1', '—', 'listed'],
       ['CIRCL Passive DNS', 'no records', '1–4 records', '≥5 records'],
+      ['NVD', 'not found', 'rejected, or no CVSS yet', 'scored record'],
+      ['CISA KEV', 'not listed', '—', 'listed'],
+      ['EPSS', 'no score', '—', 'scored'],
     ],
   },
 

@@ -110,7 +110,7 @@ export default function HistoryPage() {
                   <span className="text-xs text-muted-foreground">{formatTimestamp(entry.timestamp, locale)}</span>
                   {entry.quadrant && (
                     <span className={`hidden md:inline-flex px-2 py-0.5 rounded-full border text-xs font-medium ${QUADRANT_META[entry.quadrant].className}`}>
-                      {quadrantLabel(entry.quadrant, t)}
+                      {quadrantLabel(entry.quadrant, t, entry.type as IndicatorType)}
                     </span>
                   )}
                   <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title={t('history.knowledgeTitle')}>

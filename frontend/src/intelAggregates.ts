@@ -317,6 +317,12 @@ const EXTRACTORS: Record<string, (d: any) => EngineIntel> = {
     if (d?.listed) out.firstSeen.push(d?.listing_date)
     return out
   },
+  nvd: d => {
+    const out = empty()
+    // A CVE is "first seen" when it was published.
+    if (d?.found) out.firstSeen.push(d?.published)
+    return out
+  },
   mitreattack: d => {
     const out = empty()
     if (str(d?.name)) out.actors.push({ value: d.name, field: 'mitre.group' })

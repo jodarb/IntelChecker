@@ -1,6 +1,6 @@
 import type { IndicatorType } from '@/registry'
 
-export type SummaryField = 'country' | 'asn' | 'isp' | 'torExit' | 'openPorts'
+export type SummaryField = 'country' | 'asn' | 'isp' | 'torExit' | 'openPorts' | 'cvss' | 'kev' | 'epss'
 
 export interface SummaryExtractorDef {
   field: SummaryField
@@ -23,14 +23,47 @@ export const SUMMARY_FIELD_META: Record<SummaryField, { format: (v: string, ctx:
   isp: { format: (v) => v },
   torExit: { format: (v, { yes }) => (v === 'Yes' ? yes : v) },
   openPorts: { format: (v) => v },
+  cvss: { format: (v) => v },
+  kev: { format: (v, { yes }) => (v === 'Yes' ? yes : v) },
+  epss: { format: (v) => v },
 }
 
 // Display order of summary fields
-export const SUMMARY_FIELDS: SummaryField[] = ['country', 'asn', 'isp', 'torExit', 'openPorts']
+export const SUMMARY_FIELDS: SummaryField[] = ['country', 'asn', 'isp', 'torExit', 'openPorts', 'cvss', 'kev', 'epss']
 
 // Registry: engineId → indicatorType → extractors
 // Add new fields here when new summary data points are needed.
 export const SUMMARY_REGISTRY: Record<string, Partial<Record<IndicatorType, SummaryExtractorDef[]>>> = {
+  // Vulnerabilities: NVD also carries CISA's KEV flag, so "exploited" is corroborated by two sources.
+  nvd: {
+    cve: [
+      {
+        field: 'cvss',
+        extract: (d) => {
+          const c = (d as { cvss?: { score?: unknown; severity?: string; version?: string } } | null)?.cvss
+          if (typeof c?.score !== 'number') return null
+          return `${c.score.toFixed(1)}${c.severity ? ` ${c.severity}` : ''} · v${c.version}`
+        },
+      },
+      { field: 'kev', extract: (d) => ((d as { kev?: { date_added?: string } } | null)?.kev?.date_added ? 'Yes' : null) },
+    ],
+  },
+  cisakev: {
+    cve: [{ field: 'kev', extract: (d) => ((d as { listed?: unknown } | null)?.listed === true ? 'Yes' : null) }],
+  },
+  epss: {
+    cve: [
+      {
+        field: 'epss',
+        extract: (d) => {
+          const p = d as { found?: boolean; epss?: unknown; percentile?: unknown } | null
+          if (!p?.found || typeof p?.epss !== 'number') return null
+          const pctile = typeof p.percentile === 'number' ? ` · p${Math.floor(p.percentile * 100)}` : ''
+          return `${(p.epss * 100).toFixed(2)} %${pctile}`
+        },
+      },
+    ],
+  },
   // TweetFeed only carries geo/network context once the indicator has been
   // reported (net for IPs, reg for domains/URLs).
   tweetfeed: {

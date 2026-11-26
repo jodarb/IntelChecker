@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import type { VerdictResult, VerdictThresholds } from '@/verdictEngine'
+import type { IndicatorType } from '@/registry'
 import { OUTCOME_META, depthLabel, outcomeLabel, quadrantHint, quadrantLabel } from '@/quadrants'
 import { useI18n } from '@/i18n/useI18n'
 
@@ -9,6 +10,8 @@ interface Props {
   onClose: () => void
   verdict: VerdictResult
   thresholds: VerdictThresholds | null
+  /** Indicator type: CVEs word the quadrants differently */
+  type?: IndicatorType
 }
 
 type Tab = 'knowledge' | 'risk'
@@ -116,7 +119,7 @@ function RiskTab({ verdict }: { verdict: VerdictResult }) {
   )
 }
 
-export default function VerdictExplainerModal({ open, onClose, verdict, thresholds }: Props) {
+export default function VerdictExplainerModal({ open, onClose, verdict, thresholds, type }: Props) {
   const [tab, setTab] = useState<Tab>('knowledge')
   const { t } = useI18n()
 
@@ -172,7 +175,7 @@ export default function VerdictExplainerModal({ open, onClose, verdict, threshol
 
           {q && (
             <div className="rounded-md border border-border bg-muted/10 px-3 py-2 text-xs text-muted-foreground">
-              <span className="text-foreground font-semibold">{quadrantLabel(q, t)}</span> — {quadrantHint(q, t)}
+              <span className="text-foreground font-semibold">{quadrantLabel(q, t, type)}</span> — {quadrantHint(q, t, type)}
               {thresholds && (
                 <span className="block mt-1">
                   {t('explainer.thresholds', { k: thresholds.knowledge, r: thresholds.risk })}

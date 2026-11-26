@@ -426,6 +426,35 @@ function yaraifySubscore(d: unknown): number | null {
   if (!p?.found || arr(p?.clamav).length === 0) return null
   return 7
 }
+// NVD: the CVSS base score as is (newest version, NVD's own assessment first).
+// Rejected CVEs and records still awaiting analysis (no CVSS) give no verdict.
+function nvdSubscore(d: unknown): number | null {
+  const p = d as any
+  const score = p?.cvss?.score
+  if (!p?.found || p?.rejected || typeof score !== 'number') return null
+  return Math.max(0, Math.min(10, score))
+}
+
+// CISA KEV: confirmed exploitation in the wild → 9; used in ransomware campaigns → 10.
+// Not in the catalog is no data, never clean.
+function kevSubscore(d: unknown): number | null {
+  const p = d as any
+  if (p?.listed !== true) return null
+  return p?.ransomware === 'Known' ? 10 : 9
+}
+
+/** EPSS probability floor → subscore; below the last floor is an explicit clean (0). */
+export const EPSS_TIERS: [number, number][] = [[0.5, 10], [0.2, 8], [0.05, 6], [0.01, 3]]
+
+// EPSS: probability of exploitation in the next 30 days. Under 1 % is an explicit
+// low-risk (clean) verdict: the model has scored it and expects no exploitation.
+function epssSubscore(d: unknown): number | null {
+  const p = d as any
+  const prob = p?.epss
+  if (!p?.found || typeof prob !== 'number') return null
+  for (const [floor, score] of EPSS_TIERS) if (prob >= floor) return score
+  return 0
+}
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 function mispSubscore(d: unknown): number | null {
@@ -468,6 +497,9 @@ const VERDICT_NORMALIZERS: Record<string, Partial<Record<IndicatorType, (data: u
   openphish: { ip: openphishSubscore, domain: openphishSubscore, url: openphishSubscore },
   sslbl: { hash: sslblSubscore },
   yaraify: { hash: yaraifySubscore },
+  nvd: { cve: nvdSubscore },
+  cisakev: { cve: kevSubscore },
+  epss: { cve: epssSubscore },
 }
 
 // Per-engine 0-10 score for a single result, independent of weight — this is what
@@ -665,6 +697,21 @@ function circlpdnsDepth(d: any): Depth {
   return total <= 4 ? 0.5 : 1
 }
 
+// NVD: a scored record is a full one; rejected or awaiting analysis is basic.
+function nvdDepth(d: any): Depth {
+  if (!d?.found) return 0
+  if (d?.rejected) return 0.5
+  return typeof d?.cvss?.score === 'number' ? 1 : 0.5
+}
+
+function kevDepth(d: any): Depth {
+  return d?.listed === true ? 1 : 0
+}
+
+function epssDepth(d: any): Depth {
+  return d?.found && typeof d?.epss === 'number' ? 1 : 0
+}
+
 const DEPTH_FNS: Record<string, (data: any) => Depth> = {
   tweetfeed: tweetFeedDepth,
   virustotal: vtDepth,
@@ -695,6 +742,9 @@ const DEPTH_FNS: Record<string, (data: any) => Depth> = {
   sslbl: sslblDepth,
   yaraify: yaraifyDepth,
   circlpdns: circlpdnsDepth,
+  nvd: nvdDepth,
+  cisakev: kevDepth,
+  epss: epssDepth,
 }
 
 /* eslint-enable @typescript-eslint/no-explicit-any */

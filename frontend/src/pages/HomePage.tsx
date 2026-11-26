@@ -13,8 +13,11 @@ import {
 import Layout from '@/components/Layout'
 import EngineStatusPanel from '@/components/EngineStatusPanel'
 import { useI18n } from '@/i18n/useI18n'
+import { INDICATOR_TYPES } from '@/registry'
 
-const IOC_TYPES = ['ip', 'domain', 'url', 'hash', 'asn', 'threat-actor'] as const
+// "cve 2021 44228", "cve-2021-44228" → "CVE-2021-44228", so history entries group together.
+const normalizeIndicator = (value: string, type: string) =>
+  type === 'cve' ? value.toUpperCase().replace(/^CVE[\s_\u2010-\u2015-]+(\d{4})[\s_\u2010-\u2015-]+(\d+)$/, 'CVE-$1-$2') : value
 
 export default function HomePage() {
   const navigate = useNavigate()
@@ -25,7 +28,7 @@ export default function HomePage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!query.trim()) return
-    navigate(`/results?indicator=${encodeURIComponent(query.trim())}&type=${iocType}`)
+    navigate(`/results?indicator=${encodeURIComponent(normalizeIndicator(query.trim(), iocType))}&type=${iocType}`)
   }
 
   return (
@@ -49,7 +52,7 @@ export default function HomePage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {IOC_TYPES.map(type => (
+                {INDICATOR_TYPES.map(type => (
                   <SelectItem key={type} value={type}>
                     {t(`type.${type}`)}
                   </SelectItem>

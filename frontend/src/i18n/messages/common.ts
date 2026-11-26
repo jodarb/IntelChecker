@@ -21,6 +21,7 @@ const en = {
   'type.hash': 'File Hash',
   'type.asn': 'ASN',
   'type.threat-actor': 'Threat Actor',
+  'type.cve': 'Vulnerability (CVE)',
   'type.auto': 'Auto',
   'typeShort.ip': 'IP',
   'typeShort.domain': 'Domain',
@@ -28,6 +29,7 @@ const en = {
   'typeShort.hash': 'Hash',
   'typeShort.asn': 'ASN',
   'typeShort.threat-actor': 'Actor',
+  'typeShort.cve': 'CVE',
 
   // Backend error codes → actionable messages (the English text from the backend is
   // used as-is in English; these are the translations).
@@ -39,6 +41,7 @@ const en = {
   'apiError.NetworkError': 'Could not reach {source}.',
   'apiError.NotFound': 'Indicator not found in {source}.',
   'apiError.UnsupportedType': '{source} does not support this indicator type.',
+  'apiError.BadRequest': '{source} could not query this value: check its format.',
   'apiError.ServiceUnavailable': '{source} is temporarily unavailable.',
   'apiError.ResolverBlocked': '{source} refuses queries from public DNS resolvers: set SPAMHAUS_DNS_SERVER to your own resolver or add a free DQS key on Connectors.',
 }
@@ -66,6 +69,7 @@ const es: Record<keyof typeof en, string> = {
   'type.hash': 'Hash de fichero',
   'type.asn': 'ASN',
   'type.threat-actor': 'Actor de amenaza',
+  'type.cve': 'Vulnerabilidad (CVE)',
   'type.auto': 'Auto',
   'typeShort.ip': 'IP',
   'typeShort.domain': 'Dominio',
@@ -73,6 +77,7 @@ const es: Record<keyof typeof en, string> = {
   'typeShort.hash': 'Hash',
   'typeShort.asn': 'ASN',
   'typeShort.threat-actor': 'Actor',
+  'typeShort.cve': 'CVE',
 
   'apiError.MissingApiKey': 'La API key de {source} no está configurada.',
   'apiError.Unauthorized': 'API key de {source} no válida.',
@@ -82,6 +87,7 @@ const es: Record<keyof typeof en, string> = {
   'apiError.NetworkError': 'No se pudo contactar con {source}.',
   'apiError.NotFound': 'Indicador no encontrado en {source}.',
   'apiError.UnsupportedType': '{source} no admite este tipo de indicador.',
+  'apiError.BadRequest': '{source} no pudo consultar este valor: revisa su formato.',
   'apiError.ServiceUnavailable': '{source} no está disponible temporalmente.',
   'apiError.ResolverBlocked': '{source} rechaza consultas desde resolvers DNS públicos: configura SPAMHAUS_DNS_SERVER con tu propio resolver o añade una key DQS gratuita en Connectors.',
 }

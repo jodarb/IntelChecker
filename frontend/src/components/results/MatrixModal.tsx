@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { X } from 'lucide-react'
 import type { VerdictResult, VerdictThresholds } from '@/verdictEngine'
+import type { IndicatorType } from '@/registry'
 import { computeTrajectory, type TrajectoryStep } from '@/trajectory'
 import { OUTCOME_META, QUADRANT_META, depthLabel, outcomeLabel, quadrantLabel } from '@/quadrants'
 import { useI18n } from '@/i18n/useI18n'
@@ -11,6 +12,8 @@ interface Props {
   onClose: () => void
   verdict: VerdictResult
   thresholds: VerdictThresholds | null
+  /** Indicator type: CVEs word the quadrants differently */
+  type?: IndicatorType
 }
 
 // ── Geometry ────────────────────────────────────────────────────────────────
@@ -195,7 +198,7 @@ function Chart({
 
 // ── Modal ───────────────────────────────────────────────────────────────────
 
-export default function MatrixModal({ open, onClose, verdict, thresholds }: Props) {
+export default function MatrixModal({ open, onClose, verdict, thresholds, type }: Props) {
   const [active, setActive] = useState<number | null>(null)
   const steps = useMemo(() => computeTrajectory(verdict.contributions), [verdict.contributions])
   const th = thresholds ?? { knowledge: 4, risk: 5 }
@@ -222,7 +225,7 @@ export default function MatrixModal({ open, onClose, verdict, thresholds }: Prop
             <span className="text-sm font-semibold text-foreground">{t('matrix.title')}</span>
             {q && (
               <span className={`hidden sm:inline-flex px-2 py-0.5 rounded-full border text-xs font-medium ${QUADRANT_META[q].className}`}>
-                {quadrantLabel(q, t)}
+                {quadrantLabel(q, t, type)}
               </span>
             )}
           </div>

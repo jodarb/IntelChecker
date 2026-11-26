@@ -42,7 +42,7 @@ Request body:
 | Field | Type | Default | Meaning |
 |---|---|---|---|
 | `indicator` | string | — | The IoC. Leading/trailing spaces are trimmed. |
-| `type` | string | — | `ip`, `domain`, `url`, `hash`, `asn` or `threat-actor`. |
+| `type` | string | — | `ip`, `domain`, `url`, `hash`, `asn`, `threat-actor` or `cve`. |
 | `engines` | string[] | all | Only query these sources (ids as in `GET /engines/status`). |
 | `exclude` | string[] | `[]` | Skip these sources. |
 | `save` | bool | `true` | Store in History. `false` = just answer. |

@@ -66,6 +66,8 @@ CONNECTORS: list[dict] = [
      "signup": "https://www.circl.lu/services/passive-dns/"},
     {"key": "SPAMHAUS_DQS_KEY", "label": "Spamhaus DQS", "engines": ["spamhaus"], "optional": True,
      "signup": "https://www.spamhaus.com/free-trial/sign-up-for-a-free-data-query-service-account/"},
+    {"key": "NVD_API_KEY", "label": "NVD (NIST)", "engines": ["nvd"], "optional": True,
+     "signup": "https://nvd.nist.gov/developers/request-an-api-key"},
 ]
 _CONNECTOR_KEYS = {c["key"] for c in CONNECTORS}
 KEYED_ENGINES = {e for c in CONNECTORS for e in c["engines"]}

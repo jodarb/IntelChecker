@@ -254,8 +254,10 @@ function ActorsBlock({ intel, indicator, type }: { intel: IntelSummary; indicato
   const canAnalyze = useAuth().can('analyze')
   const actors = intel.actors.filter(a => a.value.toLowerCase() !== indicator.toLowerCase())
   const isActorLookup = type === 'threat-actor'
+  // A CVE isn't expected to name actors: only show the block when a source does.
+  const quietWhenEmpty = isActorLookup || type === 'cve'
   const none = actors.length === 0 && intel.unnamedActorLinks.length === 0
-  if (intel.responded === 0 || (isActorLookup && none && intel.campaigns.length === 0)) return null
+  if (intel.responded === 0 || (quietWhenEmpty && none && intel.campaigns.length === 0)) return null
   return (
     <div className="flex flex-col gap-1.5">
       <BlockTitle>{t('summary.actorRelations')}</BlockTitle>
@@ -493,7 +495,7 @@ function KnowledgeBar({
   )
 }
 
-function QuadrantBadge({ quadrant }: { quadrant: Quadrant | null }) {
+function QuadrantBadge({ quadrant, type }: { quadrant: Quadrant | null; type: IndicatorType }) {
   const { t } = useI18n()
   if (!quadrant) {
     return <span className="text-xs text-muted-foreground">{t('summary.waiting')}</span>
@@ -503,9 +505,9 @@ function QuadrantBadge({ quadrant }: { quadrant: Quadrant | null }) {
     <div className="flex flex-col items-center gap-1.5">
       <span className={`inline-flex items-center gap-2 px-3.5 py-1 rounded-full border text-sm font-semibold uppercase tracking-wide ${meta.className}`}>
         <span className="h-2 w-2 rounded-full bg-current" />
-        {quadrantLabel(quadrant, t)}
+        {quadrantLabel(quadrant, t, type)}
       </span>
-      <span className="text-xs text-muted-foreground text-center leading-snug">{quadrantHint(quadrant, t)}</span>
+      <span className="text-xs text-muted-foreground text-center leading-snug">{quadrantHint(quadrant, t, type)}</span>
     </div>
   )
 }
@@ -559,7 +561,7 @@ export default function SummarySection({
             verdict.quadrant ? QUADRANT_META[verdict.quadrant].panel : 'border-border'
           }`}
         >
-          <QuadrantBadge quadrant={verdict.quadrant} />
+          <QuadrantBadge quadrant={verdict.quadrant} type={type} />
           <ScoreGauge
             title={t('score.risk')}
             score={verdict.risk}
@@ -597,12 +599,14 @@ export default function SummarySection({
         onClose={() => setMatrixOpen(false)}
         verdict={verdict}
         thresholds={thresholds}
+        type={type}
       />
       <VerdictExplainerModal
         open={explainerOpen}
         onClose={() => setExplainerOpen(false)}
         verdict={verdict}
         thresholds={thresholds}
+        type={type}
       />
     </div>
   )

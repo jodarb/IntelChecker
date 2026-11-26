@@ -46,8 +46,8 @@ Any user can change their own password from **My account** (their name in the he
 - **Layout** — one table per section (API keys, MISP) with the columns *Source · Status · Key · Actions*, filter tabs with counts (**All / Configured / Not configured / Keyless**) and **Test all**, which tests every testable connector in view after confirming how many real requests it will send. Each row has two fixed action columns: the key (**Set key** or **Replace key**; **Complete** or **Edit** for MISP) and **Test**. The editor opens under the row with the `.env` variable name, a **Get a key** link and **Remove** (or **Delete** for a MISP instance). The editor shows two fields: **Current key** (masked, the eye reveals it) and **New key**. Test results also open under the row.
 - **API keys** — one row per key, with the types it supports or the sources it powers (the abuse.ch key serves ThreatFox, URLhaus and MalwareBazaar). **Set key / Replace** saves it; **Remove** deletes the value saved here. Status: *Configured* (saved here), *From .env* (only in `backend/.env`) or *Not configured*. A key saved here wins over `.env`; removing it falls back to the `.env` value, if any.
 - **MISP instances** — **Add instance** (name, URL, API key, *Verify TLS certificate*, optional mTLS client certificate / key chosen from the files in `backend/certs/`), **Edit** (leave the key empty to keep it) and **Delete**, inside the editor. Each instance is its own source; set its weights on the Admin page (new ones start at 0 / 9). Instances from `MISP_<N>_*` in `.env` are shown until the first MISP change here, which copies them over; from then on those variables are ignored.
-- **Sources without a key** — Tor Exit Nodes, MITRE ATT&CK, RIPEstat, TweetFeed, CIRCL hashlookup, RDAP, Tranco, OpenPhish and SSLBL need no credentials (Spamhaus and Malpedia work without their optional keys) and are always active; they are listed so they can be tested too.
-- **Test** — every row has one (disabled until a required key is set). It runs one real lookup of a harmless indicator (8.8.8.8, example.com, the EICAR hash…) against each source the row powers — all three for the abuse.ch key — with a progress bar and elapsed time while it runs. The result shows under the row, per source: the **test artifact** sent and its type, the response time, the outcome — *OK* (data returned), *OK · no record* (answered and accepted the key, nothing known about the artifact) or *Error* with the reason — and the source's raw JSON response (**Show response**, truncated above 60 000 characters). **Hide result** folds it to a one-line summary (**Show result** brings it back) and ✕ dismisses it. Rows can be tested at the same time. It uses one request of the source's quota — mind GreyNoise Community's 50 per week and CrowdSec's small monthly quota. The abuse.ch key row now also tests YARAify.
+- **Sources without a key** — Tor Exit Nodes, MITRE ATT&CK, RIPEstat, TweetFeed, CIRCL hashlookup, RDAP, Tranco, OpenPhish, SSLBL, CISA KEV and EPSS need no credentials (Spamhaus, Malpedia and NVD work without their optional keys) and are always active; they are listed so they can be tested too.
+- **Test** — every row has one (disabled until a required key is set). It runs one real lookup of a harmless indicator (8.8.8.8, example.com, the EICAR hash, CVE-2021-44228…) against each source the row powers — all three for the abuse.ch key — with a progress bar and elapsed time while it runs. The result shows under the row, per source: the **test artifact** sent and its type, the response time, the outcome — *OK* (data returned), *OK · no record* (answered and accepted the key, nothing known about the artifact) or *Error* with the reason — and the source's raw JSON response (**Show response**, truncated above 60 000 characters). **Hide result** folds it to a one-line summary (**Show result** brings it back) and ✕ dismisses it. Rows can be tested at the same time. It uses one request of the source's quota — mind GreyNoise Community's 50 per week and CrowdSec's small monthly quota. The abuse.ch key row now also tests YARAify.
 
 The home page lists only configured sources, so this page is where unconfigured ones are found. Changes apply to the next lookup, no restart. The list only shows the last four characters of each key. The eye on *Current key* fetches the full key on demand: admins only, from a signed-in browser session (never with an API token), sent with `Cache-Control: no-store` and logged by the backend (`Admin <user> revealed the <VAR> key`). They are stored in `backend/data/connectors.json` with permissions 0600, **in clear** (like `backend/.env`): protect the data volume and its backups accordingly.
 
@@ -138,7 +138,7 @@ The share of the Knowledge Score that source can contribute: its weight divided 
 
 *Button **Per type** on each row.*
 
-Lets a source have a different knowledge weight for a specific indicator type (IP, Domain, URL, Hash, ASN, Actor). Only the types the source supports are shown.
+Lets a source have a different knowledge weight for a specific indicator type (IP, Domain, URL, Hash, ASN, Actor, CVE). Only the types the source supports are shown.
 
 - **Blank** → the general Knowledge value is used for that type.
 - **A number** (0–10) → that number replaces the general value for that type only.
@@ -262,10 +262,15 @@ Archived history entries keep the value in force when they were run; entries sav
 | YARAify | 5 | 4 | |
 | SSLBL | 8 | 1 | SHA-1 certificate hashes only |
 | CIRCL Passive DNS | 0 | 4 | context only |
+| NVD | 6 | 9 | CVE only |
+| EPSS | 8 | 6 | CVE only |
+| CISA KEV | 10 | 3 | CVE only; listed CVEs only |
 
 ANY.RUN, Hybrid Analysis, GreyNoise and Safe Browsing ship with risk weight 0: they are scored, but don't move the Risk Score until you give them a weight.
 
-CIRCL hashlookup, Tranco and CrowdSec are the sources that most often issue an explicit **clean** verdict, which the *Known benign* quadrant needs. A clean verdict only counts with a risk weight above 0, and it also pulls the Risk Score down when other sources flag the indicator, which is why Tranco (popular domains can host abuse) and hashlookup (dual-use tools ship in distributions) have low risk weights.
+For **CVEs** the Risk Score means *exploitation risk*: NVD brings severity (CVSS), EPSS the probability of exploitation and CISA KEV confirmed exploitation, which is why KEV has the top risk weight and a low knowledge weight (most CVEs are not in it). The quadrants keep their logic but get vulnerability wording (*High exploitation risk*, *Known · Moderate risk*…).
+
+CIRCL hashlookup, Tranco, CrowdSec and EPSS are the sources that most often issue an explicit **clean** verdict, which the *Known benign* quadrant needs. A clean verdict only counts with a risk weight above 0, and it also pulls the Risk Score down when other sources flag the indicator, which is why Tranco (popular domains can host abuse) and hashlookup (dual-use tools ship in distributions) have low risk weights.
 
 ### Risk subscore (0–10) per source
 
@@ -297,6 +302,9 @@ CIRCL hashlookup, Tranco and CrowdSec are the sources that most often issue an e
 | OpenPhish | URL listed → 9; domain / IP hosting listed phishing → 7; URL on a host serving other listed phishing → 6; not listed → no verdict |
 | YARAify | ClamAV signature → 7; YARA rules only, or not found → no verdict |
 | SSLBL | certificate listed → 9; otherwise no verdict |
+| NVD | CVSS base score as is (newest version: 4.0 → 3.1 → 3.0 → 2.0, NVD's own assessment first); rejected, not found or not scored yet → no verdict |
+| CISA KEV | listed (exploited in the wild) → 9; also used in ransomware campaigns → 10; not listed → no verdict |
+| EPSS | 30-day exploitation probability: ≥ 50 % → 10, ≥ 20 % → 8, ≥ 5 % → 6, ≥ 1 % → 3, < 1 % → clean; no score → no verdict |
 | Shodan, IPinfo, RIPEstat, MITRE ATT&CK, Malpedia, CIRCL Passive DNS | never return a risk subscore |
 
 ### Depth of record per source (Knowledge Score)
@@ -333,5 +341,8 @@ CIRCL hashlookup, Tranco and CrowdSec are the sources that most often issue an e
 | YARAify | never submitted | submitted, no matches | YARA or ClamAV matches |
 | SSLBL | not listed / not a SHA-1 | — | listed |
 | CIRCL Passive DNS | no records | 1–4 records | ≥5 records |
+| NVD | not found | rejected, or no CVSS yet | scored record |
+| CISA KEV | not listed | — | listed |
+| EPSS | no score | — | scored |
 
 These rules are fixed in code (`frontend/src/verdictEngine.ts`); the Admin page only changes how much each source's result counts.

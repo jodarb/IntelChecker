@@ -1,4 +1,4 @@
-"""Downloaded blocklists kept in memory (SSLBL, OpenPhish, Spamhaus ASN-DROP).
+"""Downloaded blocklists kept in memory (SSLBL, OpenPhish, Spamhaus ASN-DROP, CISA KEV).
 
 A feed is fetched on the first lookup that needs it and re-fetched once its TTL has
 passed, under a lock so concurrent lookups share one download. If a refresh fails

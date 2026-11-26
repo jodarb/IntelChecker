@@ -42,6 +42,10 @@ STATIC_ENGINES: dict[str, dict] = {
     "yaraify":        _engine("YARAify · abuse.ch", ["hash"], "ABUSECH_AUTH_KEY"),
     "sslbl":          _engine("SSLBL · abuse.ch", ["hash"], None),
     "circlpdns":      _engine("CIRCL Passive DNS", ["ip", "domain"], "CIRCL_PDNS_CREDENTIALS"),
+    # Vulnerabilities. The NVD key is optional (higher rate limit): connected without it.
+    "nvd":            _engine("NVD (NIST)", ["cve"], None),
+    "cisakev":        _engine("CISA KEV", ["cve"], None),
+    "epss":           _engine("EPSS · FIRST", ["cve"], None),
 }
 
 # MISP is multi-instance: any number of servers, managed from the Connectors page
@@ -67,4 +71,4 @@ def is_connected(meta: dict) -> bool:
     return True if meta["key"] is None else bool(connectors.secret(meta["key"]))
 
 
-INDICATOR_TYPES = ("ip", "domain", "url", "hash", "asn", "threat-actor")
+INDICATOR_TYPES = ("ip", "domain", "url", "hash", "asn", "threat-actor", "cve")

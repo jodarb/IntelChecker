@@ -51,6 +51,9 @@ DEFAULT_ENGINE_WEIGHTS: dict[str, dict] = {
     "yaraify":        {"risk": 5,  "knowledge": 4},
     "sslbl":          {"risk": 8,  "knowledge": 1},
     "circlpdns":      {"risk": 0,  "knowledge": 4},
+    "nvd":            {"risk": 6,  "knowledge": 9},
+    "epss":           {"risk": 8,  "knowledge": 6},
+    "cisakev":        {"risk": 10, "knowledge": 3},
 }
 
 DEFAULT_THRESHOLDS = {"knowledge": 4, "risk": 5}

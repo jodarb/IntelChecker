@@ -1,5 +1,6 @@
 import type { EngineOutcome, Quadrant } from '@/verdictEngine'
 import type { TFunction } from '@/i18n/types'
+import type { IndicatorType } from '@/registry'
 
 // Labels and hints live in the i18n dictionaries (messages/verdict.ts):
 // `quadrant.<id>.label`, `quadrant.<id>.hint`, `outcome.<id>`, `depth.*`.
@@ -36,8 +37,12 @@ export const OUTCOME_META: Record<EngineOutcome, { className: string }> = {
   excluded: { className: 'text-red-400/80' },
 }
 
-export const quadrantLabel = (q: Quadrant, t: TFunction) => t(`quadrant.${q}.label`)
-export const quadrantHint = (q: Quadrant, t: TFunction) => t(`quadrant.${q}.hint`)
+// Vulnerabilities (CVE) reuse the same quadrants, but "risk" there is exploitation
+// risk, not maliciousness: they get their own wording (`quadrant.cve.<id>.*`).
+export const quadrantLabel = (q: Quadrant, t: TFunction, type?: IndicatorType) =>
+  t(type === 'cve' ? `quadrant.cve.${q}.label` : `quadrant.${q}.label`)
+export const quadrantHint = (q: Quadrant, t: TFunction, type?: IndicatorType) =>
+  t(type === 'cve' ? `quadrant.cve.${q}.hint` : `quadrant.${q}.hint`)
 export const outcomeLabel = (o: EngineOutcome, t: TFunction) => t(`outcome.${o}`)
 
 export function depthLabel(depth: number | null | undefined, t: TFunction): string {

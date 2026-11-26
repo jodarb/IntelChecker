@@ -30,12 +30,13 @@ sys.path.insert(0, str(ROOT / "backend"))
 from app.core.verdict import compute_verdict, get_engine_assessment  # noqa: E402
 
 CLI = ROOT / "frontend" / "scripts" / "verdict-cli.ts"
-TYPES = ["ip", "domain", "url", "hash", "asn", "threat-actor"]
+TYPES = ["ip", "domain", "url", "hash", "asn", "threat-actor", "cve"]
 ENGINE_IDS = [
     "abuseipdb", "virustotal", "abusech", "alienvault", "ipinfo", "shodan", "torexitlist", "urlhaus",
     "mitreattack", "ripestat", "urlscan", "malwarebazaar", "phishtank", "recordedfuture", "anyrun",
     "greynoise", "hybridanalysis", "safebrowsing", "tweetfeed", "crowdsec", "hashlookup", "rdap", "tranco",
-    "malpedia", "spamhaus", "openphish", "sslbl", "yaraify", "circlpdns", "misp_1", "misp_2",
+    "malpedia", "spamhaus", "openphish", "sslbl", "yaraify", "circlpdns", "nvd", "cisakev", "epss",
+    "misp_1", "misp_2",
 ]
 ERROR_CODES = ["NotFound", "MissingApiKey", "RateLimitExceeded", "Timeout", "NetworkError",
                "ServiceUnavailable", "HttpError", "Unauthorized", "UnsupportedType", "ApiError"]
@@ -145,6 +146,14 @@ def payload(r: random.Random, engine: str):
                    clamav=m(r.choice([[], ["Win.Trojan.X"]])))
     if engine == "circlpdns":
         return obj(total=m(r.choice([0, 1, 4, 5, 100, "7", -1])))
+    if engine == "nvd":
+        return obj(found=m(r.choice([True, False])), rejected=m(r.choice([True, False, 1, ""])),
+                   cvss=m(obj(score=m(r.choice([0, 0.1, 3.7, 5, 7.5, 9.8, 10, 11, -1, "9.8", True])))))
+    if engine == "cisakev":
+        return obj(listed=m(r.choice([True, False, 1])), ransomware=m(r.choice(["Known", "Unknown", "known", ""])))
+    if engine == "epss":
+        return obj(found=m(r.choice([True, False])),
+                   epss=m(r.choice([0, 0.00042, 0.0099, 0.01, 0.049, 0.05, 0.2, 0.4999, 0.5, 0.97, 1, "0.5", True])))
     if engine.startswith("misp_"):
         to_ids = [True, False, 1, 0, "1", "0", None]
         return obj(Attribute=m([obj(to_ids=m(r.choice(to_ids)), event_id=m(r.choice(["1", "2", "3", None])),

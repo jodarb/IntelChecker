@@ -18,6 +18,7 @@ from app.services import (
     recordedfuture, anyrun, greynoise, hybridanalysis, safebrowsing, tweetfeed, misp,
     crowdsec, hashlookup, rdap, tranco, malpedia,
     spamhaus, openphish, yaraify, sslbl, circlpdns,
+    nvd, cisakev, epss,
 )
 
 
@@ -75,6 +76,9 @@ _SERVICES = {
     "yaraify": yaraify,
     "sslbl": sslbl,
     "circlpdns": circlpdns,
+    "nvd": nvd,
+    "cisakev": cisakev,
+    "epss": epss,
 }
 
 
@@ -250,6 +254,7 @@ _TEST_INDICATORS = {
     "hash": "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f",
     "asn": "AS15169",
     "threat-actor": "APT28",
+    "cve": "CVE-2021-44228",
 }
 
 
@@ -334,7 +339,7 @@ async def test_connector(engine: str):
     service = _service(engine)
     if meta is None or service is None:
         raise auth.api_error(404, "ConnectorNotFound", f"Unknown source: {engine}.")
-    type_ = next(t for t in ("ip", "domain", "url", "hash", "asn", "threat-actor") if t in meta["supports"])
+    type_ = next(t for t in INDICATOR_TYPES if t in meta["supports"])
     indicator = _TEST_INDICATORS[type_]
     result = {"engine": engine, "label": meta["label"], "indicator": indicator, "type": type_}
     started = time.perf_counter()

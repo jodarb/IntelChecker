@@ -44,6 +44,7 @@ export const docsEs: DocsContent = {
       ['Hash de fichero', 'MD5, SHA-1 o SHA-256'],
       ['ASN', '`AS13335`'],
       ['Actor de amenaza', '`APT28`, `Kimsuky` (nombres y alias)'],
+      ['Vulnerabilidad (CVE)', '`CVE-2021-44228` (en mayúsculas o minúsculas; se normaliza a mayúsculas)'],
     ],
     list: [
       'Usa el interruptor junto a una fuente para desactivarla; las fuentes desactivadas no se consultan y no cuentan en ninguna puntuación. La elección se recuerda solo en este navegador.',
@@ -131,6 +132,7 @@ export const docsEs: DocsContent = {
       known_no_verdict: ['Las fuentes tienen contexto pero ninguna emitió veredicto de riesgo.', 'No es una confirmación de benigno.'],
       unknown: ['Poca o ninguna información.', 'La ausencia de datos no demuestra que sea seguro.'],
     },
+    cve: 'Las **vulnerabilidades (CVE)** usan los mismos cuadrantes, pero Risk significa *riesgo de explotación* (CVSS de NVD, probabilidad EPSS, CISA KEV), así que las etiquetas cambian: *Riesgo de explotación alto*, *Riesgo alto · Pocos datos*, *Conocido · Riesgo bajo*, *Conocido · Riesgo moderado* (p. ej. grave pero con explotación improbable), *Conocido · Sin puntuar* y *CVE desconocido*.',
   },
 
   summary: {
@@ -143,6 +145,7 @@ export const docsEs: DocsContent = {
       ['Relación con actores de amenaza', 'Una fila por actor con **todas las fuentes que relacionan el indicador con él**: adversarios de pulses de OTX y el resumen de adversarios relacionados de OTX, galaxias de actor de MISP, el perfil de actor de Malpedia y nombres de actores encontrados en las etiquetas de cualquier fuente (comparados con los grupos y alias de MITRE ATT&CK). Las reglas “Linked to APT” de Recorded Future aparecen como relación sin nombre. Si las fuentes respondieron y ninguna lo relaciona con un actor, el bloque lo indica. Las campañas (TweetFeed) se listan debajo.'],
       ['Ventana de actividad', 'La primera fecha en que se vio y la última, entre todas las fuentes, con la fuente de cada una.'],
       ['GeoIP · ASN · ISP · Tor · Puertos', 'Contexto de red, con cuántas fuentes coinciden en cada valor.'],
+      ['CVSS · KEV · EPSS', 'Para CVEs: puntuación y severidad CVSS, si está en CISA KEV (lo indican tanto NVD como el catálogo) y la probabilidad EPSS con su percentil. La fecha de publicación en NVD es la primera vez visto del CVE.'],
     ],
     note: 'Cada familia muestra las fuentes que la reportaron. **Púlsala** para ver exactamente de dónde sale: fuente, campo (p. ej. *familia de malware del IOC*), el valor tal como lo escribió la fuente y el pulse o evento de MISP donde se encontró.',
   },
@@ -229,6 +232,9 @@ export const docsEs: DocsContent = {
       ['OpenPhish', 'URL listada → 9; dominio/IP que aloja phishing listado → 7; URL en un host que sirve otro phishing listado → 6; no listado → sin veredicto.'],
       ['YARAify', 'firma de ClamAV → 7; solo reglas YARA o no encontrado → sin veredicto.'],
       ['SSLBL', 'certificado (SHA-1) listado → 9; si no, sin veredicto.'],
+      ['NVD', 'la puntuación base CVSS tal cual (versión más reciente, primero la evaluación propia de NVD); rechazado, no encontrado o aún sin puntuar → sin veredicto.'],
+      ['CISA KEV', 'listado (explotado activamente) → 9; además usado en ransomware → 10; no listado → sin veredicto.'],
+      ['EPSS', 'probabilidad de explotación a 30 días: ≥ 50 % → 10, ≥ 20 % → 8, ≥ 5 % → 6, ≥ 1 % → 3, < 1 % → limpio; sin puntuación → sin veredicto.'],
       ['Shodan, IPinfo, RIPEstat, MITRE ATT&CK, Malpedia, CIRCL Passive DNS', 'solo contexto — nunca dan subpuntuación.'],
     ],
   },
@@ -267,6 +273,9 @@ export const docsEs: DocsContent = {
       ['YARAify', 'nunca enviado', 'enviado, sin coincidencias', 'coincidencias YARA o ClamAV'],
       ['SSLBL', 'no listado / no es SHA-1', '—', 'listado'],
       ['CIRCL Passive DNS', 'sin registros', '1–4 registros', '≥5 registros'],
+      ['NVD', 'no encontrado', 'rechazado o aún sin CVSS', 'registro puntuado'],
+      ['CISA KEV', 'no listado', '—', 'listado'],
+      ['EPSS', 'sin puntuación', '—', 'puntuado'],
     ],
   },
 

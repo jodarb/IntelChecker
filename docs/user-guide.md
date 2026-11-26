@@ -8,7 +8,7 @@ How IntelChecker turns the answers of every CTI source into a verdict, and how t
 
 Sign in with the account your admin gave you (the first time you'll be asked to choose your own password). Running lookups needs the **Analyst** or **Admin** role; **Readers** can only browse History. Roles are described in [admin.md § 0](admin.md#0-users-and-roles).
 
-Type an indicator on the home page, pick its type (IP, Domain, URL, File Hash, ASN, Threat Actor) and press **Analyze**. Every source that supports the type is queried **in parallel**, and each card appears as soon as its own source answers.
+Type an indicator on the home page, pick its type (IP, Domain, URL, File Hash, ASN, Threat Actor, Vulnerability (CVE)) and press **Analyze**. Every source that supports the type is queried **in parallel**, and each card appears as soon as its own source answers.
 
 - The source list under the search box shows only the configured sources (admins also see how many are missing, with a link to **Connectors**). Its switch turns a source off for that browser; disabled sources aren't queried and don't count in any score.
 - Each source shows its **R** (risk) and **K** (knowledge) weight. Sources are sorted by risk weight, then knowledge weight.
@@ -69,6 +69,8 @@ In the "known, low risk" cell the label depends on *why* the risk is low:
 - **Known · Low-level signals** — the average is low but made of risk signals (or a strong signal was diluted). Not a benign confirmation.
 - **Known · No risk verdict** — sources have context, but none issued a verdict.
 
+**Vulnerabilities (CVE)** use the same quadrants with wording about *exploitation risk*: *High exploitation risk*, *High risk · Little data*, *Known · Low risk*, *Known · Moderate risk* (e.g. a severe CVE that is unlikely to be exploited), *Known · Not scored* and *Unknown CVE*. Risk combines NVD's CVSS, the EPSS probability and CISA KEV (confirmed exploitation).
+
 Default thresholds: knowledge ≥ 4, risk ≥ 5 (both editable in Admin). The per-source subscore and depth rules are listed in [admin.md § 6](admin.md#6-reference-defaults-and-scoring-rules-per-source).
 
 ## 3. The results page
@@ -81,6 +83,7 @@ Default thresholds: knowledge ≥ 4, risk ≥ 5 (both editable in Admin). The pe
 - **Threat actor relations** — one row per actor with every source that relates the indicator to it (OTX pulse adversaries, MISP threat-actor galaxies, the Malpedia actor profile, actor names found in any source's tags, matched against MITRE ATT&CK). Recorded Future "Linked to APT" rules appear as unnamed relations. If sources answered and none relates it to an actor, the block says so. Campaigns (TweetFeed) are listed underneath.
 - **Activity window** — earliest first-seen and latest last-seen across all sources.
 - **GeoIP · ASN · ISP · Tor · Ports** — network context with how many sources agree on each value.
+- **CVSS · Exploited (KEV) · EPSS** — for CVE lookups: the CVSS score and severity, whether it's in CISA KEV (NVD and the KEV catalog both report it) and the EPSS probability with its percentile. The NVD publication date is the CVE's *first seen*.
 
 ### Matrix view and breakdown
 

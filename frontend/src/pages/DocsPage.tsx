@@ -6,7 +6,7 @@ import Layout from '@/components/Layout'
 import { useEngines } from '@/EnginesContext'
 import { useVerdictWeights } from '@/hooks/useVerdictWeights'
 import { QUADRANT_META, OUTCOME_META, outcomeLabel, quadrantLabel } from '@/quadrants'
-import type { IndicatorType } from '@/registry'
+import { INDICATOR_TYPES as TYPES } from '@/registry'
 import { DEFAULT_SCORING, type EngineOutcome, type Quadrant } from '@/verdictEngine'
 import { useI18n } from '@/i18n/useI18n'
 import { rich } from '@/i18n/rich'
@@ -18,7 +18,6 @@ import { docsEs } from '@/i18n/docs/es'
 
 const DOCS: Record<'en' | 'es', DocsContent> = { en: docsEn, es: docsEs }
 
-const TYPES: IndicatorType[] = ['ip', 'domain', 'url', 'hash', 'asn', 'threat-actor']
 const OUTCOMES: EngineOutcome[] = ['hit', 'clean', 'context', 'no_data', 'excluded']
 const QUADRANTS: Quadrant[] = ['confirmed_malicious', 'isolated_signal', 'known_benign', 'known_low_signals', 'known_no_verdict', 'unknown']
 
@@ -245,6 +244,7 @@ export default function DocsPage() {
               head={d.quadrants.head}
               rows={QUADRANTS.map(q => [<QuadrantChip q={q} />, ...d.quadrants.rows[q].map(th)])}
             />
+            <P>{d.quadrants.cve}</P>
           </Section>
 
           <Section id="summary" title={d.summary.title}>
