@@ -14,7 +14,7 @@ STATIC_ENGINES: dict[str, dict] = {
     "abuseipdb":      _engine("AbuseIPDB", ["ip"], "ABUSEIPDB_API_KEY"),
     "virustotal":     _engine("VirusTotal", _ALL, "VIRUSTOTAL_API_KEY"),
     "abusech":        _engine("ThreatFox · abuse.ch", ["ip", "hash"], "ABUSECH_AUTH_KEY"),
-    "alienvault":     _engine("AlienVault OTX", [*_ALL, "threat-actor"], "ALIENVAULT_API_KEY"),
+    "alienvault":     _engine("AlienVault OTX", [*_ALL, "threat-actor", "cve"], "ALIENVAULT_API_KEY"),
     "ipinfo":         _engine("IPinfo", ["ip"], "IPINFO_API_KEY"),
     "shodan":         _engine("Shodan", ["ip", "asn"], "SHODAN_API_KEY"),
     "torexitlist":    _engine("Tor Exit Nodes (dan.me.uk)", ["ip"], None),
@@ -48,20 +48,30 @@ STATIC_ENGINES: dict[str, dict] = {
     "epss":           _engine("EPSS · FIRST", ["cve"], None),
 }
 
-# MISP is multi-instance: any number of servers, managed from the Connectors page
+# MISP and OpenCTI are multi-instance: any number of servers, managed from the Connectors page
 # (or MISP_<N>_* in .env until then — see connectors.py), each becoming its own
 # entry with its own display name and connected status. Instances can be added or
 # removed at runtime, so the full list is built on every call.
+# OpenCTI works the same way (OPENCTI_<N>_* in .env), and also answers CVEs and
+# threat actors. `kind` tells the frontend which card renders the instance.
+INSTANCE_SUPPORTS = {
+    "misp": ["ip", "domain", "url", "hash"],
+    "opencti": ["ip", "domain", "url", "hash", "threat-actor", "cve"],
+}
+
+
 def engines() -> dict[str, dict]:
     out = dict(STATIC_ENGINES)
-    for inst in connectors.misp_instances():
-        out[inst["id"]] = {
-            "label": inst["name"],
-            "supports": ["ip", "domain", "url", "hash"],
-            "key": None,
-            "name": inst["name"],
-            "connected": bool(inst["url"]) and bool(inst["key"]),
-        }
+    for kind in connectors.INSTANCE_KINDS:
+        for inst in connectors.instances(kind):
+            out[inst["id"]] = {
+                "label": inst["name"],
+                "supports": INSTANCE_SUPPORTS[kind],
+                "key": None,
+                "name": inst["name"],
+                "kind": kind,
+                "connected": bool(inst["url"]) and bool(inst["key"]),
+            }
     return out
 
 

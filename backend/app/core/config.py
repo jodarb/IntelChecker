@@ -10,9 +10,7 @@ def get(key: str) -> str:
     return os.environ.get(key, "")
 
 
-_MISP_INDEX_RE = re.compile(r"^MISP_(\d+)_NAME$")
-
-# Client certs for mTLS-only MISP instances live here (gitignored, like .env).
+# Client certs for mTLS-only MISP / OpenCTI instances live here (gitignored, like .env).
 # Resolves to backend/certs/ locally and /app/certs/ in the container — the same
 # relative computation as the .env path above, kept in sync with where docker-compose
 # bind-mounts the directory.
@@ -25,46 +23,41 @@ def cert_path(filename: str) -> str:
     return str(CERTS_DIR / filename) if filename else ""
 
 
-def _load_misp_instances() -> list[dict]:
-    """Discover MISP_<N>_NAME / _URL / _KEY / _VERIFY_SSL groups from the environment.
+def _load_instances(prefix: str, id_prefix: str, default_knowledge: int) -> list[dict]:
+    """Discover <PREFIX>_<N>_NAME / _URL / _KEY / _VERIFY_SSL groups from the environment
+    (MISP_<N>_*, OPENCTI_<N>_*).
 
     Any number of instances can be defined this way, each becoming its own source
     in the UI. An instance is registered as soon as its NAME is set, even if URL or
     KEY are missing — that surfaces as a clear "not configured" error on the card
     instead of the instance silently not appearing at all.
     """
-    indices = sorted(
-        int(match.group(1))
-        for key in os.environ
-        if (match := _MISP_INDEX_RE.match(key))
-    )
+    index_re = re.compile(rf"^{prefix}_(\d+)_NAME$")
+    indices = sorted(int(m.group(1)) for key in os.environ if (m := index_re.match(key)))
+
+    def num(name: str, default: int) -> int:
+        raw = os.environ.get(name, "").strip()
+        try:
+            return int(raw) if raw else default
+        except ValueError:
+            return default
 
     instances = []
     for idx in indices:
-        name = os.environ.get(f"MISP_{idx}_NAME", "").strip()
+        env = lambda field: os.environ.get(f"{prefix}_{idx}_{field}", "").strip()  # noqa: E731
+        name = env("NAME")
         if not name:
             continue
-        verify_raw = os.environ.get(f"MISP_{idx}_VERIFY_SSL", "true").strip().lower()
-        weight_raw = os.environ.get(f"MISP_{idx}_WEIGHT", "0").strip()
-        try:
-            weight = int(weight_raw) if weight_raw else 0
-        except ValueError:
-            weight = 0
-        kweight_raw = os.environ.get(f"MISP_{idx}_KNOWLEDGE_WEIGHT", "9").strip()
-        try:
-            knowledge_weight = int(kweight_raw) if kweight_raw else 9
-        except ValueError:
-            knowledge_weight = 9
         instances.append({
-            "id": f"misp_{idx}",
+            "id": f"{id_prefix}_{idx}",
             "name": name,
-            "url": os.environ.get(f"MISP_{idx}_URL", "").strip().rstrip("/"),
-            "key": os.environ.get(f"MISP_{idx}_KEY", "").strip(),
-            "verify_ssl": verify_raw not in ("false", "0", "no"),
-            "client_cert": os.environ.get(f"MISP_{idx}_CLIENT_CERT", "").strip(),
-            "client_key": os.environ.get(f"MISP_{idx}_CLIENT_KEY", "").strip(),
-            "weight": weight,
-            "knowledge_weight": knowledge_weight,
+            "url": env("URL").rstrip("/"),
+            "key": env("KEY"),
+            "verify_ssl": (env("VERIFY_SSL") or "true").lower() not in ("false", "0", "no"),
+            "client_cert": env("CLIENT_CERT"),
+            "client_key": env("CLIENT_KEY"),
+            "weight": num(f"{prefix}_{idx}_WEIGHT", 0),
+            "knowledge_weight": num(f"{prefix}_{idx}_KNOWLEDGE_WEIGHT", default_knowledge),
         })
     return instances
 
@@ -72,5 +65,7 @@ def _load_misp_instances() -> list[dict]:
 # API keys are no longer module constants: they are read on every call through
 # app.core.connectors.secret(), so a key saved from the Connectors page takes effect
 # at once. The .env value is the fallback. MISP_INSTANCES is the .env definition,
-# used until MISP is first edited from the Connectors page (see connectors.py).
-MISP_INSTANCES: list[dict] = _load_misp_instances()
+# used until MISP is first edited from the Connectors page (see connectors.py); the
+# same goes for OPENCTI_<N>_* and OpenCTI.
+MISP_INSTANCES: list[dict] = _load_instances("MISP", "misp", 9)
+OPENCTI_INSTANCES: list[dict] = _load_instances("OPENCTI", "opencti", 9)

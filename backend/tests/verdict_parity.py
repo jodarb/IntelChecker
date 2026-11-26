@@ -36,7 +36,7 @@ ENGINE_IDS = [
     "mitreattack", "ripestat", "urlscan", "malwarebazaar", "phishtank", "recordedfuture", "anyrun",
     "greynoise", "hybridanalysis", "safebrowsing", "tweetfeed", "crowdsec", "hashlookup", "rdap", "tranco",
     "malpedia", "spamhaus", "openphish", "sslbl", "yaraify", "circlpdns", "nvd", "cisakev", "epss",
-    "misp_1", "misp_2",
+    "misp_1", "misp_2", "opencti_1", "opencti_2",
 ]
 ERROR_CODES = ["NotFound", "MissingApiKey", "RateLimitExceeded", "Timeout", "NetworkError",
                "ServiceUnavailable", "HttpError", "Unauthorized", "UnsupportedType", "ApiError"]
@@ -76,7 +76,9 @@ def payload(r: random.Random, engine: str):
                               isWhitelisted=m(r.choice([True, False, None])))))
     if engine == "alienvault":
         return obj(pulse_info=m(obj(count=m(num(r, (0, 1, 2, 3, 5, 6, 30))))), count=m(num(r, (0, 2, 4))),
-                   results=m(r.choice([[], [{}], [{}, {}, {}]])))
+                   results=m(r.choice([[], [{}], [{}, {}, {}]])),
+                   type_title=m(r.choice(["CVE", "", None])), seen_wild=m(r.choice([True, False, 1])),
+                   exploits_total=m(r.choice([0, 1, 31, "3", -1])))
     if engine in ("abusech", "malwarebazaar"):
         return obj(query_status=m(r.choice(["ok", "no_results"])),
                    data=m(r.choice([[], [obj(confidence_level=m(num(r, (0, 50, 75, 100))))],
@@ -154,6 +156,12 @@ def payload(r: random.Random, engine: str):
     if engine == "epss":
         return obj(found=m(r.choice([True, False])),
                    epss=m(r.choice([0, 0.00042, 0.0099, 0.01, 0.049, 0.05, 0.2, 0.4999, 0.5, 0.97, 1, "0.5", True])))
+    if engine.startswith("opencti_"):
+        inds = [obj(active=m(r.choice([True, False, 1])), score=m(r.choice([0, 15, 50, 80, 100, 120, "80", None])))
+                for _ in range(r.choice([0, 1, 2, 3]))]
+        return obj(found=m(r.choice([True, False])), kind=m(r.choice(["observable", "indicator", "vulnerability", "actor", ""])),
+                   indicators=m(inds), relations=m(r.choice([[], [{}]])), reports_total=m(r.choice([0, 3, "2", None])),
+                   threat_links=m(r.choice([0, 1, 4, "1"])), vulnerability=m(obj(kev=m(r.choice([True, False, 1, None])))))
     if engine.startswith("misp_"):
         to_ids = [True, False, 1, 0, "1", "0", None]
         return obj(Attribute=m([obj(to_ids=m(r.choice(to_ids)), event_id=m(r.choice(["1", "2", "3", None])),

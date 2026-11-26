@@ -15,7 +15,7 @@ from app.core.verdict import compute_verdict, get_engine_assessment
 from app.services import (
     abuseipdb, virustotal, abusech, alienvault, ipinfo, shodan,
     torexitlist, urlhaus, mitreattack, ripestat, urlscan, malwarebazaar, phishtank,
-    recordedfuture, anyrun, greynoise, hybridanalysis, safebrowsing, tweetfeed, misp,
+    recordedfuture, anyrun, greynoise, hybridanalysis, safebrowsing, tweetfeed, misp, opencti,
     crowdsec, hashlookup, rdap, tranco, malpedia,
     spamhaus, openphish, yaraify, sslbl, circlpdns,
     nvd, cisakev, epss,
@@ -83,8 +83,8 @@ _SERVICES = {
 
 
 def _service(engine_id: str):
-    """Static source module, or a MISP engine bound to the instance's current settings."""
-    return _SERVICES.get(engine_id) or misp.engine_for(engine_id)
+    """Static source module, or a MISP / OpenCTI engine bound to the instance's current settings."""
+    return _SERVICES.get(engine_id) or misp.engine_for(engine_id) or opencti.engine_for(engine_id)
 
 
 class AnalyzeRequest(BaseModel):
@@ -264,6 +264,8 @@ def list_connectors():
         "keys": connectors.list_keys(),
         "misp": connectors.list_misp(),
         "misp_from_env": not connectors.misp_managed_in_ui(),
+        "opencti": connectors.list_instances("opencti"),
+        "opencti_from_env": not connectors.managed_in_ui("opencti"),
         "cert_files": connectors.list_cert_files(),
         # Sources that need no key at all: listed so they can be tested too.
         "keyless": [
@@ -292,6 +294,13 @@ def reveal_connector_key(env_name: str, user: dict = Depends(_admin_in_browser))
     return JSONResponse(result, headers=_NO_STORE)
 
 
+@app.get("/connectors/opencti/{instance_id}/reveal")
+def reveal_opencti_key(instance_id: str, user: dict = Depends(_admin_in_browser)):
+    result = connectors.reveal_instance_key("opencti", instance_id)
+    log.warning("Admin %s revealed the API token of OpenCTI instance %s", user["username"], instance_id)
+    return JSONResponse(result, headers=_NO_STORE)
+
+
 @app.get("/connectors/misp/{instance_id}/reveal")
 def reveal_misp_key(instance_id: str, user: dict = Depends(_admin_in_browser)):
     result = connectors.reveal_misp_key(instance_id)
@@ -313,17 +322,34 @@ def delete_connector_key(env_name: str):
 
 @app.post("/connectors/misp", dependencies=[IsAdmin], status_code=201)
 def create_misp_instance(req: MispRequest):
-    return connectors.create_misp(req.model_dump(exclude_unset=True))
+    return connectors.create_instance("misp", req.model_dump(exclude_unset=True))
 
 
 @app.patch("/connectors/misp/{instance_id}", dependencies=[IsAdmin])
 def update_misp_instance(instance_id: str, req: MispRequest):
-    return connectors.update_misp(instance_id, req.model_dump(exclude_unset=True))
+    return connectors.update_instance("misp", instance_id, req.model_dump(exclude_unset=True))
 
 
 @app.delete("/connectors/misp/{instance_id}", dependencies=[IsAdmin], status_code=204)
 def delete_misp_instance(instance_id: str):
-    connectors.delete_misp(instance_id)
+    connectors.delete_instance("misp", instance_id)
+    return Response(status_code=204)
+
+
+# OpenCTI instances: same fields and rules as MISP (name, URL, token, TLS, mTLS).
+@app.post("/connectors/opencti", dependencies=[IsAdmin], status_code=201)
+def create_opencti_instance(req: MispRequest):
+    return connectors.create_instance("opencti", req.model_dump(exclude_unset=True))
+
+
+@app.patch("/connectors/opencti/{instance_id}", dependencies=[IsAdmin])
+def update_opencti_instance(instance_id: str, req: MispRequest):
+    return connectors.update_instance("opencti", instance_id, req.model_dump(exclude_unset=True))
+
+
+@app.delete("/connectors/opencti/{instance_id}", dependencies=[IsAdmin], status_code=204)
+def delete_opencti_instance(instance_id: str):
+    connectors.delete_instance("opencti", instance_id)
     return Response(status_code=204)
 
 
@@ -376,6 +402,8 @@ def engines_status():
         entry = {"connected": is_connected(meta), "supports": meta["supports"]}
         if "name" in meta:
             entry["label"] = meta["name"]
+        if "kind" in meta:
+            entry["kind"] = meta["kind"]
         result[name] = entry
     return result
 

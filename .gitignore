@@ -28,3 +28,6 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# OpenCTI schema cache of backend/tests/opencti_schema_check.py
+backend/tests/.opencti-schema/

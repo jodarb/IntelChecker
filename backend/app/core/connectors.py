@@ -1,4 +1,4 @@
-"""Connector credentials store: API keys and MISP instances, managed from the
+"""Connector credentials store: API keys and MISP / OpenCTI instances, managed from the
 Connectors page (admin only).
 
 Persisted to backend/data/connectors.json (Docker volume, gitignored), written with
@@ -10,9 +10,10 @@ session only, logged).
   * API keys: a key saved here wins over the same variable in backend/.env; removing
     it from here falls back to the .env value (if any). So existing deployments keep
     working untouched, and the .env can be emptied once every key is in the UI.
-  * MISP: while "misp" is absent from the file, the instances defined in .env
-    (MISP_<N>_*) are used. The first add/edit/delete from the Connectors page copies
-    them into the file and, from then on, MISP_<N>_* in .env is ignored.
+  * MISP / OpenCTI: while "misp" (or "opencti") is absent from the file, the
+    instances defined in .env (MISP_<N>_*, OPENCTI_<N>_*) are used. The first
+    add/edit/delete from the Connectors page copies them into the file and, from
+    then on, those variables in .env are ignored.
 
 The file is re-read whenever its mtime changes, so every worker sees a change at once.
 """
@@ -74,8 +75,11 @@ KEYED_ENGINES = {e for c in CONNECTORS for e in c["engines"]}
 
 DEFAULT_MISP_WEIGHT = 0
 DEFAULT_MISP_KNOWLEDGE_WEIGHT = 9
+DEFAULT_OPENCTI_WEIGHT = 0
+DEFAULT_OPENCTI_KNOWLEDGE_WEIGHT = 9
 
 _MISP_ID_RE = re.compile(r"^misp_(\d+)$")
+_OPENCTI_ID_RE = re.compile(r"^opencti_(\d+)$")
 _MAX_SECRET = 1024
 
 
@@ -168,13 +172,6 @@ def reveal_key(env_name: str) -> dict:
     return {"value": stored or env_value, "source": "ui" if stored else ("env" if env_value else None)}
 
 
-def reveal_misp_key(instance_id: str) -> dict:
-    inst = get_misp(instance_id)
-    if inst is None:
-        raise api_error(404, "MispNotFound", "That MISP instance no longer exists.")
-    return {"value": inst["key"], "source": "ui" if misp_managed_in_ui() else "env"}
-
-
 def list_keys() -> list[dict]:
     stored = _load().get("keys") or {}
     out = []
@@ -196,44 +193,72 @@ def list_keys() -> list[dict]:
     return out
 
 
-# ── MISP instances ────────────────────────────────────────────────────────────
+# ── Platform instances (MISP, OpenCTI) ────────────────────────────────────────
+#
+# Both are multi-instance: any number of servers, each its own source with its own
+# weights. They share one store, keyed by kind: `data[kind]` (list) and
+# `data[kind + "_next"]` (next id number, ids are never reused). While `data[kind]`
+# is absent the .env definition (MISP_<N>_*, OPENCTI_<N>_*) is used; the first add /
+# edit / delete from the Connectors page copies it into the file.
 
-def misp_managed_in_ui() -> bool:
-    return isinstance(_load().get("misp"), list)
+_KINDS: dict[str, dict] = {
+    "misp": {
+        "label": "MISP", "id_re": _MISP_ID_RE, "env": lambda: config.MISP_INSTANCES,
+        "weight": DEFAULT_MISP_WEIGHT, "knowledge_weight": DEFAULT_MISP_KNOWLEDGE_WEIGHT,
+        "not_found": "MispNotFound", "name_exists": "MispNameExists",
+    },
+    "opencti": {
+        "label": "OpenCTI", "id_re": _OPENCTI_ID_RE, "env": lambda: config.OPENCTI_INSTANCES,
+        "weight": DEFAULT_OPENCTI_WEIGHT, "knowledge_weight": DEFAULT_OPENCTI_KNOWLEDGE_WEIGHT,
+        "not_found": "OpenctiNotFound", "name_exists": "OpenctiNameExists",
+    },
+}
+INSTANCE_KINDS = tuple(_KINDS)
 
 
-def _stored_misp() -> list[dict]:
+def _kind(kind: str) -> dict:
+    return _KINDS[kind]
+
+
+def managed_in_ui(kind: str) -> bool:
+    return isinstance(_load().get(kind), list)
+
+
+def _stored(kind: str) -> list[dict]:
     """Instances as stored (cert/key are filenames in backend/certs/)."""
-    misp = _load().get("misp")
-    if isinstance(misp, list):
-        return [m for m in misp if isinstance(m, dict) and _MISP_ID_RE.match(str(m.get("id", "")))]
-    return [dict(m) for m in config.MISP_INSTANCES]
+    k = _kind(kind)
+    items = _load().get(kind)
+    if isinstance(items, list):
+        return [m for m in items if isinstance(m, dict) and k["id_re"].match(str(m.get("id", "")))]
+    return [dict(m) for m in k["env"]()]
 
 
-def misp_instances() -> list[dict]:
-    """Current MISP instances, ordered by number: the runtime list the registry,
-    the weights defaults and the MISP engine use."""
+def instances(kind: str) -> list[dict]:
+    """Current instances of a kind, ordered by number: the runtime list the registry,
+    the weights defaults and the engines use."""
+    k = _kind(kind)
     return sorted(
         ({
             "id": m["id"],
+            "kind": kind,
             "name": str(m.get("name") or m["id"]),
             "url": str(m.get("url") or ""),
             "key": str(m.get("key") or ""),
             "verify_ssl": m.get("verify_ssl", True) is not False,
             "client_cert": str(m.get("client_cert") or ""),
             "client_key": str(m.get("client_key") or ""),
-            "weight": m.get("weight", DEFAULT_MISP_WEIGHT),
-            "knowledge_weight": m.get("knowledge_weight", DEFAULT_MISP_KNOWLEDGE_WEIGHT),
-        } for m in _stored_misp()),
-        key=lambda m: int(_MISP_ID_RE.match(m["id"]).group(1)),
+            "weight": m.get("weight", k["weight"]),
+            "knowledge_weight": m.get("knowledge_weight", k["knowledge_weight"]),
+        } for m in _stored(kind)),
+        key=lambda m: int(k["id_re"].match(m["id"]).group(1)),
     )
 
 
-def get_misp(instance_id: str) -> dict | None:
-    return next((m for m in misp_instances() if m["id"] == instance_id), None)
+def get_instance(kind: str, instance_id: str) -> dict | None:
+    return next((m for m in instances(kind) if m["id"] == instance_id), None)
 
 
-def list_misp() -> list[dict]:
+def list_instances(kind: str) -> list[dict]:
     return [{
         "id": m["id"],
         "name": m["name"],
@@ -244,7 +269,14 @@ def list_misp() -> list[dict]:
         "has_key": bool(m["key"]),
         "hint": _hint(m["key"]),
         "connected": bool(m["url"]) and bool(m["key"]),
-    } for m in misp_instances()]
+    } for m in instances(kind)]
+
+
+def reveal_instance_key(kind: str, instance_id: str) -> dict:
+    inst = get_instance(kind, instance_id)
+    if inst is None:
+        raise api_error(404, _kind(kind)["not_found"], f"That {_kind(kind)['label']} instance no longer exists.")
+    return {"value": inst["key"], "source": "ui" if managed_in_ui(kind) else "env"}
 
 
 def list_cert_files() -> list[str]:
@@ -255,8 +287,9 @@ def list_cert_files() -> list[str]:
         return []
 
 
-def _validate_misp(fields: dict, current: dict | None, others: list[dict]) -> dict:
+def _validate(kind: str, fields: dict, current: dict | None, others: list[dict]) -> dict:
     """Validated copy of the editable fields. `current` is None when creating."""
+    k = _kind(kind)
     out = {}
     if "name" in fields or current is None:
         name = fields.get("name")
@@ -264,7 +297,7 @@ def _validate_misp(fields: dict, current: dict | None, others: list[dict]) -> di
         if not 1 <= len(name) <= 64:
             raise api_error(422, "InvalidMispName", "The name must be 1–64 characters.")
         if any(o["name"].casefold() == name.casefold() for o in others):
-            raise api_error(409, "MispNameExists", f"A MISP instance named {name} already exists.")
+            raise api_error(409, k["name_exists"], f"A {k['label']} instance named {name} already exists.")
         out["name"] = name
     if "url" in fields or current is None:
         url = fields.get("url")
@@ -294,51 +327,80 @@ def _validate_misp(fields: dict, current: dict | None, others: list[dict]) -> di
     return out
 
 
-def _misp_for_write(data: dict) -> list[dict]:
-    """The stored list, importing the .env instances the first time MISP is edited."""
-    if not isinstance(data.get("misp"), list):
-        data["misp"] = [{k: v for k, v in m.items()} for m in config.MISP_INSTANCES]
-        data["misp_next"] = max((int(_MISP_ID_RE.match(m["id"]).group(1)) for m in data["misp"]), default=0) + 1
-    return data["misp"]
+def _for_write(kind: str, data: dict) -> list[dict]:
+    """The stored list, importing the .env instances the first time the kind is edited."""
+    k = _kind(kind)
+    if not isinstance(data.get(kind), list):
+        data[kind] = [{key: v for key, v in m.items()} for m in k["env"]()]
+        data[f"{kind}_next"] = max((int(k["id_re"].match(m["id"]).group(1)) for m in data[kind]), default=0) + 1
+    return data[kind]
 
 
-def create_misp(fields: dict) -> dict:
+def create_instance(kind: str, fields: dict) -> dict:
+    k = _kind(kind)
     with _lock:
         data = _copy()
-        misp = _misp_for_write(data)
-        values = _validate_misp(fields, None, misp_instances())
-        n = max(int(data.get("misp_next") or 1),
-                max((int(_MISP_ID_RE.match(m["id"]).group(1)) for m in misp), default=0) + 1)
+        items = _for_write(kind, data)
+        values = _validate(kind, fields, None, instances(kind))
+        n = max(int(data.get(f"{kind}_next") or 1),
+                max((int(k["id_re"].match(m["id"]).group(1)) for m in items), default=0) + 1)
         # Ids are never reused: weights.json may still hold a deleted instance's weights.
-        data["misp_next"] = n + 1
+        data[f"{kind}_next"] = n + 1
         inst = {
-            "id": f"misp_{n}", "verify_ssl": True, "client_cert": "", "client_key": "",
-            "weight": DEFAULT_MISP_WEIGHT, "knowledge_weight": DEFAULT_MISP_KNOWLEDGE_WEIGHT,
+            "id": f"{kind}_{n}", "verify_ssl": True, "client_cert": "", "client_key": "",
+            "weight": k["weight"], "knowledge_weight": k["knowledge_weight"],
             **values,
         }
-        misp.append(inst)
+        items.append(inst)
         _write(data)
-    return next(m for m in list_misp() if m["id"] == inst["id"])
+    return next(m for m in list_instances(kind) if m["id"] == inst["id"])
 
 
-def update_misp(instance_id: str, fields: dict) -> dict:
+def update_instance(kind: str, instance_id: str, fields: dict) -> dict:
+    k = _kind(kind)
     with _lock:
         data = _copy()
-        misp = _misp_for_write(data)
-        inst = next((m for m in misp if m.get("id") == instance_id), None)
+        items = _for_write(kind, data)
+        inst = next((m for m in items if m.get("id") == instance_id), None)
         if inst is None:
-            raise api_error(404, "MispNotFound", "That MISP instance no longer exists.")
-        others = [m for m in misp_instances() if m["id"] != instance_id]
-        inst.update(_validate_misp(fields, inst, others))
+            raise api_error(404, k["not_found"], f"That {k['label']} instance no longer exists.")
+        others = [m for m in instances(kind) if m["id"] != instance_id]
+        inst.update(_validate(kind, fields, inst, others))
         _write(data)
-    return next(m for m in list_misp() if m["id"] == instance_id)
+    return next(m for m in list_instances(kind) if m["id"] == instance_id)
 
 
-def delete_misp(instance_id: str) -> None:
+def delete_instance(kind: str, instance_id: str) -> None:
+    k = _kind(kind)
     with _lock:
         data = _copy()
-        misp = _misp_for_write(data)
-        if not any(m.get("id") == instance_id for m in misp):
-            raise api_error(404, "MispNotFound", "That MISP instance no longer exists.")
-        data["misp"] = [m for m in misp if m.get("id") != instance_id]
+        items = _for_write(kind, data)
+        if not any(m.get("id") == instance_id for m in items):
+            raise api_error(404, k["not_found"], f"That {k['label']} instance no longer exists.")
+        data[kind] = [m for m in items if m.get("id") != instance_id]
         _write(data)
+
+
+# MISP names kept for the existing callers.
+def misp_managed_in_ui() -> bool:
+    return managed_in_ui("misp")
+
+
+def misp_instances() -> list[dict]:
+    return instances("misp")
+
+
+def get_misp(instance_id: str) -> dict | None:
+    return get_instance("misp", instance_id)
+
+
+def list_misp() -> list[dict]:
+    return list_instances("misp")
+
+
+def reveal_misp_key(instance_id: str) -> dict:
+    return reveal_instance_key("misp", instance_id)
+
+
+def opencti_instances() -> list[dict]:
+    return instances("opencti")

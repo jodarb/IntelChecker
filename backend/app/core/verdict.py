@@ -161,6 +161,13 @@ def _alienvault_subscore(d: Any) -> float | None:
     return 10
 
 
+def _alienvault_cve_subscore(d: Any) -> float | None:
+    if _get(d, "seen_wild") is True:
+        return 9
+    n = _get(d, "exploits_total")
+    return 7 if _is_num(n) and n > 0 else None
+
+
 def _abusech_subscore(d: Any) -> float | None:
     iocs = _get(d, "data")
     if not isinstance(iocs, list):
@@ -420,6 +427,29 @@ def _misp_subscore(d: Any) -> float | None:
     return 9 if ids_hit else None
 
 
+def _opencti_subscore(d: Any) -> float | None:
+    if not _truthy(_get(d, "found")):
+        return None
+    if _get(d, "kind") == "actor":
+        return None
+    if _get(d, "kind") == "vulnerability":
+        if _get(d, "vulnerability", "kev") is True:
+            return 9
+        n = _get(d, "threat_links")
+        return 8 if _is_num(n) and n > 0 else None
+    active = [i for i in _arr(_get(d, "indicators")) if _get(i, "active") is True]
+    if len(active) == 0:
+        return None
+    scores = [s for s in (_get(i, "score") for i in active) if _is_num(s)]
+    if len(scores) == 0:
+        return 7
+    best = scores[0]
+    for s in scores:
+        if s > best:
+            best = s
+    return min(10, best / 10) if best > 0 else None
+
+
 _ALL4 = ("ip", "domain", "url", "hash")
 
 
@@ -430,7 +460,7 @@ def _for(types, fn) -> dict:
 _VERDICT_NORMALIZERS: dict[str, dict] = {
     "virustotal": {"ip": _vt_host_subscore, "domain": _vt_host_subscore, "url": _vt_subscore, "hash": _vt_subscore},
     "abuseipdb": {"ip": _abuseipdb_subscore},
-    "alienvault": _for(_ALL4, _alienvault_subscore),
+    "alienvault": {**_for(_ALL4, _alienvault_subscore), "cve": _alienvault_cve_subscore},
     "abusech": _for(("ip", "hash"), _abusech_subscore),
     "recordedfuture": _for(_ALL4, _recorded_future_subscore),
     "torexitlist": {"ip": _tor_exit_list_subscore},
@@ -462,6 +492,8 @@ def get_engine_subscore(engine_id: str, type: str, data: Any) -> float | None:
         return None
     if engine_id.startswith("misp_"):
         return _misp_subscore(data)
+    if engine_id.startswith("opencti_"):
+        return _opencti_subscore(data)
     normalizer = _VERDICT_NORMALIZERS.get(engine_id, {}).get(type)
     if normalizer is None:
         return None
@@ -487,6 +519,9 @@ def _vt_depth(d: Any) -> float:
 
 
 def _alienvault_depth(d: Any) -> float:
+    if _get(d, "type_title") == "CVE" and (_get(d, "seen_wild") is True or (
+            _is_num(_get(d, "exploits_total")) and d["exploits_total"] > 0)):
+        return 1
     count = _nz(_get(d, "pulse_info", "count"), _nz(_get(d, "count"), len(_arr(_get(d, "results")))))
     return _by_count(_nz(count, 0), 2)
 
@@ -684,6 +719,15 @@ def _epss_depth(d: Any) -> float:
     return 1 if _truthy(_get(d, "found")) and _is_num(_get(d, "epss")) else 0
 
 
+def _opencti_depth(d: Any) -> float:
+    if not _truthy(_get(d, "found")):
+        return 0
+    reports = _get(d, "reports_total")
+    if len(_arr(_get(d, "indicators"))) > 0 or len(_arr(_get(d, "relations"))) > 0 or (_is_num(reports) and reports > 0):
+        return 1
+    return 0.5
+
+
 _DEPTH_FNS = {
     "tweetfeed": _tweetfeed_depth,
     "virustotal": _vt_depth,
@@ -740,7 +784,8 @@ def get_engine_assessment(engine_id: str, type: str, result: dict | None) -> dic
         return dict(_EXCLUDED)
 
     subscore = get_engine_subscore(engine_id, type, data)
-    depth_fn = _misp_depth if engine_id.startswith("misp_") else _DEPTH_FNS.get(engine_id)
+    depth_fn = (_misp_depth if engine_id.startswith("misp_")
+                else _opencti_depth if engine_id.startswith("opencti_") else _DEPTH_FNS.get(engine_id))
     depth = depth_fn(data) if depth_fn else 0
 
     if subscore is not None:

@@ -29,6 +29,11 @@ interface OTXResponse {
   city?: string | null
   asn?: string | null
   pulse_info?: PulseInfo
+  // CVE lookup (trimmed by the backend)
+  type_title?: string
+  seen_wild?: boolean
+  exploits_total?: number
+  exploits?: { name?: string; source?: string; type?: string; platform?: string; date?: string; url?: string }[]
   // threat-actor lookup: pulse search shape
   count?: number
   results?: Pulse[]
@@ -45,7 +50,7 @@ interface Props {
   type?: string
 }
 
-const OTX_TYPE_SLUG: Record<string, string> = { ip: 'ip', domain: 'domain', url: 'url', hash: 'file' }
+const OTX_TYPE_SLUG: Record<string, string> = { ip: 'ip', domain: 'domain', url: 'url', hash: 'file', cve: 'cve' }
 
 function PulseBadge({ count }: { count: number }) {
   const { t, tn } = useI18n()
@@ -197,13 +202,38 @@ export default function AlienVaultCard({ loading, error, data, score = null, wei
 
           {!loading && !isPulseSearch && data && !apiError && (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
-                <Field label={t('f.pulses')} value={pulseInfo ? <PulseBadge count={pulseCount} /> : '—'} />
-                <Field label={t('f.reputation')} value={data.reputation ?? '—'} />
-                <Field label={t('f.country')} value={data.country_name} />
-                <Field label={t('f.city')} value={data.city} />
-                <Field label={t('f.asn')} value={data.asn} />
-              </div>
+              {data.type_title === 'CVE' ? (
+                <>
+                  {data.seen_wild && <p className="text-sm text-amber-400">{t('otx.seenWild')}</p>}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
+                    <Field label={t('f.pulses')} value={pulseInfo ? <PulseBadge count={pulseCount} /> : '—'} />
+                    <Field label={t('f.seenWild')} value={data.seen_wild ? t('common.yes') : t('common.no')} />
+                    <Field label={t('f.publicExploits')} value={(data.exploits_total ?? 0).toLocaleString(locale)} />
+                  </div>
+                  {(data.exploits ?? []).length > 0 && (
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs text-muted-foreground uppercase tracking-wide">
+                        {t('otx.exploits', { n: data.exploits_total ?? 0, shown: data.exploits!.length })}
+                      </span>
+                      {data.exploits!.map((e, i) => (
+                        <a key={e.url ?? i} href={e.url} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline truncate">
+                          <span className="text-muted-foreground mr-1">[{e.source}{e.platform ? ` · ${e.platform}` : ''}]</span>
+                          {e.name || e.url}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                  {pulseCount > 0 && <p className="text-xs text-muted-foreground">{t('otx.cvePulsesNote')}</p>}
+                </>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
+                  <Field label={t('f.pulses')} value={pulseInfo ? <PulseBadge count={pulseCount} /> : '—'} />
+                  <Field label={t('f.reputation')} value={data.reputation ?? '—'} />
+                  <Field label={t('f.country')} value={data.country_name} />
+                  <Field label={t('f.city')} value={data.city} />
+                  <Field label={t('f.asn')} value={data.asn} />
+                </div>
+              )}
 
               {pulseInfo && pulseInfo.pulses.length > 0 && (
                 <div className="flex flex-col gap-2">

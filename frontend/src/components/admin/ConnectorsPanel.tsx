@@ -22,7 +22,7 @@ interface KeyConnector {
   hint: string
 }
 
-interface MispInstance {
+interface PlatformInstance {
   id: string
   name: string
   url: string
@@ -34,15 +34,36 @@ interface MispInstance {
   connected: boolean
 }
 
+type Kind = 'misp' | 'opencti'
+
 interface ConnectorsData {
   keys: KeyConnector[]
-  misp: MispInstance[]
+  misp: PlatformInstance[]
   misp_from_env: boolean
+  opencti: PlatformInstance[]
+  opencti_from_env: boolean
   cert_files: string[]
   keyless: { id: string; label: string }[]
 }
 
 type Message = { kind: 'ok' | 'error'; text: string }
+
+/** Per-platform wording, logo and URL hint of a multi-instance section. */
+const KIND_UI = {
+  misp: {
+    logo: '/logos/misp.png', placeholder: 'https://misp.example.org',
+    title: 'connectors.misp', subtitle: 'connectors.mispSubtitle', fromEnv: 'connectors.mispFromEnv',
+    empty: 'connectors.mispEmpty', keyLabel: 'connectors.mispKey', deleteConfirm: 'connectors.mispDeleteConfirm',
+    created: 'connectors.mispCreated', updated: 'connectors.mispUpdated', deleted: 'connectors.mispDeleted',
+  },
+  opencti: {
+    logo: '/logos/opencti.png', placeholder: 'https://opencti.example.org',
+    title: 'connectors.opencti', subtitle: 'connectors.openctiSubtitle', fromEnv: 'connectors.openctiFromEnv',
+    empty: 'connectors.openctiEmpty', keyLabel: 'connectors.openctiKey', deleteConfirm: 'connectors.openctiDeleteConfirm',
+    created: 'connectors.openctiCreated', updated: 'connectors.openctiUpdated', deleted: 'connectors.openctiDeleted',
+  },
+} as const
+const KINDS: Kind[] = ['misp', 'opencti']
 type Filter = 'all' | 'configured' | 'pending' | 'keyless'
 type Status = 'ui' | 'env' | 'none' | 'incomplete'
 
@@ -198,7 +219,7 @@ export default function ConnectorsPanel() {
   const [message, setMessage] = useState<Message | null>(null)
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [keyValue, setKeyValue] = useState('')
-  const [editingMisp, setEditingMisp] = useState<string | null>(null)   // id, or 'new'
+  const [editing, setEditing] = useState<string | null>(null)   // "<kind>:<id>", or "<kind>:new"
   const [filter, setFilter] = useState<Filter>('all')
 
   const engineOf = (id: string) => engines.find(e => e.id === id)
@@ -275,9 +296,9 @@ export default function ConnectorsPanel() {
     run(() => apiJson(`/connectors/keys/${c.key}`, 'DELETE'), t('connectors.removed', { label: c.label }))
   }
 
-  const removeMisp = (m: MispInstance) => {
-    if (!window.confirm(t('connectors.mispDeleteConfirm', { name: m.name }))) return
-    run(() => apiJson(`/connectors/misp/${m.id}`, 'DELETE'), t('connectors.mispDeleted', { name: m.name }))
+  const removeInstance = (kind: Kind, m: PlatformInstance) => {
+    if (!window.confirm(t(KIND_UI[kind].deleteConfirm, { name: m.name }))) return
+    run(() => apiJson(`/connectors/${kind}/${m.id}`, 'DELETE'), t(KIND_UI[kind].deleted, { name: m.name }))
   }
 
   if (loadFailed) {
@@ -291,13 +312,16 @@ export default function ConnectorsPanel() {
   if (!data) return <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
 
   const keyStatus = (c: KeyConnector): Status => c.source ?? 'none'
-  const mispStatus = (m: MispInstance): Status => (!m.connected ? 'incomplete' : data.misp_from_env ? 'env' : 'ui')
+  const fromEnv = (kind: Kind) => (kind === 'misp' ? data.misp_from_env : data.opencti_from_env)
+  const instancesOf = (kind: Kind) => (kind === 'misp' ? data.misp : data.opencti ?? [])
+  const instanceStatus = (kind: Kind, m: PlatformInstance): Status => (!m.connected ? 'incomplete' : fromEnv(kind) ? 'env' : 'ui')
   const isPending = (s: Status) => s === 'none' || s === 'incomplete'
+  const allInstances = KINDS.flatMap(k => instancesOf(k))
 
   const counts = {
-    all: data.keys.length + data.misp.length + data.keyless.length,
-    configured: data.keys.filter(c => !isPending(keyStatus(c))).length + data.misp.filter(m => m.connected).length,
-    pending: data.keys.filter(c => isPending(keyStatus(c))).length + data.misp.filter(m => !m.connected).length,
+    all: data.keys.length + allInstances.length + data.keyless.length,
+    configured: data.keys.filter(c => !isPending(keyStatus(c))).length + allInstances.filter(m => m.connected).length,
+    pending: data.keys.filter(c => isPending(keyStatus(c))).length + allInstances.filter(m => !m.connected).length,
     keyless: data.keyless.length,
   }
   const shows = (s: Status | 'keyless') =>
@@ -307,14 +331,14 @@ export default function ConnectorsPanel() {
     || (filter === 'configured' && s !== 'keyless' && !isPending(s))
 
   const keys = data.keys.filter(c => shows(keyStatus(c)))
-  const misp = data.misp.filter(m => shows(mispStatus(m)))
+  const visible = (kind: Kind) => instancesOf(kind).filter(m => shows(instanceStatus(kind, m)))
   const showKeyless = shows('keyless')
-  const showMisp = filter === 'all' || misp.length > 0 || (filter === 'pending' && editingMisp === 'new')
+  const showSection = (kind: Kind) => filter === 'all' || visible(kind).length > 0 || (filter === 'pending' && editing === `${kind}:new`)
 
   // Every testable row in view: configured keys (and optional ones), complete MISP instances, keyless sources.
   const testable: [string, string[]][] = [
     ...keys.filter(c => c.configured || c.optional).map(c => [c.key, c.engines] as [string, string[]]),
-    ...misp.filter(m => m.connected).map(m => [m.id, [m.id]] as [string, string[]]),
+    ...KINDS.flatMap(k => visible(k)).filter(m => m.connected).map(m => [m.id, [m.id]] as [string, string[]]),
     ...(showKeyless ? data.keyless.map(k => [k.id, [k.id]] as [string, string[]]) : []),
   ]
   const testableRequests = testable.reduce((n, [, ids]) => n + ids.length, 0)
@@ -426,67 +450,71 @@ export default function ConnectorsPanel() {
         </section>
       )}
 
-      {showMisp && (
-        <section className="rounded-xl border border-border bg-muted/10 overflow-visible">
-          <TableHeader title={t('connectors.misp')} action={editingMisp !== 'new' && (
-            <Button size="sm" disabled={busy} onClick={() => setEditingMisp('new')} className="h-7 gap-1 px-2.5 text-xs">
-              <Plus className="h-3.5 w-3.5" /> {t('connectors.mispAdd')}
-            </Button>
-          )} />
-          {data.misp_from_env && data.misp.length > 0 && (
-            <p className="mx-4 mt-3 text-xs rounded-md border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-sky-700 dark:text-sky-300">
-              {rich(t('connectors.mispFromEnv'))}
-            </p>
-          )}
-          {editingMisp === 'new' && (
-            <div className="p-4 border-b border-border/60 flex flex-col gap-2">
-              <p className="text-xs text-muted-foreground">{t('connectors.mispSubtitle')}</p>
-              <MispForm certFiles={data.cert_files} busy={busy}
-                onCancel={() => setEditingMisp(null)}
-                onSubmit={async body => {
-                  const ok = await run(() => apiJson('/connectors/misp', 'POST', body),
-                    t('connectors.mispCreated', { name: body.name ?? '' }))
-                  if (ok) setEditingMisp(null)
-                }} />
-            </div>
-          )}
-          {data.misp.length === 0 && editingMisp !== 'new' && (
-            <p className="px-4 py-4 text-sm text-muted-foreground">{t('connectors.mispEmpty')}</p>
-          )}
-          {misp.map(m => (
-            <Row key={m.id} logo="/logos/misp.png" title={m.name} status={mispStatus(m)}
-              subtitle={<>
-                <span className="font-mono">{m.url || '—'}</span>
-                {!m.verify_ssl && <span className="text-amber-600 dark:text-amber-400"> · <ShieldOff className="inline h-3 w-3 -mt-0.5" /> {t('connectors.mispVerifySslOff')}</span>}
-                {m.client_cert && <> · mTLS</>}
-              </>}
-              keyCell={<KeyCell hint={m.hint} has={m.has_key} />}
-              setup={
-                <Button variant={m.connected ? 'outline' : 'default'} size="sm" disabled={busy}
-                  onClick={() => setEditingMisp(e => (e === m.id ? null : m.id))} aria-expanded={editingMisp === m.id}
-                  className="h-8 w-full px-2 text-xs">
-                  {m.connected ? t('connectors.mispEdit') : t('connectors.complete')}
-                </Button>
-              }
-              testButton={m.connected && (
-                <TestButton testing={isTesting(m.id)} disabled={busy || isTesting(m.id)}
-                  title={t('connectors.testTitle')} onClick={() => test(m.id, [m.id])} />
-              )}
-              >
-              {editingMisp === m.id && (
-                <MispForm instance={m} certFiles={data.cert_files} busy={busy}
-                  onCancel={() => setEditingMisp(null)} onDelete={() => removeMisp(m)}
+      {KINDS.filter(showSection).map(kind => {
+        const ui = KIND_UI[kind]
+        const all = instancesOf(kind)
+        return (
+          <section key={kind} className="rounded-xl border border-border bg-muted/10 overflow-visible">
+            <TableHeader title={t(ui.title)} action={editing !== `${kind}:new` && (
+              <Button size="sm" disabled={busy} onClick={() => setEditing(`${kind}:new`)} className="h-7 gap-1 px-2.5 text-xs">
+                <Plus className="h-3.5 w-3.5" /> {t('connectors.mispAdd')}
+              </Button>
+            )} />
+            {fromEnv(kind) && all.length > 0 && (
+              <p className="mx-4 mt-3 text-xs rounded-md border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-sky-700 dark:text-sky-300">
+                {rich(t(ui.fromEnv))}
+              </p>
+            )}
+            {editing === `${kind}:new` && (
+              <div className="p-4 border-b border-border/60 flex flex-col gap-2">
+                <p className="text-xs text-muted-foreground">{t(ui.subtitle)}</p>
+                <InstanceForm kind={kind} certFiles={data.cert_files} busy={busy}
+                  onCancel={() => setEditing(null)}
                   onSubmit={async body => {
-                    const ok = await run(() => apiJson(`/connectors/misp/${m.id}`, 'PATCH', body),
-                      t('connectors.mispUpdated', { name: body.name ?? m.name }))
-                    if (ok) setEditingMisp(null)
+                    const ok = await run(() => apiJson(`/connectors/${kind}`, 'POST', body),
+                      t(ui.created, { name: body.name ?? '' }))
+                    if (ok) setEditing(null)
                   }} />
-              )}
-              {testPanel(m.id)}
-            </Row>
-          ))}
-        </section>
-      )}
+              </div>
+            )}
+            {all.length === 0 && editing !== `${kind}:new` && (
+              <p className="px-4 py-4 text-sm text-muted-foreground">{t(ui.empty)}</p>
+            )}
+            {visible(kind).map(m => (
+              <Row key={m.id} logo={ui.logo} title={m.name} status={instanceStatus(kind, m)}
+                subtitle={<>
+                  <span className="font-mono">{m.url || '—'}</span>
+                  {!m.verify_ssl && <span className="text-amber-600 dark:text-amber-400"> · <ShieldOff className="inline h-3 w-3 -mt-0.5" /> {t('connectors.mispVerifySslOff')}</span>}
+                  {m.client_cert && <> · mTLS</>}
+                </>}
+                keyCell={<KeyCell hint={m.hint} has={m.has_key} />}
+                setup={
+                  <Button variant={m.connected ? 'outline' : 'default'} size="sm" disabled={busy}
+                    onClick={() => setEditing(e => (e === `${kind}:${m.id}` ? null : `${kind}:${m.id}`))} aria-expanded={editing === `${kind}:${m.id}`}
+                    className="h-8 w-full px-2 text-xs">
+                    {m.connected ? t('connectors.mispEdit') : t('connectors.complete')}
+                  </Button>
+                }
+                testButton={m.connected && (
+                  <TestButton testing={isTesting(m.id)} disabled={busy || isTesting(m.id)}
+                    title={t('connectors.testTitle')} onClick={() => test(m.id, [m.id])} />
+                )}
+                >
+                {editing === `${kind}:${m.id}` && (
+                  <InstanceForm kind={kind} instance={m} certFiles={data.cert_files} busy={busy}
+                    onCancel={() => setEditing(null)} onDelete={() => removeInstance(kind, m)}
+                    onSubmit={async body => {
+                      const ok = await run(() => apiJson(`/connectors/${kind}/${m.id}`, 'PATCH', body),
+                        t(ui.updated, { name: body.name ?? m.name }))
+                      if (ok) setEditing(null)
+                    }} />
+                )}
+                {testPanel(m.id)}
+              </Row>
+            ))}
+          </section>
+        )
+      })}
 
       {showKeyless && data.keyless.length > 0 && (
         <section className="flex flex-col gap-2">
@@ -506,7 +534,7 @@ export default function ConnectorsPanel() {
         </section>
       )}
 
-      {keys.length === 0 && !showMisp && !showKeyless && (
+      {keys.length === 0 && !KINDS.some(showSection) && !showKeyless && (
         <p className="text-sm text-muted-foreground">{t('connectors.noMatches')}</p>
       )}
 
@@ -515,7 +543,7 @@ export default function ConnectorsPanel() {
   )
 }
 
-interface MispBody {
+interface InstanceBody {
   name?: string
   url?: string
   key?: string
@@ -524,11 +552,12 @@ interface MispBody {
   client_key?: string
 }
 
-function MispForm({ instance, certFiles, busy, onSubmit, onCancel, onDelete }: {
-  instance?: MispInstance
+function InstanceForm({ kind, instance, certFiles, busy, onSubmit, onCancel, onDelete }: {
+  kind: Kind
+  instance?: PlatformInstance
   certFiles: string[]
   busy: boolean
-  onSubmit: (body: MispBody) => void
+  onSubmit: (body: InstanceBody) => void
   onCancel: () => void
   onDelete?: () => void
 }) {
@@ -545,7 +574,7 @@ function MispForm({ instance, certFiles, busy, onSubmit, onCancel, onDelete }: {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
-    const body: MispBody = {
+    const body: InstanceBody = {
       name: name.trim(), url: url.trim(), verify_ssl: verifySsl,
       client_cert: clientCert, client_key: clientCert ? clientKey : '',
     }
@@ -563,18 +592,18 @@ function MispForm({ instance, certFiles, busy, onSubmit, onCancel, onDelete }: {
         </label>
         <label className={fieldLabel}>
           {t('connectors.mispUrl')}
-          <Input type="url" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://misp.example.org"
+          <Input type="url" value={url} onChange={e => setUrl(e.target.value)} placeholder={KIND_UI[kind].placeholder}
             required className="h-9 font-mono" />
         </label>
         {instance?.has_key && (
           <div className={fieldLabel}>
             {t('connectors.currentKey')}
-            <CurrentSecret hint={instance.hint} revealPath={`/connectors/misp/${instance.id}/reveal`}
+            <CurrentSecret hint={instance.hint} revealPath={`/connectors/${kind}/${instance.id}/reveal`}
               label={`${instance.name} — ${t('connectors.currentKey')}`} />
           </div>
         )}
         <label className={`${fieldLabel} ${instance?.has_key ? '' : 'md:col-span-2'}`}>
-          {instance?.has_key ? t('connectors.newKey') : t('connectors.mispKey')}
+          {instance?.has_key ? t('connectors.newKey') : t(KIND_UI[kind].keyLabel)}
           <Input type="password" value={key} onChange={e => setKey(e.target.value)} autoComplete="off" spellCheck={false}
             required={isNew || !instance?.has_key} className="h-9 font-mono"
             placeholder={instance?.has_key ? t('connectors.mispKeyKeep') : ''} />

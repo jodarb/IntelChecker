@@ -32,6 +32,7 @@ export type ProvField =
   | 'malpedia.actor' | 'malpedia.family'
   | 'sslbl.reason'
   | 'misp.galaxyActor' | 'misp.galaxyFamily' | 'misp.tag'
+  | 'opencti.malware' | 'opencti.actor' | 'opencti.campaign' | 'opencti.label'
   | 'rf.rule'
 
 /** A raw value plus where it came from. */
@@ -331,8 +332,31 @@ const EXTRACTORS: Record<string, (d: any) => EngineIntel> = {
   },
 }
 
+// OpenCTI: related malware / actors / campaigns come from the knowledge graph
+// (relationships of the matched entity); labels are analyst-set tags. For a threat
+// actor lookup the matched entity itself is the actor.
+const OPENCTI_ACTOR_TYPES = new Set(['Intrusion-Set', 'Threat-Actor-Group', 'Threat-Actor-Individual', 'Threat-Actor'])
+
+function openctiIntel(d: any): EngineIntel {
+  const out = empty()
+  if (!d?.found) return out
+  const e = d?.entity
+  if (d?.kind === 'actor' && str(e?.value)) out.actors.push({ value: e.value, field: 'opencti.actor' })
+  for (const r of arr(d?.relations)) {
+    const name = str(r?.name)
+    if (!name) continue
+    if (r?.entity_type === 'Malware') out.families.push({ value: name, field: 'opencti.malware', context: r?.type })
+    else if (OPENCTI_ACTOR_TYPES.has(r?.entity_type)) out.actors.push({ value: name, field: 'opencti.actor', context: r?.type })
+    else if (r?.entity_type === 'Campaign') out.campaigns.push({ value: name, field: 'opencti.campaign', context: r?.type })
+  }
+  out.tags.push(...arr(e?.labels).map(l => l?.value).map(it('opencti.label')))
+  out.firstSeen.push(e?.created_at)
+  out.lastSeen.push(e?.updated_at)
+  return out
+}
+
 function extract(engineId: string, data: unknown): EngineIntel | null {
-  const fn = engineId.startsWith('misp_') ? mispIntel : EXTRACTORS[engineId]
+  const fn = engineId.startsWith('misp_') ? mispIntel : engineId.startsWith('opencti_') ? openctiIntel : EXTRACTORS[engineId]
   if (!fn || !data || (data as any)?.error) return null
   try {
     return fn(data)

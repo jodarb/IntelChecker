@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode, type ComponentType } from 'react'
 import { STATIC_ENGINES, type EngineConfig, type IndicatorType, type CardProps } from '@/registry'
 import MISPCard from '@/components/results/MISPCard'
+import OpenCTICard from '@/components/results/OpenCTICard'
 import { apiFetch } from '@/lib/api'
 
 const BACKEND = '/api'
@@ -9,6 +10,13 @@ export interface EngineStatus {
   connected: boolean
   supports: IndicatorType[]
   label?: string
+  /** Multi-instance platforms: which card renders the instance */
+  kind?: 'misp' | 'opencti'
+}
+
+const INSTANCE_CARDS: Record<'misp' | 'opencti', { component: ComponentType<CardProps>; logo: string }> = {
+  misp: { component: MISPCard as ComponentType<CardProps>, logo: '/logos/misp.png' },
+  opencti: { component: OpenCTICard as ComponentType<CardProps>, logo: '/logos/opencti.png' },
 }
 
 export type StatusMap = Record<string, EngineStatus>
@@ -51,8 +59,7 @@ export function EnginesProvider({ children }: { children: ReactNode }) {
             id,
             label: meta.label ?? id,
             supports: meta.supports,
-            component: MISPCard as ComponentType<CardProps>,
-            logo: '/logos/misp.png',
+            ...INSTANCE_CARDS[meta.kind ?? (id.startsWith('opencti_') ? 'opencti' : 'misp')],
           }))
       : []
     return [...STATIC_ENGINES, ...dynamicEngines]

@@ -141,8 +141,8 @@ export const docsEs: DocsContent = {
     head: ['Bloque', 'Qué muestra'],
     rows: [
       ['Marcado por', 'Dice “**N** fuentes lo marcan como malicioso · M han respondido · K sin configurar”: N fuentes devolvieron una señal de riesgo (cada una con su subpuntuación, de mayor a menor), M fuentes respondieron y K fuentes que admiten este tipo no tienen API key (solo aparece si hay alguna). Debajo se listan las fuentes que dieron un veredicto limpio. Las fuentes con peso Risk 0 aparecen con borde discontinuo: lo marcaron pero no cuentan en el Risk Score.'],
-      ['Familias de malware', 'Solo familias de campos estructurados (ThreatFox, MalwareBazaar, OTX, galaxias de MISP, VirusTotal, Hybrid Analysis, ANY.RUN, TweetFeed, Malpedia, SSLBL). Los alias se fusionan — p. ej. Qbot / QakBot / Pinkslipbot — con una tabla integrada más los alias de software de MITRE ATT&CK. Las familias que solo vienen de **pulses masivos de OTX** (resúmenes semanales, feeds con ≥ 100 indicadores) se descartan: describen el informe, no este indicador.'],
-      ['Relación con actores de amenaza', 'Una fila por actor con **todas las fuentes que relacionan el indicador con él**: adversarios de pulses de OTX y el resumen de adversarios relacionados de OTX, galaxias de actor de MISP, el perfil de actor de Malpedia y nombres de actores encontrados en las etiquetas de cualquier fuente (comparados con los grupos y alias de MITRE ATT&CK). Las reglas “Linked to APT” de Recorded Future aparecen como relación sin nombre. Si las fuentes respondieron y ninguna lo relaciona con un actor, el bloque lo indica. Las campañas (TweetFeed) se listan debajo.'],
+      ['Familias de malware', 'Solo familias de campos estructurados (ThreatFox, MalwareBazaar, OTX, galaxias de MISP, malware relacionado de OpenCTI, VirusTotal, Hybrid Analysis, ANY.RUN, TweetFeed, Malpedia, SSLBL). Los alias se fusionan — p. ej. Qbot / QakBot / Pinkslipbot — con una tabla integrada más los alias de software de MITRE ATT&CK. Las familias que solo vienen de **pulses masivos de OTX** (resúmenes semanales, feeds con ≥ 100 indicadores) se descartan: describen el informe, no este indicador.'],
+      ['Relación con actores de amenaza', 'Una fila por actor con **todas las fuentes que relacionan el indicador con él**: adversarios de pulses de OTX y el resumen de adversarios relacionados de OTX, galaxias de actor de MISP, actores relacionados de OpenCTI, el perfil de actor de Malpedia y nombres de actores encontrados en las etiquetas de cualquier fuente (comparados con los grupos y alias de MITRE ATT&CK). Las reglas “Linked to APT” de Recorded Future aparecen como relación sin nombre. Si las fuentes respondieron y ninguna lo relaciona con un actor, el bloque lo indica. Las campañas (TweetFeed) se listan debajo.'],
       ['Ventana de actividad', 'La primera fecha en que se vio y la última, entre todas las fuentes, con la fuente de cada una.'],
       ['GeoIP · ASN · ISP · Tor · Puertos', 'Contexto de red, con cuántas fuentes coinciden en cada valor.'],
       ['CVSS · KEV · EPSS', 'Para CVEs: puntuación y severidad CVSS, si está en CISA KEV (lo indican tanto NVD como el catálogo) y la probabilidad EPSS con su percentil. La fecha de publicación en NVD es la primera vez visto del CVE.'],
@@ -210,7 +210,7 @@ export const docsEs: DocsContent = {
     rows: [
       ['VirusTotal', 'detecciones maliciosas + sospechosas: 0 → limpio (0), 1–2 → 3, 3–5 → 6, >5 → 10. Para IPs y dominios, 0 detecciones sin votos ni etiquetas → sin veredicto.'],
       ['AbuseIPDB', 'confianza de abuso ÷ 10. Confianza 0 y 0 reportes → sin veredicto; en lista blanca → limpio.'],
-      ['AlienVault OTX', 'pulses: 0 → sin veredicto, 1–2 → 4, 3–5 → 7, >5 → 10.'],
+      ['AlienVault OTX', 'pulses: 0 → sin veredicto, 1–2 → 4, 3–5 → 7, >5 → 10. CVE: visto explotado → 9, exploit público → 7, solo pulses → sin veredicto.'],
       ['ThreatFox', 'coincidencia → 7 + (confianza ÷ 100 × 3); sin coincidencia → sin veredicto.'],
       ['URLhaus', 'URL activa → 9, inactiva → 6; sin coincidencia → sin veredicto.'],
       ['MalwareBazaar', 'muestra registrada → 10; si no, sin veredicto.'],
@@ -223,6 +223,7 @@ export const docsEs: DocsContent = {
       ['Safe Browsing', 'en una lista de amenazas → 9; no listado → limpio (una comprobación en tiempo real).'],
       ['Lista de salida Tor', 'nodo de salida → 7; si no, sin veredicto.'],
       ['MISP', 'atributo marcado to_ids (IDS) → 9; las coincidencias sin to_ids son solo contexto; sin coincidencia → sin veredicto.'],
+      ['OpenCTI', 'un indicador activo (no revocado y aún válido al consultar) → su puntuación ÷ 10 (7 si no tiene); sin indicador activo → contexto. CVE: en CISA KEV → 9, relacionado con un actor / malware / campaña → 8. Actor de amenaza → solo contexto. Nunca limpio.'],
       ['TweetFeed', '1 reportante → 5, 2 → 6, ≥3 o una familia/campaña → 7 (limitado: los reportes no están verificados); nunca limpio.'],
       ['CrowdSec CTI', 'malicious → 9, suspicious → 6, known → 4; falso positivo conocido, safe o benign → limpio; unknown o no reportada → sin veredicto.'],
       ['CIRCL hashlookup', 'fichero conocido de software legítimo → limpio; marcado además KnownMalicious → sin veredicto; no encontrado → sin veredicto.'],
@@ -245,9 +246,10 @@ export const docsEs: DocsContent = {
     rows: [
       ['Recorded Future', 'no encontrado', 'registro sin reglas de riesgo', '≥1 regla de riesgo'],
       ['MISP', '0 atributos', '1–2 atributos', '≥3 atributos o ≥2 eventos'],
+      ['OpenCTI', 'sin coincidencia', 'entidad sin indicadores, relaciones ni informes', 'indicadores, relaciones o informes'],
       ['MITRE ATT&CK', 'no encontrado', 'perfil sin técnicas', 'técnicas o software'],
       ['VirusTotal', 'no encontrado', 'sin detecciones, votos ni etiquetas', 'detecciones, votos o etiquetas'],
-      ['AlienVault OTX', '0 pulses', '1–2 pulses', '≥3 pulses'],
+      ['AlienVault OTX', '0 pulses', '1–2 pulses', '≥3 pulses (CVE: también visto explotado o con exploit público)'],
       ['MalwareBazaar', 'sin muestra', '—', 'muestra registrada'],
       ['AbuseIPDB', '0 reportes', '1–9 reportes', '≥10 reportes o en lista blanca'],
       ['ThreatFox', 'sin coincidencia', '—', '≥1 IOC'],
@@ -285,6 +287,7 @@ export const docsEs: DocsContent = {
     rows: [
       ['API keys', 'Página [Conectores](/connectors)', 'Se guardan en `backend/data/connectors.json` (0600, mismo volumen) y se aplican al momento. Una clave guardada ahí tiene prioridad sobre la misma variable de `backend/.env`, que sigue sirviendo de respaldo (reconstruye tras editarlo). Una fuente sin su clave aparece como sin configurar y queda fuera de ambas puntuaciones.'],
       ['Instancias MISP', 'Página [Conectores](/connectors)', 'Las que quieras, se añaden y editan en caliente. Las nuevas empiezan con pesos 0 / 9 (se cambian en Admin). Para TLS mutuo, pon el certificado en `backend/certs/` y selecciónalo en la instancia. Las instancias definidas con `MISP_<N>_*` en `backend/.env` se usan hasta el primer cambio de MISP en Conectores, que las copia; a partir de ahí esas variables se ignoran.'],
+      ['Instancias OpenCTI', 'Página [Conectores](/connectors)', 'Igual que MISP (nombre, URL, token de API, TLS, mTLS), con `OPENCTI_<N>_*` en `backend/.env` hasta el primer cambio de OpenCTI en Conectores. Usa el token de un usuario de OpenCTI dedicado y de solo lectura; OpenCTI 6.0 o posterior. Cada instancia responde a IP, dominio, URL, hash, actor de amenaza y CVE.'],
       ['Pesos y umbrales', '`backend/data/weights.json`', 'Lo escribe Admin; sobrevive a reinicios y reconstrucciones (volumen de Docker). Los valores mayores que 10 de versiones antiguas se recortan a 10 al cargar. Restablecer valores por defecto lo borra.'],
       ['Historial', '`backend/data/history.db`', 'SQLite, en el mismo volumen. Se crea automáticamente en el primer arranque.'],
       ['Usuarios y sesiones', '`backend/data/users.db`', 'SQLite, en el mismo volumen. Se gestiona desde la página [Usuarios](/users). Las contraseñas se guardan como hashes scrypt.'],

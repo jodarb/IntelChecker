@@ -87,8 +87,8 @@ def _clamp_entry(w: dict) -> dict:
 
 def _defaults() -> dict:
     engines = {k: json.loads(json.dumps(v)) for k, v in DEFAULT_ENGINE_WEIGHTS.items()}
-    # MISP instances come from the Connectors page (or .env); their initial weights act as defaults.
-    for inst in connectors.misp_instances():
+    # MISP / OpenCTI instances come from the Connectors page (or .env); their initial weights act as defaults.
+    for inst in (i for kind in connectors.INSTANCE_KINDS for i in connectors.instances(kind)):
         engines[inst["id"]] = {
             "risk": _clamp_weight(inst["weight"]),
             "knowledge": _clamp_weight(inst["knowledge_weight"]),

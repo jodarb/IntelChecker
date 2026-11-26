@@ -39,13 +39,14 @@ Any user can change their own password from **My account** (their name in the he
 
 **Locked out?** If no admin can sign in, stop the stack, delete `backend/data/users.db` (history and weights are untouched) and start it again: the first-admin bootstrap runs again.
 
-### Connectors (API keys and MISP)
+### Connectors (API keys, MISP and OpenCTI)
 
 **Connectors** page (header → **Connectors**, or `/connectors` — only visible to admins):
 
-- **Layout** — one table per section (API keys, MISP) with the columns *Source · Status · Key · Actions*, filter tabs with counts (**All / Configured / Not configured / Keyless**) and **Test all**, which tests every testable connector in view after confirming how many real requests it will send. Each row has two fixed action columns: the key (**Set key** or **Replace key**; **Complete** or **Edit** for MISP) and **Test**. The editor opens under the row with the `.env` variable name, a **Get a key** link and **Remove** (or **Delete** for a MISP instance). The editor shows two fields: **Current key** (masked, the eye reveals it) and **New key**. Test results also open under the row.
+- **Layout** — one table per section (API keys, MISP, OpenCTI) with the columns *Source · Status · Key · Actions*, filter tabs with counts (**All / Configured / Not configured / Keyless**) and **Test all**, which tests every testable connector in view after confirming how many real requests it will send. Each row has two fixed action columns: the key (**Set key** or **Replace key**; **Complete** or **Edit** for MISP) and **Test**. The editor opens under the row with the `.env` variable name, a **Get a key** link and **Remove** (or **Delete** for a MISP instance). The editor shows two fields: **Current key** (masked, the eye reveals it) and **New key**. Test results also open under the row.
 - **API keys** — one row per key, with the types it supports or the sources it powers (the abuse.ch key serves ThreatFox, URLhaus and MalwareBazaar). **Set key / Replace** saves it; **Remove** deletes the value saved here. Status: *Configured* (saved here), *From .env* (only in `backend/.env`) or *Not configured*. A key saved here wins over `.env`; removing it falls back to the `.env` value, if any.
 - **MISP instances** — **Add instance** (name, URL, API key, *Verify TLS certificate*, optional mTLS client certificate / key chosen from the files in `backend/certs/`), **Edit** (leave the key empty to keep it) and **Delete**, inside the editor. Each instance is its own source; set its weights on the Admin page (new ones start at 0 / 9). Instances from `MISP_<N>_*` in `.env` are shown until the first MISP change here, which copies them over; from then on those variables are ignored.
+- **OpenCTI instances** — the same table, form and rules as MISP (name, URL, **API token**, TLS, mTLS; `OPENCTI_<N>_*` in `.env` until the first change here). Use the token of a dedicated read-only OpenCTI user. Each instance answers IP, domain, URL, hash, threat actor and CVE; new ones start at risk 0 / knowledge 9.
 - **Sources without a key** — Tor Exit Nodes, MITRE ATT&CK, RIPEstat, TweetFeed, CIRCL hashlookup, RDAP, Tranco, OpenPhish, SSLBL, CISA KEV and EPSS need no credentials (Spamhaus, Malpedia and NVD work without their optional keys) and are always active; they are listed so they can be tested too.
 - **Test** — every row has one (disabled until a required key is set). It runs one real lookup of a harmless indicator (8.8.8.8, example.com, the EICAR hash, CVE-2021-44228…) against each source the row powers — all three for the abuse.ch key — with a progress bar and elapsed time while it runs. The result shows under the row, per source: the **test artifact** sent and its type, the response time, the outcome — *OK* (data returned), *OK · no record* (answered and accepted the key, nothing known about the artifact) or *Error* with the reason — and the source's raw JSON response (**Show response**, truncated above 60 000 characters). **Hide result** folds it to a one-line summary (**Show result** brings it back) and ✕ dismisses it. Rows can be tested at the same time. It uses one request of the source's quota — mind GreyNoise Community's 50 per week and CrowdSec's small monthly quota. The abuse.ch key row now also tests YARAify.
 
@@ -222,7 +223,7 @@ Archived history entries keep the value in force when they were run; entries sav
 - **0–10 scale.** All weights use the 0–10 range. A `weights.json` saved by an older version with values above 10 (or a `MISP_<N>_*WEIGHT` above 10 in `.env`) is clamped to 10 when loaded, so review those rows and **Save** once.
 - Saved values are stored in **`backend/data/weights.json`** — the same Docker volume as the query history — so they survive restarts, rebuilds and updates.
 - Saving stores the **full set** of values shown on the page. After the first save, a future release that changes a *default* for an existing source won't override your saved value; use **Reset to defaults** to pick up new defaults. Sources added in a future release get their default weights automatically.
-- **MISP instances** start at risk 0 / knowledge 9 when added on the Connectors page; instances imported from `backend/.env` start at `MISP_<N>_WEIGHT` / `MISP_<N>_KNOWLEDGE_WEIGHT`. Once saved from Admin, the Admin value wins until you **Reset to defaults**.
+- **MISP and OpenCTI instances** start at risk 0 / knowledge 9 when added on the Connectors page; instances imported from `backend/.env` start at `MISP_<N>_WEIGHT` / `MISP_<N>_KNOWLEDGE_WEIGHT`. Once saved from Admin, the Admin value wins until you **Reset to defaults**.
 
 ---
 
@@ -235,6 +236,7 @@ Archived history entries keep the value in force when they were run; entries sav
 | Recorded Future | 10 | 9 | |
 | MITRE ATT&CK | 0 | 9 | context only |
 | MISP (each instance) | 0 (or `.env`) | 9 (or `.env`) | |
+| OpenCTI (each instance) | 0 (or `.env`) | 9 (or `.env`) | |
 | VirusTotal | 8 | 8 | |
 | MalwareBazaar | 8 | 7 | |
 | AlienVault OTX | 6 | 7 | |
@@ -280,7 +282,7 @@ CIRCL hashlookup, Tranco, CrowdSec and EPSS are the sources that most often issu
 |---|---|
 | VirusTotal | malicious + suspicious detections: 0 → clean (0), 1–2 → 3, 3–5 → 6, >5 → 10. For **IPs and domains**, 0 detections on a profile with no community votes or tags → no verdict. |
 | AbuseIPDB | abuse confidence ÷ 10. 0 confidence with 0 reports → no verdict; whitelisted → clean. |
-| AlienVault OTX | pulses: 0 → no verdict, 1–2 → 4, 3–5 → 7, >5 → 10 |
+| AlienVault OTX | pulses: 0 → no verdict, 1–2 → 4, 3–5 → 7, >5 → 10. **CVE**: seen in the wild → 9, public exploit → 7, pulses only → no verdict (context). |
 | ThreatFox | no match → no verdict; match → 7 + (confidence ÷ 100 × 3) |
 | URLhaus | no match → no verdict; URL online → 9, offline → 6 |
 | MalwareBazaar | sample on file → 10, otherwise no verdict |
@@ -293,6 +295,7 @@ CIRCL hashlookup, Tranco, CrowdSec and EPSS are the sources that most often issu
 | Safe Browsing | on a threat list → 9; not listed → clean (a genuine real-time check) |
 | Tor Exit List | exit node → 7; otherwise no verdict |
 | MISP | matching attribute flagged `to_ids` (IDS) → 9; matches with `to_ids` off are context only (count for Knowledge, no risk verdict); no match → no verdict |
+| OpenCTI | an **active** indicator (not revoked, still valid at lookup time) → its score ÷ 10 (7 if unscored; score 0 → no verdict); no active indicator → context. CVE: in CISA KEV → 9, related to an actor / malware / campaign → 8. Threat actor → context only. Never clean. |
 | TweetFeed | not reported → no verdict; 1 reporter → 5; 2 → 6; ≥3, or a malware family / campaign → 7 (capped: reports are unvetted) |
 | CrowdSec CTI | not reported or *unknown* → no verdict; known false positive, *safe* or *benign* → clean; *known* → 4; *suspicious* → 6; *malicious* → 9 |
 | CIRCL hashlookup | known file → clean; also flagged `KnownMalicious` → no verdict; not found → no verdict |
@@ -313,9 +316,10 @@ CIRCL hashlookup, Tranco, CrowdSec and EPSS are the sources that most often issu
 |---|---|---|---|
 | Recorded Future | not found | record without risk rules | ≥1 risk rule |
 | MISP | 0 attributes | 1–2 attributes | ≥3 attributes or ≥2 events |
+| OpenCTI | no match | entity with no indicators, relationships or reports | indicators, relationships or reports |
 | MITRE ATT&CK | not found | profile without techniques | techniques or software |
 | VirusTotal | not found | profile with no detections, votes or tags | detections, votes or tags |
-| AlienVault OTX | 0 pulses | 1–2 pulses | ≥3 pulses |
+| AlienVault OTX | 0 pulses | 1–2 pulses | ≥3 pulses (CVE: also seen in the wild or a public exploit) |
 | MalwareBazaar | no sample | — | sample on file |
 | AbuseIPDB | 0 reports | 1–9 reports | ≥10 reports or whitelisted |
 | ThreatFox | no match | — | ≥1 IOC |

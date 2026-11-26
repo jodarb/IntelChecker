@@ -1,6 +1,6 @@
 const en = {
   'connectors.title': 'Connectors',
-  'connectors.pageSubtitle': 'API keys of the intelligence sources and MISP instances. Only admins can see this page.',
+  'connectors.pageSubtitle': 'API keys of the intelligence sources and MISP / OpenCTI instances. Only admins can see this page.',
   'connectors.storageNote': 'Saved in `backend/data/connectors.json` (readable only by the backend). A key saved here takes precedence over the same variable in `backend/.env` and applies to the next lookup, no restart needed. The list shows only their last four characters; the eye on *Current key* reveals one (logged).',
   'connectors.loadError': 'Could not load the connectors.',
 
@@ -84,6 +84,15 @@ const en = {
   'connectors.mispUpdated': 'MISP instance {name} updated.',
   'connectors.mispDeleted': 'MISP instance {name} deleted.',
   'connectors.mispIncomplete': 'Missing URL or API key',
+  'connectors.opencti': 'OpenCTI instances',
+  'connectors.openctiSubtitle': 'Each instance is a separate source on the results page (IP, domain, URL, hash, threat actor and CVE). Use the API token of a dedicated read-only OpenCTI user (Profile → API access). Weights are set on the Admin page (new instances start at risk 0, knowledge 9). Requires OpenCTI 6.0 or newer.',
+  'connectors.openctiFromEnv': 'These instances come from `OPENCTI_<N>_*` in `backend/.env`. The first change made here copies them to Connectors; from then on those variables are ignored.',
+  'connectors.openctiEmpty': 'No OpenCTI instances yet.',
+  'connectors.openctiKey': 'API token',
+  'connectors.openctiDeleteConfirm': 'Delete the OpenCTI instance {name}? It disappears from new lookups; the history keeps its past results.',
+  'connectors.openctiCreated': 'OpenCTI instance {name} added.',
+  'connectors.openctiUpdated': 'OpenCTI instance {name} updated.',
+  'connectors.openctiDeleted': 'OpenCTI instance {name} deleted.',
 
   'authError.InvalidSecret': 'The key must be 1–1024 characters with no spaces or control characters.',
   'authError.ConnectorNotFound': 'Unknown connector.',
@@ -92,10 +101,12 @@ const en = {
   'authError.InvalidMispUrl': 'The URL must start with http:// or https://.',
   'authError.InvalidCertFile': 'That certificate file isn’t in backend/certs/ (a client key also needs a certificate).',
   'authError.MispNotFound': 'That MISP instance no longer exists.',
+  'authError.OpenctiNameExists': 'An OpenCTI instance with that name already exists.',
+  'authError.OpenctiNotFound': 'That OpenCTI instance no longer exists.',
 }
 const es: Record<keyof typeof en, string> = {
   'connectors.title': 'Conectores',
-  'connectors.pageSubtitle': 'API keys de las fuentes de inteligencia e instancias MISP. Solo los administradores pueden ver esta página.',
+  'connectors.pageSubtitle': 'API keys de las fuentes de inteligencia e instancias MISP / OpenCTI. Solo los administradores pueden ver esta página.',
   'connectors.storageNote': 'Se guardan en `backend/data/connectors.json` (solo legible por el backend). Una clave guardada aquí tiene prioridad sobre la misma variable de `backend/.env` y se aplica en la siguiente búsqueda, sin reiniciar. La lista solo muestra sus cuatro últimos caracteres; el ojo de *Clave actual* muestra la clave (queda registrado).',
   'connectors.loadError': 'No se pudieron cargar los conectores.',
 
@@ -179,6 +190,15 @@ const es: Record<keyof typeof en, string> = {
   'connectors.mispUpdated': 'Instancia MISP {name} actualizada.',
   'connectors.mispDeleted': 'Instancia MISP {name} eliminada.',
   'connectors.mispIncomplete': 'Falta la URL o la API key',
+  'connectors.opencti': 'Instancias OpenCTI',
+  'connectors.openctiSubtitle': 'Cada instancia es una fuente distinta en la página de resultados (IP, dominio, URL, hash, actor de amenaza y CVE). Usa el token de API de un usuario de OpenCTI dedicado y de solo lectura (Perfil → Acceso a la API). Los pesos se ajustan en la página Admin (las nuevas empiezan con riesgo 0 y conocimiento 9). Requiere OpenCTI 6.0 o posterior.',
+  'connectors.openctiFromEnv': 'Estas instancias vienen de `OPENCTI_<N>_*` en `backend/.env`. El primer cambio que hagas aquí las copia a Conectores; a partir de entonces esas variables se ignoran.',
+  'connectors.openctiEmpty': 'Todavía no hay instancias OpenCTI.',
+  'connectors.openctiKey': 'Token de API',
+  'connectors.openctiDeleteConfirm': '¿Eliminar la instancia OpenCTI {name}? Desaparece de las búsquedas nuevas; el historial conserva sus resultados pasados.',
+  'connectors.openctiCreated': 'Instancia OpenCTI {name} añadida.',
+  'connectors.openctiUpdated': 'Instancia OpenCTI {name} actualizada.',
+  'connectors.openctiDeleted': 'Instancia OpenCTI {name} eliminada.',
 
   'authError.InvalidSecret': 'La clave debe tener de 1 a 1024 caracteres, sin espacios ni caracteres de control.',
   'authError.ConnectorNotFound': 'Conector desconocido.',
@@ -187,5 +207,7 @@ const es: Record<keyof typeof en, string> = {
   'authError.InvalidMispUrl': 'La URL debe empezar por http:// o https://.',
   'authError.InvalidCertFile': 'Ese fichero de certificado no está en backend/certs/ (una clave de cliente también necesita certificado).',
   'authError.MispNotFound': 'Esa instancia MISP ya no existe.',
+  'authError.OpenctiNameExists': 'Ya existe una instancia OpenCTI con ese nombre.',
+  'authError.OpenctiNotFound': 'Esa instancia OpenCTI ya no existe.',
 }
 export default { en, es }

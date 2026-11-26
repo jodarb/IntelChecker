@@ -36,6 +36,7 @@ Notes on each integration: how it is queried, what it needs and anything that af
 ## Shared credentials and limits
 
 - **ThreatFox, URLhaus, MalwareBazaar and YARAify** share the unified abuse.ch key (`ABUSECH_AUTH_KEY`), but are independent, individually toggleable sources.
+- **AlienVault OTX for CVEs** (`/indicators/cve/…`, same key): OTX's own *seen in the wild* flag (→ 9) and public exploits from Exploit-DB / Metasploit… (→ 7) are the risk signals; pulses about a CVE are mostly KEV / feed roundups, so they only count for Knowledge. The ~300 KB answer is trimmed to the card's fields (20 pulses, 10 exploits). OTX takes ~60 s and then fails for a CVE it doesn't know, so the lookup gives up at 25 s (a transient timeout, left out of Knowledge).
 - **AlienVault OTX** threat-actor lookups use the [pulse search API](https://otx.alienvault.com/api/v1/search/pulses) with the same `ALIENVAULT_API_KEY`. It is a full-text search over community reports, not a curated actor database: results can take up to ~20 s, and MITRE ATT&CK remains the more authoritative actor profile.
 - **GreyNoise** uses the free Community API: it classifies an IP as an internet-wide scanner (noise) and/or a known-good business service (RIOT). Capped at 50 lookups/week per key.
 - **CrowdSec CTI** (`CROWDSEC_API_KEY`) — IP reputation built from attacks seen by the CrowdSec network: reputation (malicious / suspicious / known / safe / benign), behaviours, attack scenarios, MITRE techniques and CVEs. A known false positive (public resolver, known scanner…) or a *safe* / *benign* reputation is a clean verdict. **The free Community key has a small monthly quota** (around 120 lookups/month): consider disabling it on the home page for bulk work, and mind it when using **Test**.
@@ -45,7 +46,7 @@ Notes on each integration: how it is queried, what it needs and anything that af
 
 ## MISP (any number of instances)
 
-MISP is the only source you can add several times: your own instance, a partner's, an ISAC feed… Each one shows up as its own named source with its own status and toggle. Admins add, edit and delete them on the **Connectors** page (name, URL, API key, TLS verification, mTLS certificate) and the change applies to the next lookup, no restart. The UI renders each with a shared card.
+MISP and OpenCTI (next section) are the sources you can add several times: your own instance, a partner's, an ISAC feed… Each one shows up as its own named source with its own status and toggle. Admins add, edit and delete them on the **Connectors** page (name, URL, API key, TLS verification, mTLS certificate) and the change applies to the next lookup, no restart. The UI renders each with a shared card.
 
 Instances defined in `backend/.env` (the `MISP_<N>_*` block in `backend/.env.example`) keep working: they are used until the first MISP change on Connectors, which copies them into `backend/data/connectors.json` — from then on `MISP_<N>_*` is ignored. Instance ids (`misp_<N>`) are never reused after a delete, so a new instance doesn't inherit an old one's weights.
 
@@ -54,6 +55,19 @@ Instances defined in `backend/.env` (the `MISP_<N>_*` block in `backend/.env.exa
 - **Weights** — set on the Admin page. New instances start at 0 / 9; instances imported from `.env` start at `MISP_<N>_WEIGHT` / `MISP_<N>_KNOWLEDGE_WEIGHT`. A value saved in Admin wins.
 - **Mutual TLS** — some instances (common on government / CERT deployments) reject requests without a client certificate. Drop the cert (and key, if separate) into `backend/certs/` (gitignored, mounted read-only at `/app/certs`) and pick them in the instance's **Client certificate** / **Client key** on Connectors (or `MISP_<N>_CLIENT_CERT` / `_CLIENT_KEY` in `.env`). A combined cert+key PEM only needs the certificate.
 
+## OpenCTI (any number of instances)
+
+Works exactly like MISP: each instance (yours, a partner's, a sector ISAC's…) is its own named source, added / edited / deleted on **Connectors** with the same fields — name, URL, **API token**, TLS verification, mTLS certificate — or as `OPENCTI_<N>_*` in `backend/.env` until the first OpenCTI change there. Ids are `opencti_<N>`, never reused. Use the token of a **dedicated read-only user** (OpenCTI → Profile → API access): the instance sees its markings, so it only returns what that user may read. Requires **OpenCTI 6.0 or newer** (GraphQL API at `<url>/graphql`).
+
+- **Types** — IP, domain, URL, hash, threat actor and CVE (MISP: the first four).
+  - *IP / domain / URL / hash*: the observable with that exact value (or any of its MD5 / SHA-1 / SHA-256 / SHA-512 hashes) and its indicators, plus indicators whose STIX pattern names the value but have no observable (feeds imported without “create observables”).
+  - *CVE*: the Vulnerability entity — CVSS, and on recent releases EPSS, CISA KEV, CWE and SSVC.
+  - *Threat actor*: intrusion sets and threat actors (groups / individuals) matched on name or alias; the closest result is shown with a warning when nothing matches exactly.
+  - For every match, its **reports** and **relationships** (malware, actors, campaigns, vulnerabilities…) — they feed the card and the Summary's families, actors and campaigns.
+- **Scoring** — only **active indicators** (not revoked, `valid_until` still in the future when the lookup ran — frozen in the history) are a risk verdict: their OpenCTI score ÷ 10 (7 when unscored). An observable without an active indicator is context: OpenCTI gives every observable a default score of 50, which says nothing. CVE: in CISA KEV → 9; related to an actor / malware / campaign → 8. Threat actors: context only. Never a clean verdict.
+- **Versions** — queries with fields from recent releases (CVSS v4, EPSS, KEV, SSVC) fall back automatically to a compatible version on older platforms. `backend/tests/opencti_schema_check.py` validates every query against the GraphQL schema of any release, without an instance.
+- **Weights** — like MISP: new instances start at 0 / 9 (`OPENCTI_<N>_WEIGHT` / `_KNOWLEDGE_WEIGHT` for `.env` ones); set them on Admin.
+
 ## Roadmap
 
-Criminal IP · OpenCTI
+Criminal IP

@@ -141,8 +141,8 @@ export const docsEn = {
     head: ['Block', 'What it shows'],
     rows: [
       ['Flagged by', 'Reads “**N** sources flag it as malicious · M responded · K not configured”: N sources returned a risk signal (each listed with its subscore, highest first), M sources answered, and K sources that support this type have no API key (only shown when there are any). The sources that gave a clean verdict are listed underneath. Sources with risk weight 0 are shown dashed: they flagged it but don\'t count in the Risk Score.'],
-      ['Malware families', 'Families from structured fields only (ThreatFox, MalwareBazaar, OTX, MISP galaxies, VirusTotal, Hybrid Analysis, ANY.RUN, TweetFeed, Malpedia, SSLBL). Aliases are merged — e.g. Qbot / QakBot / Pinkslipbot — using a built-in table plus MITRE ATT&CK software aliases. Families that only come from **bulk OTX pulses** (weekly roundups, feeds with ≥ 100 indicators) are left out: they describe the report, not this indicator.'],
-      ['Threat actor relations', 'One row per actor with **every source that relates the indicator to it**: OTX pulse adversaries and OTX’s related-adversary summary, MISP threat-actor galaxies, the Malpedia actor profile, and actor names found in any source’s tags (matched against MITRE ATT&CK groups and aliases). Recorded Future “Linked to APT” rules appear as an unnamed relation. If sources answered and none relates it to an actor, the block says so. Campaigns (TweetFeed) are listed underneath.'],
+      ['Malware families', 'Families from structured fields only (ThreatFox, MalwareBazaar, OTX, MISP galaxies, OpenCTI related malware, VirusTotal, Hybrid Analysis, ANY.RUN, TweetFeed, Malpedia, SSLBL). Aliases are merged — e.g. Qbot / QakBot / Pinkslipbot — using a built-in table plus MITRE ATT&CK software aliases. Families that only come from **bulk OTX pulses** (weekly roundups, feeds with ≥ 100 indicators) are left out: they describe the report, not this indicator.'],
+      ['Threat actor relations', 'One row per actor with **every source that relates the indicator to it**: OTX pulse adversaries and OTX’s related-adversary summary, MISP threat-actor galaxies, OpenCTI related actors, the Malpedia actor profile, and actor names found in any source’s tags (matched against MITRE ATT&CK groups and aliases). Recorded Future “Linked to APT” rules appear as an unnamed relation. If sources answered and none relates it to an actor, the block says so. Campaigns (TweetFeed) are listed underneath.'],
       ['Activity window', 'Earliest first-seen and latest last-seen date across all sources, with the source each came from.'],
       ['GeoIP · ASN · ISP · Tor · Ports', 'Network context, with how many sources agree on each value.'],
       ['CVSS · KEV · EPSS', 'For CVEs: CVSS score and severity, whether it is in CISA KEV (reported by both NVD and the catalog) and the EPSS probability with its percentile. The NVD publication date is the CVE’s first seen.'],
@@ -210,7 +210,7 @@ export const docsEn = {
     rows: [
       ['VirusTotal', 'malicious + suspicious detections: 0 → clean (0), 1–2 → 3, 3–5 → 6, >5 → 10. For IPs and domains, 0 detections with no votes or tags → no verdict.'],
       ['AbuseIPDB', 'abuse confidence ÷ 10. 0 confidence and 0 reports → no verdict; whitelisted → clean.'],
-      ['AlienVault OTX', 'pulses: 0 → no verdict, 1–2 → 4, 3–5 → 7, >5 → 10.'],
+      ['AlienVault OTX', 'pulses: 0 → no verdict, 1–2 → 4, 3–5 → 7, >5 → 10. CVE: seen in the wild → 9, public exploit → 7, pulses only → no verdict.'],
       ['ThreatFox', 'match → 7 + (confidence ÷ 100 × 3); no match → no verdict.'],
       ['URLhaus', 'URL online → 9, offline → 6; no match → no verdict.'],
       ['MalwareBazaar', 'sample on file → 10; otherwise no verdict.'],
@@ -223,6 +223,7 @@ export const docsEn = {
       ['Safe Browsing', 'on a threat list → 9; not listed → clean (a real-time check).'],
       ['Tor Exit List', 'exit node → 7; otherwise no verdict.'],
       ['MISP', 'attribute flagged to_ids (IDS) → 9; matches without to_ids are context only; no match → no verdict.'],
+      ['OpenCTI', 'an active indicator (not revoked, still valid at lookup time) → its score ÷ 10 (7 if unscored); no active indicator → context. CVE: in CISA KEV → 9, related to an actor / malware / campaign → 8. Threat actor → context only. Never clean.'],
       ['TweetFeed', '1 reporter → 5, 2 → 6, ≥3 or a family/campaign → 7 (capped: reports are unvetted); never clean.'],
       ['CrowdSec CTI', 'malicious → 9, suspicious → 6, known → 4; known false positive, safe or benign → clean; unknown or not reported → no verdict.'],
       ['CIRCL hashlookup', 'known file of legitimate software → clean; also flagged KnownMalicious → no verdict; not found → no verdict.'],
@@ -245,9 +246,10 @@ export const docsEn = {
     rows: [
       ['Recorded Future', 'not found', 'record without risk rules', '≥1 risk rule'],
       ['MISP', '0 attributes', '1–2 attributes', '≥3 attributes or ≥2 events'],
+      ['OpenCTI', 'no match', 'entity with no indicators, relationships or reports', 'indicators, relationships or reports'],
       ['MITRE ATT&CK', 'not found', 'profile without techniques', 'techniques or software'],
       ['VirusTotal', 'not found', 'no detections, votes or tags', 'detections, votes or tags'],
-      ['AlienVault OTX', '0 pulses', '1–2 pulses', '≥3 pulses'],
+      ['AlienVault OTX', '0 pulses', '1–2 pulses', '≥3 pulses (CVE: also seen in the wild or a public exploit)'],
       ['MalwareBazaar', 'no sample', '—', 'sample on file'],
       ['AbuseIPDB', '0 reports', '1–9 reports', '≥10 reports or whitelisted'],
       ['ThreatFox', 'no match', '—', '≥1 IOC'],
@@ -285,6 +287,7 @@ export const docsEn = {
     rows: [
       ['API keys', '[Connectors](/connectors) page', 'Saved in `backend/data/connectors.json` (0600, same volume) and applied at once. A key saved there wins over the same variable in `backend/.env`, which still works as a fallback (rebuild after editing it). A source without its key shows as not configured and is excluded from both scores.'],
       ['MISP instances', '[Connectors](/connectors) page', 'Any number, added and edited at runtime. New instances start at weights 0 / 9 (change them in Admin). For mutual TLS, put the cert in `backend/certs/` and select it on the instance. Instances defined with `MISP_<N>_*` in `backend/.env` are used until the first MISP change on Connectors, which copies them over; from then on those variables are ignored.'],
+      ['OpenCTI instances', '[Connectors](/connectors) page', 'Same as MISP (name, URL, API token, TLS, mTLS), with `OPENCTI_<N>_*` in `backend/.env` until the first OpenCTI change on Connectors. Use the token of a dedicated read-only OpenCTI user; OpenCTI 6.0 or newer. Each instance answers IP, domain, URL, hash, threat actor and CVE.'],
       ['Weights & thresholds', '`backend/data/weights.json`', 'Written by Admin; survives restarts and rebuilds (Docker volume). Values above 10 from older versions are clamped to 10 on load. Reset to defaults deletes it.'],
       ['History', '`backend/data/history.db`', 'SQLite, same volume. Created automatically on first run.'],
       ['Users & sessions', '`backend/data/users.db`', 'SQLite, same volume. Managed from the [Users](/users) page. Passwords are stored as scrypt hashes.'],

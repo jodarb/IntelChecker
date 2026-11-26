@@ -91,7 +91,7 @@ export const STATIC_ENGINES: EngineConfig[] = [
   {
     id: 'alienvault',
     label: 'AlienVault OTX',
-    supports: ['ip', 'domain', 'url', 'hash'],
+    supports: ['ip', 'domain', 'url', 'hash', 'threat-actor', 'cve'],
     component: AlienVaultCard as React.ComponentType<CardProps>,
     logo: '/logos/alienvault.png',
   },

@@ -183,6 +183,18 @@ function alienvaultSubscore(d: unknown): number | null {
   return 10
 }
 
+// OTX for CVEs: pulses only say the CVE is talked about (most are bulk KEV/feed
+// roundups), so they're context. OTX's own "seen in the wild" flag → 9; a public
+// exploit (Exploit-DB, Metasploit…) → 7; otherwise no verdict.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function alienvaultCveSubscore(d: unknown): number | null {
+  const p = d as any
+  if (p?.seen_wild === true) return 9
+  const n = p?.exploits_total
+  return typeof n === 'number' && n > 0 ? 7 : null
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
 function abusechSubscore(d: unknown): number | null {
   const iocs = (d as any)?.data
   if (!Array.isArray(iocs)) return null
@@ -469,6 +481,31 @@ function mispSubscore(d: unknown): number | null {
   return idsHit ? 9 : null
 }
 
+// OpenCTI: only *active* indicators (not revoked, still valid at lookup time) are
+// verdicts — their OpenCTI score ÷ 10, or 7 when unscored; an observable without an
+// active indicator is context (OpenCTI gives every observable a default score of 50,
+// which says nothing). CVEs: in CISA KEV → 9, tied to an actor / malware / campaign
+// → 8. Threat actors are context only. Never a clean verdict from an indicator scored 0.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function openctiSubscore(d: unknown): number | null {
+  const p = d as any
+  if (!p?.found) return null
+  if (p?.kind === 'actor') return null
+  if (p?.kind === 'vulnerability') {
+    if (p?.vulnerability?.kev === true) return 9
+    const n = p?.threat_links
+    return typeof n === 'number' && n > 0 ? 8 : null
+  }
+  const active = arr(p?.indicators).filter((i: any) => i?.active === true)
+  if (active.length === 0) return null
+  const scores = active.map((i: any) => i?.score).filter((s: unknown): s is number => typeof s === 'number')
+  if (scores.length === 0) return 7
+  let best = scores[0]
+  for (const s of scores) if (s > best) best = s
+  return best > 0 ? Math.min(10, best / 10) : null
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
 // Registry: engineId → indicatorType → normalizer.
 // Purely contextual engines (Shodan, IPinfo, RIPEstat, MITRE ATT&CK) have no
 // maliciousness signal in their API response, so they're absent here — they
@@ -476,7 +513,7 @@ function mispSubscore(d: unknown): number | null {
 const VERDICT_NORMALIZERS: Record<string, Partial<Record<IndicatorType, (data: unknown) => number | null>>> = {
   virustotal: { ip: vtHostSubscore, domain: vtHostSubscore, url: vtSubscore, hash: vtSubscore },
   abuseipdb: { ip: abuseipdbSubscore },
-  alienvault: { ip: alienvaultSubscore, domain: alienvaultSubscore, url: alienvaultSubscore, hash: alienvaultSubscore },
+  alienvault: { ip: alienvaultSubscore, domain: alienvaultSubscore, url: alienvaultSubscore, hash: alienvaultSubscore, cve: alienvaultCveSubscore },
   abusech: { ip: abusechSubscore, hash: abusechSubscore },
   recordedfuture: { ip: recordedFutureSubscore, domain: recordedFutureSubscore, url: recordedFutureSubscore, hash: recordedFutureSubscore },
   torexitlist: { ip: torExitListSubscore },
@@ -511,6 +548,7 @@ export function getEngineSubscore(engineId: string, type: IndicatorType, data: u
   // MISP instance ids (misp_1, misp_2...) are only known at deploy time, so they
   // can't be pre-registered in VERDICT_NORMALIZERS like the static engines above.
   if (engineId.startsWith('misp_')) return mispSubscore(data)
+  if (engineId.startsWith('opencti_')) return openctiSubscore(data)
   const normalizer = VERDICT_NORMALIZERS[engineId]?.[type]
   if (!normalizer) return null
   return normalizer(data)
@@ -539,6 +577,8 @@ function vtDepth(d: any): Depth {
 }
 
 function alienvaultDepth(d: any): Depth {
+  // CVE record: seen in the wild or with public exploits is a rich record by itself.
+  if (d?.type_title === 'CVE' && (d?.seen_wild === true || (typeof d?.exploits_total === 'number' && d.exploits_total > 0))) return 1
   // Indicator lookup → pulse_info.count; threat-actor pulse search → count/results.
   const count = d?.pulse_info?.count ?? d?.count ?? arr(d?.results).length
   return byCount(count ?? 0, 2)
@@ -712,6 +752,13 @@ function epssDepth(d: any): Depth {
   return d?.found && typeof d?.epss === 'number' ? 1 : 0
 }
 
+// OpenCTI: a record with indicators, relationships or reports is rich; a bare one is basic.
+function openctiDepth(d: any): Depth {
+  if (!d?.found) return 0
+  const reports = d?.reports_total
+  return arr(d?.indicators).length > 0 || arr(d?.relations).length > 0 || (typeof reports === 'number' && reports > 0) ? 1 : 0.5
+}
+
 const DEPTH_FNS: Record<string, (data: any) => Depth> = {
   tweetfeed: tweetFeedDepth,
   virustotal: vtDepth,
@@ -766,7 +813,7 @@ export function getEngineAssessment(engineId: string, type: IndicatorType, resul
   }
 
   const subscore = getEngineSubscore(engineId, type, result.data)
-  const depthFn = engineId.startsWith('misp_') ? mispDepth : DEPTH_FNS[engineId]
+  const depthFn = engineId.startsWith('misp_') ? mispDepth : engineId.startsWith('opencti_') ? openctiDepth : DEPTH_FNS[engineId]
   const depth: number = depthFn ? depthFn(result.data) : 0
 
   let outcome: EngineOutcome
