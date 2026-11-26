@@ -20,8 +20,8 @@ interface LayoutProps {
 function SearchTabs({ active }: { active: SearchTab }) {
   const { t } = useI18n()
   const tabs: { id: SearchTab; to: string; icon: React.ReactNode; label: string }[] = [
-    { id: 'artifacts', to: '/', icon: <Crosshair className="h-4 w-4" />, label: t('tabs.artifacts') },
-    { id: 'companies', to: '/companies', icon: <Building2 className="h-4 w-4" />, label: t('tabs.companies') },
+    { id: 'artifacts', to: '/', icon: <Crosshair className="h-5 w-5" />, label: t('tabs.artifacts') },
+    { id: 'companies', to: '/companies', icon: <Building2 className="h-5 w-5" />, label: t('tabs.companies') },
   ]
   return (
     <nav aria-label={t('tabs.label')} className="border-b border-border px-6 flex gap-1 shrink-0 bg-muted/10">
@@ -32,7 +32,7 @@ function SearchTabs({ active }: { active: SearchTab }) {
             key={tab.id}
             to={tab.to}
             aria-current={on ? 'page' : undefined}
-            className={`inline-flex items-center gap-2 px-4 py-2.5 -mb-px border-b-2 text-sm font-medium transition-colors ${
+            className={`inline-flex items-center gap-2 px-5 py-3 -mb-px border-b-2 text-base font-medium transition-colors ${
               on ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
             }`}
           >
@@ -119,9 +119,11 @@ export default function Layout({ children, tab }: LayoutProps) {
       </header>
       {tab && can('analyze') && <SearchTabs active={tab} />}
       {user?.default_password && (
-        <div role="alert" className="flex items-center gap-2 px-6 py-2.5 border-b border-yellow-500/40 bg-yellow-500/10 text-sm text-yellow-700 dark:text-yellow-300">
-          <TriangleAlert className="h-4 w-4 shrink-0" />
-          <span>{rich(t('auth.defaultPasswordWarning'))}</span>
+        <div className="flex justify-end px-6 pt-3">
+          <div role="alert" className="inline-flex items-center gap-2 max-w-xl px-3 py-2 rounded-md border border-yellow-500/40 bg-yellow-500/10 text-xs text-yellow-700 dark:text-yellow-300">
+            <TriangleAlert className="h-4 w-4 shrink-0" />
+            <span>{rich(t('auth.defaultPasswordWarning'))}</span>
+          </div>
         </div>
       )}
       {children}
