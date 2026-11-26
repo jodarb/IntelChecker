@@ -1,5 +1,6 @@
 import { Gauge, CheckCircle2, AlertTriangle, ShieldX, AlertCircle, SearchX } from 'lucide-react'
 import { useI18n } from '@/i18n/useI18n'
+import { useScoresHidden } from './scoreVisibility'
 
 interface Props {
   score: number | null
@@ -19,6 +20,7 @@ const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1))
 
 export default function ScoreBadge({ score, isError = false, hasResult = false }: Props) {
   const { t } = useI18n()
+  const hidden = useScoresHidden()
   if (isError) {
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-semibold text-red-400 bg-red-500/10 border-red-500/30">
@@ -27,6 +29,8 @@ export default function ScoreBadge({ score, isError = false, hasResult = false }
       </span>
     )
   }
+  // Scores hidden (company lookups): only the status chips remain
+  if (hidden && (score != null || hasResult)) return null
   if (score == null) {
     if (hasResult) {
       return (

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import Layout from '@/components/Layout'
 import SummarySection from '@/components/results/SummarySection'
 import CompanyReport from '@/components/company/CompanyReport'
+import ActorReport from '@/components/actor/ActorReport'
 import SearchFrequencyCard from '@/components/results/SearchFrequencyCard'
 import RawJsonModal from '@/components/results/RawJsonModal'
 import { useEngines } from '@/EnginesContext'
@@ -108,6 +109,8 @@ export default function HistoryDetailPage() {
   )
   // Scores are the ones computed at query time (with the weights in force then),
   // not recomputed with today's weights.
+  // Threat actor activity is measured from when the lookup ran, not from today.
+  const archivedAt = new Date(entry.timestamp.replace(' ', 'T') + 'Z')
   const verdict: VerdictResult = {
     risk: entry.score,
     knowledge: entry.knowledge_score,
@@ -166,34 +169,32 @@ export default function HistoryDetailPage() {
     <Layout>
       <main className="flex-1 px-6 py-6 w-full max-w-5xl mx-auto flex flex-col gap-6">
 
-        <div className="flex items-start gap-4">
-          <Button variant="ghost" size="sm" asChild className="mt-0.5 shrink-0">
-            <Link to="/history">
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              {t('history.backToHistory')}
-            </Link>
-          </Button>
-          <div>
+        {/* Title first, flush left; search frequency on the right */}
+        <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
+          <div className="min-w-0 flex-1">
             <h2 className="text-xl font-semibold text-foreground font-mono break-all">{entry.indicator}</h2>
-            <span className="text-xs text-muted-foreground uppercase tracking-wide">
-              {t(`type.${entry.type}`)}
+            {/* Type, then when / by whom it was archived, on one line */}
+            <span className="text-xs text-muted-foreground inline-flex flex-wrap items-center gap-x-1.5">
+              <span className="uppercase tracking-wide">{t(`type.${entry.type}`)}</span>
+              <span aria-hidden>·</span>
+              <History className="h-3 w-3" />
+              {t('history.archived', { date: formatTimestamp(entry.timestamp, locale) })}
+              {entry.username && <> · {t('history.ranBy', { username: entry.username })}</>}
+              {entry.via === 'api' && <> · {t('history.viaApi')}</>}
             </span>
           </div>
+          <div className="mt-1"><SearchFrequencyCard indicator={entry.indicator} excludeSelf /></div>
         </div>
-
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border bg-muted/20 text-xs text-muted-foreground">
-          <History className="h-3.5 w-3.5 shrink-0" />
-          {t('history.archived', { date: formatTimestamp(entry.timestamp, locale) })}
-          {entry.username && <> · {t('history.ranBy', { username: entry.username })}</>}
-          {entry.via === 'api' && <> · {t('history.viaApi')}</>}
-        </div>
-
-        <SearchFrequencyCard indicator={entry.indicator} excludeSelf />
 
         {entry.type === 'company' ? (
-          <CompanyReport indicator={entry.indicator} results={resultsForSummary} verdict={verdict} thresholds={config?.thresholds ?? null}>
+          <CompanyReport indicator={entry.indicator} results={resultsForSummary}>
             {cards}
           </CompanyReport>
+        ) : entry.type === 'threat-actor' ? (
+          <ActorReport indicator={entry.indicator} engines={enginesForSummary} results={resultsForSummary}
+            verdict={verdict} thresholds={config?.thresholds ?? null} asOf={archivedAt}>
+            {cards}
+          </ActorReport>
         ) : (<>
         <SummarySection
           indicator={entry.indicator}

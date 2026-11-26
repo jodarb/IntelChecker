@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Building2, Skull, KeyRound, DatabaseZap, Newspaper } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Layout from '@/components/Layout'
 import EngineStatusPanel from '@/components/EngineStatusPanel'
+import { HideScores } from '@/components/results/scoreVisibility'
 import CompanyResolver from '@/components/CompanyResolver'
 import { companyReportUrl, isPinnedCompany } from '@/lib/company'
 import { useI18n } from '@/i18n/useI18n'
@@ -30,27 +31,12 @@ export default function CompanySearchPage() {
     else setResolving(q)
   }
 
-  const covers = [
-    { icon: <Building2 className="h-4 w-4" />, label: t('companies.covers.profile') },
-    { icon: <Skull className="h-4 w-4" />, label: t('companies.covers.darkweb') },
-    { icon: <KeyRound className="h-4 w-4" />, label: t('companies.covers.stealers') },
-    { icon: <DatabaseZap className="h-4 w-4" />, label: t('companies.covers.breaches') },
-    { icon: <Newspaper className="h-4 w-4" />, label: t('companies.covers.news') },
-  ]
-
   return (
     <Layout tab="companies">
-      <main className="flex-1 flex flex-col items-center justify-center px-4 py-10 gap-8">
-        <div className="text-center space-y-3">
+      <main className="flex-1 flex flex-col items-center justify-start px-4 pt-16 pb-10 gap-8">
+        <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold tracking-tight text-foreground">{t('companies.title')}</h1>
           <p className="text-muted-foreground text-sm">{t('companies.subtitle')}</p>
-          <div className="flex flex-wrap justify-center gap-2 pt-1">
-            {covers.map(c => (
-              <span key={c.label} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border bg-muted/20 text-xs text-muted-foreground">
-                {c.icon}{c.label}
-              </span>
-            ))}
-          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="w-full max-w-2xl flex flex-col gap-3">
@@ -68,7 +54,7 @@ export default function CompanySearchPage() {
 
         {resolving && <CompanyResolver query={resolving} onPick={go} />}
 
-        <EngineStatusPanel selectedType="company" scope="companies" />
+        <HideScores value><EngineStatusPanel selectedType="company" scope="companies" /></HideScores>
       </main>
     </Layout>
   )

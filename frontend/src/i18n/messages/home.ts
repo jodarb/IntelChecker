@@ -1,7 +1,7 @@
 const en = {
   'home.title': 'Threat Intelligence Lookup',
-  'home.subtitle': 'Analyze IPs, domains, URLs, hashes, ASNs, threat actors and CVEs across multiple CTI sources.',
-  'home.placeholder': 'Enter an IP, domain, URL, hash, ASN, threat actor or CVE...',
+  'home.subtitle': 'Analyze IPs, domains, URLs, hashes, ASNs and CVEs across multiple CTI sources.',
+  'home.placeholder': 'Enter an IP, domain, URL, hash, ASN or CVE...',
   'home.analyze': 'Analyze',
   'home.connected': 'Connected sources ({n})',
   'home.notConfiguredLink': '{n} more sources are not configured — set them up on [Connectors](/connectors).',
@@ -10,8 +10,8 @@ const en = {
 }
 const es: Record<keyof typeof en, string> = {
   'home.title': 'Consulta de inteligencia de amenazas',
-  'home.subtitle': 'Analiza IPs, dominios, URLs, hashes, ASNs, actores de amenaza y CVEs en múltiples fuentes CTI.',
-  'home.placeholder': 'Introduce una IP, dominio, URL, hash, ASN, actor de amenaza o CVE...',
+  'home.subtitle': 'Analiza IPs, dominios, URLs, hashes, ASNs y CVEs en múltiples fuentes CTI.',
+  'home.placeholder': 'Introduce una IP, dominio, URL, hash, ASN o CVE...',
   'home.analyze': 'Analizar',
   'home.connected': 'Fuentes conectadas ({n})',
   'home.notConfiguredLink': 'Hay {n} fuentes más sin configurar — configúralas en [Conectores](/connectors).',

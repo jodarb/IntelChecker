@@ -40,8 +40,9 @@ interface RecordedFutureResponse {
   timestamps?: { firstSeen?: string; lastSeen?: string }
   aiInsights?: { text?: string; numberOfReferences?: number } | null
   threatLists?: { id?: string; name: string }[]
-  // threat actor lookups
-  kind?: 'actor'
+  // threat actor / company lookups
+  kind?: 'actor' | 'company'
+  candidates?: string[]
   found?: boolean
   exact?: boolean
   query?: string
@@ -230,6 +231,42 @@ function EvidenceRow({ evidence }: { evidence: EvidenceDetail }) {
   )
 }
 
+/** Company: the RF company entity the name matched, and the threats RF ties to it. */
+function CompanyView({ data }: { data: RecordedFutureResponse }) {
+  const i18n = useI18n()
+  const { t } = i18n
+  const links = data.insikt_links ?? {}
+  if (!data.found) return <p className="text-sm text-muted-foreground">{t('rf.companyNotFound')}</p>
+  return (
+    <>
+      {data.exact === false && <p className="text-sm text-amber-400">{t('rf.closestActor', { name: data.name ?? '' })}</p>}
+      <div className="flex flex-wrap items-baseline gap-2">
+        <span className="text-base font-semibold text-foreground">{data.name}</span>
+        {data.query && data.name && data.query.toLowerCase() !== data.name.toLowerCase() && (
+          <span className="text-xs text-muted-foreground">{t('rf.searchedAs', { query: data.query })}</span>
+        )}
+      </div>
+      <Field label={t('rf.aliases', { n: data.aliases_total ?? 0 })} value={<Chips items={data.aliases ?? []} max={12} />} />
+      {(data.candidates ?? []).length > 0 && (
+        <Field label={t('rf.otherCompanies', { n: data.candidates!.length })} value={<Chips items={data.candidates!} max={8} />} />
+      )}
+      {Object.keys(links).length > 0 && (
+        <div className="flex flex-col gap-2">
+          <span className="text-xs text-muted-foreground uppercase tracking-wide">{t('rf.companyLinks')}</span>
+          <LinksBlock links={links} />
+          <IocBlock links={links} />
+        </div>
+      )}
+      {data.links_error && <p className="text-xs text-muted-foreground">{apiErrorText(i18n, data.links_error, 'Recorded Future')}</p>}
+      {data.link && (
+        <a href={data.link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit">
+          <ExternalLink className="h-3 w-3" /> {t('rf.openPortal')}
+        </a>
+      )}
+    </>
+  )
+}
+
 export default function RecordedFutureCard({ loading, error, data, score = null, weight = null }: Props) {
   const i18n = useI18n()
   const { t, locale } = i18n
@@ -241,6 +278,7 @@ export default function RecordedFutureCard({ loading, error, data, score = null,
   const risk = !apiError ? data?.risk : undefined
   const evidence = risk?.evidenceDetails ?? []
   const isActor = !apiError && data?.kind === 'actor'
+  const isCompany = !apiError && data?.kind === 'company'
   const links = data?.insikt_links ?? {}
   const lowRiskLinks = typeof risk?.score === 'number' && risk.score < RF_LINKS_MIN_RISK && Object.keys(links).length > 0
 
@@ -254,7 +292,7 @@ export default function RecordedFutureCard({ loading, error, data, score = null,
         <div className="flex items-center gap-2">
           {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
           <WeightBadge weight={weight} />
-          {!loading && <ScoreBadge score={score} isError={isRealError} />}
+          {!loading && <ScoreBadge score={score} isError={isRealError} hasResult={(isActor || isCompany) ? data?.found === true : !!risk} />}
           {!loading && data && (
             <button
               onClick={e => { e.stopPropagation(); setRawOpen(true) }}
@@ -284,6 +322,7 @@ export default function RecordedFutureCard({ loading, error, data, score = null,
           )}
 
           {!loading && isActor && data && <ActorView data={data} />}
+          {!loading && isCompany && data && <CompanyView data={data} />}
 
           {!loading && risk && (
             <>

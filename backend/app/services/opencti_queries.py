@@ -136,6 +136,15 @@ _RELATED = """
   ... on StixObject { representative { main } }
 """
 
+# Threat actors relate to far more (techniques, CVEs, targets, indicators…): the actor
+# lookup asks for more relationships, and the extra fragments give each one the
+# details the actor Summary needs (ATT&CK id, observable value, indicator pattern).
+_RELATED_ACTOR = _RELATED + """
+  ... on AttackPattern { x_mitre_id }
+  ... on StixCyberObservable { observable_value }
+  ... on Indicator { pattern x_opencti_main_observable_type }
+"""
+
 CONTEXT = """
 query IcContext($id: String!) {
   stixCoreObject(id: $id) {
@@ -158,6 +167,28 @@ query IcContext($id: String!) {
 }
 """
 
+ACTOR_CONTEXT = """
+query IcActorContext($id: String!) {
+  stixCoreObject(id: $id) {
+    reports(first: 25) {
+      pageInfo { globalCount }
+      edges { node { id name published report_types createdBy { name } } }
+    }
+    stixCoreRelationships(first: 300) {
+      edges {
+        node {
+          relationship_type
+          fromId
+          toId
+          from { """ + _RELATED_ACTOR + """ }
+          to { """ + _RELATED_ACTOR + """ }
+        }
+      }
+    }
+  }
+}
+"""
+
 ALL = {
     "observables": OBSERVABLES,
     "indicators": INDICATORS,
@@ -166,4 +197,5 @@ ALL = {
     "actors.full": ACTORS["full"],
     "actors.compat": ACTORS["compat"],
     "context": CONTEXT,
+    "actor_context": ACTOR_CONTEXT,
 }

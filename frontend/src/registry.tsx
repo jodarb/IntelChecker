@@ -47,7 +47,7 @@ export type IndicatorType = 'ip' | 'domain' | 'url' | 'hash' | 'asn' | 'threat-a
 export const INDICATOR_TYPES: IndicatorType[] = ['ip', 'domain', 'url', 'hash', 'asn', 'threat-actor', 'cve', 'company']
 
 /** Types of the artifact search (companies have their own search tab). */
-export const ARTIFACT_TYPES: IndicatorType[] = INDICATOR_TYPES.filter(t => t !== 'company')
+export const ARTIFACT_TYPES: IndicatorType[] = INDICATOR_TYPES.filter(t => t !== 'company' && t !== 'threat-actor')
 
 export interface CardProps {
   loading: boolean
@@ -172,7 +172,7 @@ export const STATIC_ENGINES: EngineConfig[] = [
   {
     id: 'recordedfuture',
     label: 'Recorded Future',
-    supports: ['ip', 'domain', 'url', 'hash', 'threat-actor'],
+    supports: ['ip', 'domain', 'url', 'hash', 'threat-actor', 'company'],
     component: RecordedFutureCard as React.ComponentType<CardProps>,
     logo: '/logos/recordedfuture.ico',
   },
@@ -334,7 +334,7 @@ export const STATIC_ENGINES: EngineConfig[] = [
   {
     id: 'ransomwarelive',
     label: 'ransomware.live',
-    supports: ['company'],
+    supports: ['threat-actor', 'company'],
     component: RansomwareLiveCard as React.ComponentType<CardProps>,
     logo: '/logos/ransomwarelive.png',
   },

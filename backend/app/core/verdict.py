@@ -594,7 +594,7 @@ def _alienvault_depth(d: Any) -> float:
 
 
 def _recorded_future_depth(d: Any) -> float:
-    if _get(d, "kind") == "actor":
+    if _get(d, "kind") in ("actor", "company"):
         if not _truthy(_get(d, "found")):
             return 0
         links = _get(d, "insikt_links")
@@ -826,6 +826,11 @@ def _gleif_depth(d: Any) -> float:
 
 
 def _ransomwarelive_depth(d: Any) -> float:
+    if _get(d, "kind") == "group":
+        if _get(d, "found") is not True:
+            return 0
+        count = _get(d, "victim_count")
+        return 1 if _is_num(count) and count > 0 else 0.5
     return 1 if _get(d, "listed") is True else 0
 
 

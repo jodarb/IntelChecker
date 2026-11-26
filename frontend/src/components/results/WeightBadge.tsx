@@ -1,6 +1,7 @@
 import { Scale, BookOpen } from 'lucide-react'
 import { depthLabel } from '@/quadrants'
 import { useI18n } from '@/i18n/useI18n'
+import { useScoresHidden } from './scoreVisibility'
 
 export interface CardWeight {
   /** Weight in the Risk Score */
@@ -20,6 +21,8 @@ interface Props {
 // the result has settled, the K chip also shows how much this source knows.
 export default function WeightBadge({ weight }: Props) {
   const { t } = useI18n()
+  const hidden = useScoresHidden()
+  if (hidden) return null
   const risk = weight?.risk ?? 0
   const knowledge = weight?.knowledge ?? 0
   const depth = weight?.depth

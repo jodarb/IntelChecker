@@ -246,6 +246,7 @@ export default function DocsPage() {
             />
             <P>{d.quadrants.cve}</P>
             <P>{d.quadrants.company}</P>
+            <P>{d.quadrants.actor}</P>
           </Section>
 
           <Section id="summary" title={d.summary.title}>

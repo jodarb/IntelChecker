@@ -1,14 +1,13 @@
 import { Building2, Skull, KeyRound, DatabaseZap, Newspaper, Loader2, ExternalLink, CalendarClock } from 'lucide-react'
 import type { QueryResult } from '@/registry'
-import type { VerdictResult, VerdictThresholds } from '@/verdictEngine'
-import VerdictPanel from '@/components/results/VerdictPanel'
 import { useI18n } from '@/i18n/useI18n'
 import { fmtDate } from '@/lib/format'
 import { countryName } from '@/lib/countries'
 import { parseCompany } from '@/lib/company'
+import { HideScores } from '@/components/results/scoreVisibility'
 
-// The company report: who the company is (profile), how exposed it is (verdict and
-// four exposure tiles), what happened to it (incident timeline), then the per-source
+// The company report: who the company is (profile), how exposed it is (four exposure
+// tiles; no risk/knowledge verdict for now), what happened to it (incident timeline), then the per-source
 // detail passed in as `children`. Used live (CompanyReportPage) and for history
 // entries (HistoryDetailPage), from the same per-source payloads the cards render.
 
@@ -270,12 +269,10 @@ function Timeline({ results }: { results: Results }) {
 // ── Report ───────────────────────────────────────────────────────────────────
 
 export default function CompanyReport({
-  indicator, results, verdict, thresholds, notice, children,
+  indicator, results, notice, children,
 }: {
   indicator: string
   results: Results
-  verdict: VerdictResult
-  thresholds: VerdictThresholds | null
   /** Shown above the report (history: "archived on…") */
   notice?: React.ReactNode
   /** Per-source cards */
@@ -285,12 +282,8 @@ export default function CompanyReport({
   return (
     <div className="flex flex-col gap-6">
       {notice}
-      <div className="rounded-lg border border-border bg-muted/20 p-5 grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_380px] gap-6">
+      <div className="rounded-lg border border-border bg-muted/20 p-5">
         <Profile indicator={indicator} results={results} />
-        <VerdictPanel
-          verdict={verdict} thresholds={thresholds} type="company"
-          riskTitle={t('report.exposure')} knowledgeTitle={t('report.identification')}
-        />
       </div>
 
       <div className="flex flex-col gap-3">
@@ -302,7 +295,7 @@ export default function CompanyReport({
 
       <div className="flex flex-col gap-3">
         <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">{t('report.bySource')}</p>
-        <div className="grid grid-cols-1 gap-4">{children}</div>
+        <HideScores value><div className="grid grid-cols-1 gap-4">{children}</div></HideScores>
       </div>
     </div>
   )

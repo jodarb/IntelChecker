@@ -12,14 +12,17 @@ import cards from './cards'
 import auth from './auth'
 import connectors from './connectors'
 import company from './company'
+import actor from './actor'
+import activity from './activity'
+import actorReport from './actorReport'
 
 export const messages = {
   en: {
     ...common.en, ...layout.en, ...home.en, ...results.en, ...summary.en,
-    ...verdict.en, ...history.en, ...admin.en, ...cards.en, ...auth.en, ...connectors.en, ...company.en
+    ...verdict.en, ...history.en, ...admin.en, ...cards.en, ...auth.en, ...connectors.en, ...company.en, ...actor.en, ...activity.en, ...actorReport.en
   },
   es: {
     ...common.es, ...layout.es, ...home.es, ...results.es, ...summary.es,
-    ...verdict.es, ...history.es, ...admin.es, ...cards.es, ...auth.es, ...connectors.es, ...company.es
+    ...verdict.es, ...history.es, ...admin.es, ...cards.es, ...auth.es, ...connectors.es, ...company.es, ...actor.es, ...activity.es, ...actorReport.es
   },
 }

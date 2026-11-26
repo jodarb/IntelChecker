@@ -80,32 +80,23 @@ export default function SearchFrequencyCard({ indicator, excludeSelf = false }: 
 
   const style = LEVEL_STYLES[overallLevel(freq)]
 
+  // A compact pill for the page header (right of the title): colour = how hot it is,
+  // the three windows inline, the whole pill links to this indicator's history.
   return (
-    <div className={`rounded-lg border p-4 flex items-center gap-4 ${style.border} ${style.bg}`}>
-      <History className={`h-4 w-4 shrink-0 ${style.text}`} />
-      <span className={`text-xs uppercase tracking-wide font-medium shrink-0 ${style.text}`}>
-        {t('results.frequency')}
-      </span>
-      <div className="flex items-center gap-4 text-sm ml-auto">
-        <span>
-          <span className={`font-semibold ${style.text}`}>{freq.last_24h}</span>
-          <span className="text-muted-foreground"> / 24h</span>
+    <Link
+      to={`/history?indicator=${encodeURIComponent(indicator)}`}
+      title={`${t('results.frequency')} · ${t('results.viewAll')}`}
+      className={`inline-flex items-center gap-2.5 rounded-full border px-3 py-1 text-xs shrink-0 whitespace-nowrap hover:brightness-125 transition ${style.border} ${style.bg}`}
+    >
+      <History className={`h-3.5 w-3.5 shrink-0 ${style.text}`} />
+      <span className="text-muted-foreground hidden sm:inline">{t('results.searched')}</span>
+      {([['last_24h', '24h'], ['last_72h', '72h'], ['last_30d', '30d']] as const).map(([k, label]) => (
+        <span key={k} className="tabular-nums">
+          <span className={`font-semibold ${style.text}`}>{freq[k]}</span>
+          <span className="text-muted-foreground">/{label}</span>
         </span>
-        <span>
-          <span className={`font-semibold ${style.text}`}>{freq.last_72h}</span>
-          <span className="text-muted-foreground"> / 72h</span>
-        </span>
-        <span>
-          <span className={`font-semibold ${style.text}`}>{freq.last_30d}</span>
-          <span className="text-muted-foreground"> / 30d</span>
-        </span>
-        <Link
-          to={`/history?indicator=${encodeURIComponent(indicator)}`}
-          className={`inline-flex items-center gap-1 text-xs hover:underline ${style.text}`}
-        >
-          <ExternalLink className="h-3 w-3" /> {t('results.viewAll')}
-        </Link>
-      </div>
-    </div>
+      ))}
+      <ExternalLink className={`h-3 w-3 ${style.text}`} />
+    </Link>
   )
 }

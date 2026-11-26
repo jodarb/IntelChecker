@@ -22,6 +22,7 @@ from app.services import (
     wikidata, gleif, ransomwarelive, hudsonrock, hibp, gdelt,
 )
 from app.core import company as company_core
+from app.core import actor as actor_core
 
 
 log = logging.getLogger("intelchecker")
@@ -517,6 +518,16 @@ async def company_resolve(q: str):
     if not q:
         raise auth.api_error(422, "InvalidIndicator", "The query is empty.")
     return await company_core.resolve(q[:200])
+
+
+@app.get("/actor/resolve", dependencies=[CanAnalyze])
+async def actor_resolve(q: str):
+    """Threat actor candidates for a name or alias, for the Actors search box: each one
+    with the name to look it up by (the one most sources know it by) and its aliases."""
+    q = q.strip()
+    if not q:
+        raise auth.api_error(422, "InvalidIndicator", "The query is empty.")
+    return await actor_core.resolve(q[:100])
 
 
 @app.get("/mitre/aliases", dependencies=[SignedIn])

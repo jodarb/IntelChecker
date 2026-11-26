@@ -1,6 +1,6 @@
 import { useFetchJson } from '@/hooks/useFetchJson'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, ChevronRight, X } from 'lucide-react'
+import { ArrowLeft, ChevronRight, X, Crosshair, Building2, VenetianMask } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Layout from '@/components/Layout'
 import ScoreBadge from '@/components/results/ScoreBadge'
@@ -89,6 +89,12 @@ export default function HistoryPage() {
                 className="flex items-center justify-between gap-4 px-4 py-3 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 transition-colors"
               >
                 <div className="flex items-center gap-4 min-w-0">
+                  {/* Same icons as the search tabs: companies, actors, artifacts */}
+                  {entry.type === 'company'
+                    ? <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" aria-label={t('tabs.companies')}><title>{t('tabs.companies')}</title></Building2>
+                    : entry.type === 'threat-actor'
+                    ? <VenetianMask className="h-4 w-4 shrink-0 text-muted-foreground" aria-label={t('tabs.actors')}><title>{t('tabs.actors')}</title></VenetianMask>
+                    : <Crosshair className="h-4 w-4 shrink-0 text-muted-foreground" aria-label={t('tabs.artifacts')}><title>{t('tabs.artifacts')}</title></Crosshair>}
                   <span className="font-mono text-sm text-foreground font-medium truncate">
                     {entry.indicator}
                   </span>
@@ -108,7 +114,10 @@ export default function HistoryPage() {
                     </span>
                   )}
                   <span className="text-xs text-muted-foreground">{formatTimestamp(entry.timestamp, locale)}</span>
-                  {entry.quadrant && (
+                  {/* No risk/knowledge scoring shown for companies for now; actors have no
+                      risk (activity replaces it), so only their Knowledge is listed */}
+                  {entry.type !== 'company' && (<>
+                  {entry.type !== 'threat-actor' && entry.quadrant && (
                     <span className={`hidden md:inline-flex px-2 py-0.5 rounded-full border text-xs font-medium ${QUADRANT_META[entry.quadrant].className}`}>
                       {quadrantLabel(entry.quadrant, t, entry.type as IndicatorType)}
                     </span>
@@ -119,9 +128,12 @@ export default function HistoryPage() {
                       {entry.knowledge_score ?? '—'}
                     </span>
                   </span>
-                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title={t('history.riskTitle')}>
-                    R <ScoreBadge score={entry.score} />
-                  </span>
+                  {entry.type !== 'threat-actor' && (
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title={t('history.riskTitle')}>
+                      R <ScoreBadge score={entry.score} />
+                    </span>
+                  )}
+                  </>)}
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </div>
               </Link>

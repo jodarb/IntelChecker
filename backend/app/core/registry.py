@@ -24,7 +24,7 @@ STATIC_ENGINES: dict[str, dict] = {
     "urlscan":        _engine("urlscan.io", ["url", "domain"], "URLSCAN_API_KEY"),
     "malwarebazaar":  _engine("MalwareBazaar · abuse.ch", ["hash"], "ABUSECH_AUTH_KEY"),
     "phishtank":      _engine("PhishTank", ["url"], None),
-    "recordedfuture": _engine("Recorded Future", [*_ALL, "threat-actor"], "RECORDED_FUTURE_API_KEY"),
+    "recordedfuture": _engine("Recorded Future", [*_ALL, "threat-actor", "company"], "RECORDED_FUTURE_API_KEY"),
     "anyrun":         _engine("ANY.RUN", _ALL, "ANYRUN_API_KEY"),
     "greynoise":      _engine("GreyNoise", ["ip"], "GREYNOISE_API_KEY"),
     "hybridanalysis": _engine("Hybrid Analysis", _ALL, "HYBRID_ANALYSIS_API_KEY"),
@@ -51,7 +51,7 @@ STATIC_ENGINES: dict[str, dict] = {
     # Companies (organisations): profile, leak sites, infostealers, breaches, news.
     "wikidata":       _engine("Wikidata", ["company"], None),
     "gleif":          _engine("GLEIF (LEI)", ["company"], None),
-    "ransomwarelive": _engine("ransomware.live", ["company"], None),
+    "ransomwarelive": _engine("ransomware.live", ["threat-actor", "company"], None),
     "hudsonrock":     _engine("Hudson Rock (infostealers)", ["company"], None),
     "hibp":           _engine("Have I Been Pwned", ["company"], None),
     "gdelt":          _engine("GDELT (news)", ["company"], None),

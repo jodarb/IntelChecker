@@ -659,7 +659,7 @@ function alienvaultDepth(d: any): Depth {
 
 function recordedFutureDepth(d: any): Depth {
   // Threat actor profile: rich when RF links it to malware, techniques, infrastructure…
-  if (d?.kind === 'actor') {
+  if (d?.kind === 'actor' || d?.kind === 'company') {
     const links = d?.insikt_links
     if (!d?.found) return 0
     return links && typeof links === 'object' && !Array.isArray(links) && Object.keys(links).length > 0 ? 1 : 0.5
@@ -863,6 +863,11 @@ function gleifDepth(d: any): Depth {
 }
 
 function ransomwareLiveDepth(d: any): Depth {
+  // Threat actor: a ransomware group profile, rich when it has claimed victims.
+  if (d?.kind === 'group') {
+    if (d?.found !== true) return 0
+    return typeof d?.victim_count === 'number' && d.victim_count > 0 ? 1 : 0.5
+  }
   return d?.listed === true ? 1 : 0
 }
 

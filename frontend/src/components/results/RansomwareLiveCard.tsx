@@ -18,12 +18,36 @@ interface Victim {
   claim_url?: string | null
 }
 
+interface GroupProfile {
+  name: string
+  altname?: string | null
+  lineage?: string | null
+  first_seen?: string | null
+  raas?: boolean | null
+  description?: string | null
+  leak_sites?: number
+  leak_sites_up?: number
+  link?: string
+}
+
 interface RansomwareLiveResponse {
+  // Threat actor (ransomware group) lookups
+  kind?: 'group'
+  found?: boolean
+  victim_count?: number
+  first_claim?: string | null
+  claims_30d?: number
+  claims_90d?: number
+  top_sectors?: { name: string; count: number }[]
+  top_countries?: { name: string; count: number }[]
+  recent?: Victim[]
+  victims_error?: { code: string; message: string }
+  // Company lookups
   query?: string
   listed?: boolean
   matches?: Victim[]
   match_count?: number
-  groups?: string[]
+  groups?: string[] | GroupProfile[]
   last_claim?: string | null
   days_since_last?: number | null
   claims_365d?: number
@@ -66,8 +90,54 @@ function VictimRow({ v, locale }: { v: Victim; locale: string }) {
   )
 }
 
+/** Threat actor: the ransomware group's profile and its leak-site activity. */
+function GroupView({ data }: { data: RansomwareLiveResponse }) {
+  const { t, locale } = useI18n()
+  const groups = (data.groups ?? []) as GroupProfile[]
+  const main = groups[0]
+  if (!data.found || !main) return <Note>{t('rlive.groupNotFound')}</Note>
+  const leakTotal = groups.reduce((n, g) => n + (g.leak_sites ?? 0), 0)
+  const leakUp = groups.reduce((n, g) => n + (g.leak_sites_up ?? 0), 0)
+  const counts = (xs?: { name: string; count: number }[], country = false) =>
+    (xs ?? []).map(x => `${country ? countryName(x.name, locale) : x.name} · ${x.count}`)
+  return (
+    <>
+      <Field label={t('rlive.groupVariants')} value={<Chips items={groups.map(g => g.altname ? `${g.name} (${g.altname})` : g.name)} />} />
+      {main.description && <p className="text-sm text-muted-foreground leading-relaxed line-clamp-5">{main.description}</p>}
+      <FieldGrid>
+        <Field label={t('rlive.victims')} value={(data.victim_count ?? 0).toLocaleString(locale)} />
+        <Field label={t('rlive.lastClaim')} value={fmtDate(data.last_claim, locale)} />
+        <Field label={t('rlive.last30')} value={data.claims_30d ?? 0} />
+        <Field label={t('rlive.last90')} value={data.claims_90d ?? 0} />
+        <Field label={t('rlive.last365')} value={data.claims_365d ?? 0} />
+        <Field label={t('rlive.firstSeen')} value={fmtDate(main.first_seen ?? data.first_claim, locale)} />
+        <Field label={t('rlive.leakSites')} value={`${leakTotal} (${leakUp})`} />
+        {main.raas != null && <Field label={t('rlive.raas')} value={main.raas ? t('common.yes') : t('common.no')} />}
+        {main.lineage && <Field label={t('rlive.lineage')} value={main.lineage} />}
+      </FieldGrid>
+      {(data.top_sectors ?? []).length > 0 && <Field label={t('rlive.topSectors')} value={<Chips items={counts(data.top_sectors)} />} />}
+      {(data.top_countries ?? []).length > 0 && <Field label={t('rlive.topCountries')} value={<Chips items={counts(data.top_countries, true)} />} />}
+      {data.victims_error && <Note>{t('rlive.victimsUnavailable', { reason: data.victims_error.message })}</Note>}
+      {(data.recent ?? []).length > 0 && (
+        <div className="flex flex-col gap-2">
+          <span className="text-xs text-muted-foreground uppercase tracking-wide">{t('rlive.recent')}</span>
+          {data.recent!.slice(0, 8).map((v, i) => <VictimRow key={`${v.victim}-${i}`} v={v} locale={locale} />)}
+        </div>
+      )}
+      {data.link && <SourceLink href={data.link}>{t('card.viewOn', { source: 'ransomware.live' })}</SourceLink>}
+    </>
+  )
+}
+
 export default function RansomwareLiveCard({ loading, error, data, score = null, weight = null }: Props) {
   const { t, tn, locale } = useI18n()
+  if (data?.kind === 'group') {
+    return (
+      <SourceCard title="ransomware.live" loading={loading} error={error} data={data} score={score} weight={weight} hasResult={data.found === true}>
+        <GroupView data={data} />
+      </SourceCard>
+    )
+  }
   const listed = data?.listed === true
   const similar = data?.similar ?? []
 
@@ -78,7 +148,7 @@ export default function RansomwareLiveCard({ loading, error, data, score = null,
         <>
           <Note tone="warn">{tn('rlive.listed', data?.match_count ?? 0)}</Note>
           <FieldGrid>
-            <Field label={t('rlive.groups')} value={<Chips items={data?.groups ?? []} />} />
+            <Field label={t('rlive.groups')} value={<Chips items={(data?.groups ?? []) as string[]} />} />
             <Field label={t('rlive.lastClaim')} value={fmtDate(data?.last_claim, locale)} />
             <Field label={t('rlive.last365')} value={data?.claims_365d ?? 0} />
           </FieldGrid>

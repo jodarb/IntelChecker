@@ -93,6 +93,7 @@ Response:
 | Endpoint | Needs | Returns |
 |---|---|---|
 | `GET /company/resolve?q=` | analyst | Wikidata candidates for a company name or domain (`qid`, `name`, `description`, `countries`, `domain`, `lei`, `organization`, `domain_match`) with the `indicator` to search. |
+| `GET /actor/resolve?q=` | analyst | Threat actor candidates for a name or alias, approximate (`Gentleman` → The Gentlemen): MITRE ATT&CK and ransomware.live groups matched a letter or two off, plus Malpedia and Recorded Future search, merged by shared names. Each: `name` (the one to look it up by — the name most sources list), `aliases`, `sources`, `description`, `mitre_id`, `ransomware`, `victims`, `categories`, `minor` (RF-only individuals / forum handles) |
 | `GET /engines/status` | any | Every source: `connected` (has its key), supported `types`, label and `kind` (`misp` / `opencti`) for MISP and OpenCTI instances. |
 | `POST /analyze/{engine}` `{indicator, type}` | analyst | One source's raw response, no verdict, not saved. |
 | `GET /history[?indicator=…]` | reader | Latest 200 lookups (all of them for one indicator): scores, quadrant, `username`, `via` (`ui` / `api`). |

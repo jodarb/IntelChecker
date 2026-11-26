@@ -1,0 +1,46 @@
+// Threat actor activity (replaces Risk for actors)
+const en = {
+  'activity.title': 'Activity',
+  'activity.level.active': 'Active',
+  'activity.level.recent': 'Recently active',
+  'activity.level.dormant': 'Dormant',
+  'activity.level.unknown': 'No activity data',
+  'activity.today': 'Last seen today',
+  'activity.daysAgo_one': 'Last seen yesterday',
+  'activity.daysAgo_other': 'Last seen {n} days ago',
+  'activity.hint.unknown': 'No source returned dated activity for this actor.',
+  'activity.loading': 'Waiting for the sources…',
+  'activity.lastOperation': 'Last operation',
+  'activity.lastReport': 'Last report',
+  'activity.last90': 'Last {days} days',
+  'activity.victims_one': '1 victim claimed',
+  'activity.victims_other': '{n} victims claimed',
+  'activity.reports_one': '1 report',
+  'activity.reports_other': '{n} reports',
+  'activity.none': '—',
+  'activity.legend': 'Active: seen in the last {active} days · Recently active: last {recent} days · Dormant: older. Operations are what the actor did (victims claimed, sightings); reports are what was published about it. Not part of the verdict.',
+}
+
+const es: typeof en = {
+  'activity.title': 'Actividad',
+  'activity.level.active': 'Activo',
+  'activity.level.recent': 'Activo recientemente',
+  'activity.level.dormant': 'Inactivo',
+  'activity.level.unknown': 'Sin datos de actividad',
+  'activity.today': 'Visto por última vez hoy',
+  'activity.daysAgo_one': 'Visto por última vez ayer',
+  'activity.daysAgo_other': 'Visto por última vez hace {n} días',
+  'activity.hint.unknown': 'Ninguna fuente ha devuelto actividad con fecha para este actor.',
+  'activity.loading': 'Esperando a las fuentes…',
+  'activity.lastOperation': 'Última operación',
+  'activity.lastReport': 'Último informe',
+  'activity.last90': 'Últimos {days} días',
+  'activity.victims_one': '1 víctima publicada',
+  'activity.victims_other': '{n} víctimas publicadas',
+  'activity.reports_one': '1 informe',
+  'activity.reports_other': '{n} informes',
+  'activity.none': '—',
+  'activity.legend': 'Activo: visto en los últimos {active} días · Activo recientemente: últimos {recent} días · Inactivo: más antiguo. Las operaciones son lo que hizo el actor (víctimas publicadas, avistamientos); los informes, lo que se publicó sobre él. No forma parte del veredicto.',
+}
+
+export default { en, es }

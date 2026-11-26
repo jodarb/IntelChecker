@@ -85,7 +85,7 @@ def payload(r: random.Random, engine: str):
                    data=m(r.choice([[], [obj(confidence_level=m(num(r, (0, 50, 75, 100))))],
                                     [obj(confidence_level=m(25)), obj(confidence_level=m(100))]])))
     if engine == "recordedfuture" and r.random() < 0.3:
-        return obj(kind=m(r.choice(["actor", "", None])), found=m(r.choice([True, False, 1])),
+        return obj(kind=m(r.choice(["actor", "company", "", None])), found=m(r.choice([True, False, 1])),
                    insikt_links=m(r.choice([{}, {"malware": [{}]}, [], [{}], "ab", 3, None])))
     if engine == "recordedfuture":
         return obj(risk=m(obj(score=m(num(r, (0, 5, 25, 65, 89, 99))),
@@ -170,7 +170,9 @@ def payload(r: random.Random, engine: str):
     if engine == "gleif":
         return obj(found=m(r.choice([True, False, 1, ""])), exact=m(r.choice([True, False, 1])))
     if engine == "ransomwarelive":
-        return obj(listed=m(r.choice([True, False, 1, "true"])), days_since_last=m(r.choice(days)))
+        return obj(listed=m(r.choice([True, False, 1, "true"])), days_since_last=m(r.choice(days)),
+                   kind=m(r.choice(["group", "", None])), found=m(r.choice([True, False, 1])),
+                   victim_count=m(r.choice([0, 3, 1.5, "2", None])))
     if engine == "hudsonrock":
         return obj(total=m(r.choice([0, 1, 36301, -1, "5", True])), employees=m(r.choice([0, 1, 1623, -2, "3", True])),
                    days_since_employee=m(r.choice(days)))

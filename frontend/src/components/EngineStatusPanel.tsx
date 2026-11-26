@@ -11,7 +11,7 @@ import { useAuth } from '@/auth/context'
 interface Props {
   selectedType: string
   /** Which search tab the panel belongs to: only that tab's sources are listed */
-  scope?: 'artifacts' | 'companies'
+  scope?: 'artifacts' | 'actors' | 'companies'
 }
 
 function ToggleSwitch({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
@@ -117,9 +117,11 @@ export default function EngineStatusPanel({ selectedType, scope = 'artifacts' }:
   if (!status) return null
 
   // Each search tab lists only its own sources: company sources on the company tab,
-  // the rest on the artifact tab.
+  // threat-actor sources on the actor tab, the rest on the artifact tab.
   const inScope = (supports: string[]) =>
-    scope === 'companies' ? supports.includes('company') : supports.some(t => t !== 'company')
+    scope === 'companies' ? supports.includes('company')
+      : scope === 'actors' ? supports.includes('threat-actor')
+        : supports.some(t => t !== 'company' && t !== 'threat-actor')
   const enriched = engines.filter(engine => inScope(status[engine.id]?.supports ?? engine.supports)).map(engine => {
     const s = status[engine.id]
     const connected = s?.connected ?? false

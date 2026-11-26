@@ -11,9 +11,17 @@ A victim matches the company when its domain is one of the company's domains, or
 its name equals the company name once case, accents and legal forms are ignored.
 Victims that only *contain* the name ("Iberia Compositech" for "Iberia") are listed
 as `similar`, never counted: they are usually other companies.
+
+Threat actors: the group profiles (data.ransomware.live/groups.json, ~2 MB, same
+6 h cache) matched on name or alternative name ("LockBit" → lockbit, lockbit2,
+lockbit3…; "Akira Ransomware Group" → akira), plus the group's victims from the
+same dump: total, last claim, claims in the last 30 / 90 / 365 days, top sectors
+and countries. That last claim is the actor's operational activity.
 """
 import json
+import re
 import time
+from collections import Counter
 from datetime import datetime, timezone
 from urllib.parse import quote
 
@@ -26,6 +34,7 @@ from app.core.feeds import CachedFeed
 _SOURCE = "ransomware.live"
 _DUMP = "https://data.ransomware.live/victims.json"
 _SEARCH = "https://api.ransomware.live/v2/searchvictims/{}"
+_GROUPS = "https://data.ransomware.live/groups.json"
 
 
 def _first(d: dict, *keys: str):
@@ -164,7 +173,137 @@ async def lookup(indicator: str) -> dict:
     }
 
 
+# ── Threat actors (ransomware groups) ─────────────────────────────────────────
+
+# Words that name the kind of actor, not the actor: "Akira Ransomware Group" → akira.
+_ACTOR_NOISE = re.compile(r"\b(ransomware|ransom ware|group|gang|team|operators?|cartel|raas)\b", re.I)
+
+
+def group_key(name: str | None) -> str:
+    """Lower-case alphanumerics: "INC RANSOM" → incransom, "The Gentlemen" → thegentlemen."""
+    return re.sub(r"[^a-z0-9]+", "", (name or "").lower())
+
+
+def _needle_keys(name: str) -> set[str]:
+    keys = {group_key(name), group_key(_ACTOR_NOISE.sub(" ", name))}
+    return {k for k in keys if len(k) >= 3}
+
+
+def _group_matches(group: dict, needles: set[str]) -> bool:
+    names = [group.get("name"), *re.split(r"[/,;|]", group.get("altname") or "")]
+    for n in names:
+        k = group_key(n)
+        if not k:
+            continue
+        for needle in needles:
+            # Versions of the same brand: lockbit → lockbit2, lockbit3, lockbit3fs.
+            if k == needle or re.fullmatch(re.escape(needle) + r"\d+[a-z]{0,3}", k):
+                return True
+    return False
+
+
+def _parse_groups(text: str) -> list[dict]:
+    groups = [g for g in _rows(json.loads(text)) if isinstance(g, dict) and g.get("name")]
+    if not groups:
+        raise ValueError("empty groups list")
+    return groups
+
+
+_groups = CachedFeed(f"{_SOURCE} groups", _GROUPS, 6 * 3600, _parse_groups, timeout=60, retry_after=1800)
+
+
+_MAX_LOCATIONS = 20
+
+
+def _location(x: dict) -> dict | None:
+    """A leak site / chat / file server of the group. The address is attacker
+    infrastructure (.onion mostly): shown as text, never linked."""
+    addr = x.get("slug") or x.get("fqdn")
+    if not isinstance(addr, str) or not addr.strip():
+        return None
+    title = x.get("title")
+    return {
+        "address": addr.strip()[:300],
+        "type": x.get("type") if isinstance(x.get("type"), str) else None,
+        "title": title.strip()[:120] if isinstance(title, str) and title.strip() else None,
+        "available": x.get("available") if isinstance(x.get("available"), bool) else None,
+        "enabled": x.get("enabled") if isinstance(x.get("enabled"), bool) else None,
+        "updated": x.get("updated") if isinstance(x.get("updated"), str) else None,
+        "last_scrape": x.get("lastscrape") if isinstance(x.get("lastscrape"), str) else None,
+    }
+
+
+def _profile(g: dict) -> dict:
+    locs = [x for x in g.get("locations") or [] if isinstance(x, dict)]
+    desc = g.get("description")
+    types = g.get("type") if isinstance(g.get("type"), dict) else {}
+    return {
+        "name": g.get("name"),
+        "altname": g.get("altname") or None,
+        "lineage": g.get("lineage") or None,
+        "first_seen": str(g.get("date") or "")[:10] or None,
+        "raas": types.get("raas") if isinstance(types.get("raas"), bool) else None,
+        "description": desc[:800] if isinstance(desc, str) and desc.strip() else None,
+        "leak_sites": len(locs),
+        "leak_sites_up": sum(1 for x in locs if x.get("available") is True),
+        "locations": [loc for loc in (_location(x) for x in locs) if loc][:_MAX_LOCATIONS],
+        "link": f"https://www.ransomware.live/group/{quote(str(g.get('name')))}",
+    }
+
+
+async def lookup_group(indicator: str) -> dict:
+    name = (indicator or "").strip()
+    needles = _needle_keys(name)
+    if not needles:
+        return {"error": {"code": "BadRequest", "message": "Enter a ransomware group name."}}
+    if err := await _groups.get():
+        return err
+    groups = [g for g in _groups.data if _group_matches(g, needles)]
+    if not groups:
+        return {"kind": "group", "found": False, "query": name}
+    keys = {group_key(g["name"]) for g in groups}
+
+    victims, victims_error = [], None
+    if err := await _feed.get():
+        victims_error = err.get("error")
+    else:
+        victims = [v for v in _feed.data if group_key(v.get("group")) in keys]
+    order = lambda v: v.get("discovered") or v.get("attack_date") or ""  # noqa: E731
+    victims.sort(key=order, reverse=True)
+    now = time.time()
+    ages = [_days_since(order(v), now) for v in victims]
+    within = lambda days: sum(1 for a in ages if a is not None and a <= days)  # noqa: E731
+    top = lambda field: [{"name": k, "count": n} for k, n in Counter(  # noqa: E731
+        v[field] for v in victims if v.get(field)).most_common(6)]
+    clean = lambda v: {k: x for k, x in v.items() if k not in ("_key", "description")}  # noqa: E731
+    # The main brand first: the most victims, then the oldest.
+    groups.sort(key=lambda g: (-(g.get("_victim_count") or 0), str(g.get("date") or "")))
+    out = {
+        "kind": "group",
+        "found": True,
+        "query": name,
+        "groups": [_profile(g) for g in groups[:6]],
+        "victim_count": len(victims),
+        "last_claim": order(victims[0]) if victims else None,
+        "days_since_last": ages[0] if ages else None,
+        "first_claim": order(victims[-1]) if victims else None,
+        "claims_30d": within(30),
+        "claims_90d": within(90),
+        "claims_365d": within(365),
+        "top_sectors": top("sector"),
+        "top_countries": top("country"),
+        "recent": [clean(v) for v in victims[:15]],
+        "list_updated": _feed.updated,
+        "link": _profile(groups[0])["link"],
+    }
+    if victims_error:
+        out["victims_error"] = victims_error
+    return out
+
+
 async def dispatch(indicator: str, type: str) -> dict:
+    if type == "threat-actor":
+        return await lookup_group(indicator)
     if type != "company":
         return {"error": {"code": "UnsupportedType", "message": f"{_SOURCE} does not support type '{type}'."}}
     return await lookup(indicator)

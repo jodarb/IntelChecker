@@ -54,7 +54,7 @@ Together they place the indicator in a **quadrant**:
 - *Known · Benign*.
 - *Unknown*.
 
-For CVEs the quadrants are worded as exploitation risk, and for companies as exposure (the company as a victim). Weights and thresholds are tunable per source from the Admin page. The full formulas are in the [user guide](docs/user-guide.md).
+For CVEs the quadrants are worded as exploitation risk, and for companies as exposure (the company as a victim; computed and stored, not shown for now). Threat actors have no Risk score: their report shows Activity next to Knowledge. Weights and thresholds are tunable per source from the Admin page. The full formulas are in the [user guide](docs/user-guide.md).
 
 ## ✨ Features
 
@@ -66,7 +66,8 @@ For CVEs the quadrants are worded as exploitation risk, and for companies as exp
 | 🗺️ **Explainable** | The matrix view replays, source by source, how each answer moved both scores; *How is this calculated?* lists every contribution |
 | 🏢 **Your own intel** | Any number of **MISP** and **OpenCTI** instances (partners, ISACs, internal), with TLS / mTLS, added at runtime from the UI |
 | 🐞 **Vulnerabilities** | CVE lookups across NVD, CISA KEV, VulnCheck KEV, EPSS, OTX and OpenCTI: severity, exploitation probability, known exploitation, public exploits |
-| 🏭 **Companies** | Its own search tab and report. Pick the company from Wikidata candidates, then get sector, countries and subsidiaries (Wikidata, GLEIF), ransomware leak-site claims (dark web), infostealer infections of employees, public breaches and recent incident news, all keyless |
+| 🎭 **Threat actors** | Its own search tab: candidates even for misspelled names (`Gentleman` → *The Gentlemen*), then a compact actor card — aliases, activity (active / recent / dormant), TTPs, exploited CVEs, related artifacts, victims, targets, arsenal and leak sites — built from whichever actor sources are deployed, every value with its source |
+| 🏭 **Companies** | Its own search tab and report. Pick the company from Wikidata candidates, then get sector, countries and subsidiaries (Wikidata, GLEIF), ransomware leak-site claims (dark web), infostealer infections of employees, public breaches and recent incident news (all keyless), plus the threats Recorded Future ties to it when configured. Risk / knowledge scores are not shown for companies for now |
 | 🔌 **API** | `POST /lookup` with per-user tokens: every source plus the same verdict in one call, logged in History, ready for SOAR / scripts |
 | 🔐 **Access control** | Sign-in required; Admin · Analyst · Reader roles; server-side sessions; keys managed and tested from the **Connectors** page |
 | 🕓 **History** | Every lookup is stored with a frozen snapshot of every source's answer; recurring indicators are flagged |
@@ -82,9 +83,9 @@ For CVEs the quadrants are worded as exploitation risk, and for companies as exp
 | **Malware & IOC feeds** | ThreatFox · URLhaus · MalwareBazaar · YARAify · SSLBL · OpenPhish · PhishTank · TweetFeed |
 | **Sandboxes** | ANY.RUN · Hybrid Analysis · urlscan.io |
 | **Infrastructure context** | Shodan · IPinfo · RIPEstat · Tor exit nodes · RDAP · Tranco · CIRCL Passive DNS · CIRCL hashlookup |
-| **Threat actors** | MITRE ATT&CK · Malpedia · Recorded Future · OTX · OpenCTI |
+| **Threat actors** | MITRE ATT&CK · Malpedia · Recorded Future · OTX · OpenCTI · ransomware.live |
 | **Vulnerabilities** | NVD · CISA KEV · VulnCheck KEV · EPSS · OTX · OpenCTI |
-| **Companies** | Wikidata · GLEIF · ransomware.live · Hudson Rock · Have I Been Pwned · GDELT |
+| **Companies** | Wikidata · GLEIF · ransomware.live · Hudson Rock · Have I Been Pwned · GDELT · Recorded Future |
 | **Your platforms** | MISP (N instances) · OpenCTI (N instances, 6.0+) |
 
 <details>
@@ -107,7 +108,7 @@ For CVEs the quadrants are worded as exploitation risk, and for companies as exp
 | [PhishTank](https://phishtank.org) | | | ✅ | | | | | |
 | [MISP](https://www.misp-project.org) *(any number of instances)* | ✅ | ✅ | ✅ | ✅ | | | | |
 | [OpenCTI](https://filigran.io/platforms/opencti/) *(any number of instances, 6.0+)* | ✅ | ✅ | ✅ | ✅ | | ✅ | ✅ | |
-| [Recorded Future](https://www.recordedfuture.com) *(+ Insikt links, Threat Map)* | ✅ | ✅ | ✅ | ✅ | | ✅ | | |
+| [Recorded Future](https://www.recordedfuture.com) *(+ Insikt links, Threat Map)* | ✅ | ✅ | ✅ | ✅ | | ✅ | | ✅ |
 | [ANY.RUN](https://any.run) *(TI Lookup)* | ✅ | ✅ | ✅ | ✅ | | | | |
 | [GreyNoise](https://greynoise.io) *(Community)* | ✅ | | | | | | | |
 | [Hybrid Analysis](https://hybrid-analysis.com) *(Falcon Sandbox)* | ✅ | ✅ | ✅ | ✅ | | | | |
@@ -130,7 +131,7 @@ For CVEs the quadrants are worded as exploitation risk, and for companies as exp
 | [VulnCheck KEV](https://vulncheck.com/kev) *(known exploited, earlier and wider than CISA)* | | | | | | | ✅ | |
 | [Wikidata](https://www.wikidata.org) *(sector, countries, subsidiaries)* | | | | | | | | ✅ |
 | [GLEIF](https://www.gleif.org) *(legal entity, LEI, parent / subsidiaries)* | | | | | | | | ✅ |
-| [ransomware.live](https://www.ransomware.live) *(ransomware leak-site victims)* | | | | | | | | ✅ |
+| [ransomware.live](https://www.ransomware.live) *(ransomware leak-site victims, group profiles)* | | | | | | ✅ | | ✅ |
 | [Hudson Rock](https://www.hudsonrock.com/free-tools) *(infostealer infections, by domain)* | | | | | | | | ✅ |
 | [Have I Been Pwned](https://haveibeenpwned.com) *(public breaches, by domain)* | | | | | | | | ✅ |
 | [GDELT](https://www.gdeltproject.org) *(incident news, 90 days)* | | | | | | | | ✅ |

@@ -12,6 +12,11 @@ Threat API (threat actors, threat map). Header X-RFToken.
     infrastructure) and, if the actor is on this organisation's Threat Map, the
     intent / opportunity RF estimates towards it. The map (~700 KB, every actor
     relevant to the organisation) is cached for a few hours.
+  * Company: `POST /entity-match/match` (type Company) on the company name, the
+    candidates' aliases from `GET /entity-match/entity/<id>` to pick the one whose
+    name or alias matches, then its links: the threat actors / ransomware groups and
+    malware RF ties to it, ATT&CK techniques, and infrastructure (phishing URLs…)
+    impersonating or targeting it. Context only, like actors: no risk score.
 
 A failing links or threat map call never fails the lookup: the main answer is kept
 and the missing part is reported in `links_error` / `threat_map_error`.
@@ -23,6 +28,7 @@ from urllib.parse import quote
 
 import httpx
 
+from app.core import company as company_core
 from app.core.connectors import secret
 
 _BASE = "https://api.recordedfuture.com"
@@ -31,6 +37,7 @@ _PORTAL = "https://app.recordedfuture.com/live/sc/entity/{}"
 _LINKS_PER_TYPE = 10
 _MAX_ALIASES = 40
 _MAP_TTL = 6 * 3600
+_COMPANY_CANDIDATES = 5
 
 # Links API entity type → our group name.
 _LINK_GROUPS = {
@@ -202,6 +209,9 @@ async def _actor(client: httpx.AsyncClient, name: str) -> dict:
         "aliases": aliases[:_MAX_ALIASES],
         "aliases_total": len(aliases),
         "categories": [c.get("name") for c in a.get("categories") or [] if isinstance(c, dict) and c.get("name")],
+        # An underground forum member: a person / handle, not a group.
+        "persona": any("Forum Member" in (c.get("name") or "") or "Community Member" in (c.get("name") or "")
+                       for c in a.get("categories") or [] if isinstance(c, dict)),
         "insikt_links": links,
         # On this organisation's threat map: intent / opportunity towards it (0-100).
         "threat_map": {
@@ -223,9 +233,65 @@ async def _actor(client: httpx.AsyncClient, name: str) -> dict:
     return out
 
 
+async def _entity_aliases(client: httpx.AsyncClient, entity_id: str) -> list[str]:
+    try:
+        body = await _call(client, "GET", f"/entity-match/entity/{quote(entity_id, safe='')}", "the Entity Match API")
+    except _RFError:
+        return []
+    a = ((body or {}).get("data") or {}).get("attributes") or {} if isinstance(body, dict) else {}
+    return [x for x in [*(a.get("common_names") or []), *(a.get("alias") or [])] if isinstance(x, str)]
+
+
+async def _company(client: httpx.AsyncClient, indicator: str) -> dict:
+    parsed = company_core.parse(indicator)
+    needle = parsed["name"] or parsed["label"]
+    if not needle:
+        return {"kind": "company", "found": False, "query": indicator}
+    body = await _call(client, "POST", "/entity-match/match", "the Entity Match API",
+                       json={"name": needle, "type": ["Company"], "limit": 10})
+    rows = [r for r in body or [] if isinstance(r, dict) and r.get("id")] if isinstance(body, list) else []
+    if not rows:
+        return {"kind": "company", "found": False, "query": needle}
+    top = rows[:_COMPANY_CANDIDATES]
+    aliases = await asyncio.gather(*(_entity_aliases(client, r["id"]) for r in top))
+    # Its own name first, then an alias ("Iberia" → Iberia Airlines), else RF's best match.
+    match, exact = None, False
+    for r in top:
+        if company_core.same_company(r.get("name"), needle):
+            match, exact = r, True
+            break
+    if not match:
+        for r, al in zip(top, aliases):
+            if any(company_core.same_company(x, needle) for x in al):
+                match, exact = r, True
+                break
+    match = match or top[0]
+    if not parsed["name"]:
+        exact = False   # only a domain: its label ("iberia") is a guess at the name
+    own = sorted(set(aliases[top.index(match)]) if match in top else set(), key=str.casefold)
+    links, links_error = await _links(client, match["id"])
+    out = {
+        "kind": "company",
+        "found": True,
+        "exact": exact,
+        "query": needle,
+        "id": match["id"],
+        "name": match.get("name") or needle,
+        "aliases": own[:_MAX_ALIASES],
+        "aliases_total": len(own),
+        # Other RF companies the name matched: the analyst can tell if the wrong one was picked.
+        "candidates": [r.get("name") for r in rows if r is not match and r.get("name")][:8],
+        "insikt_links": links,
+        "link": _PORTAL.format(match["id"]),
+    }
+    if links_error:
+        out["links_error"] = links_error
+    return out
+
+
 async def dispatch(indicator: str, type: str) -> dict:
     entity_types = {"ip": "ip", "domain": "domain", "url": "url", "hash": "hash"}
-    if type not in (*entity_types, "threat-actor"):
+    if type not in (*entity_types, "threat-actor", "company"):
         return {"error": {"code": "UnsupportedType", "message": f"Recorded Future does not support type '{type}'."}}
     if not secret("RECORDED_FUTURE_API_KEY"):
         return {"error": {"code": "MissingApiKey", "message": "Recorded Future API token is not configured."}}
@@ -233,6 +299,8 @@ async def dispatch(indicator: str, type: str) -> dict:
         try:
             if type == "threat-actor":
                 return await _actor(client, indicator)
+            if type == "company":
+                return await _company(client, indicator)
             return await _ioc(client, entity_types[type], indicator)
         except _RFError as e:
             return {"error": e.error}

@@ -1,6 +1,7 @@
 const en = {
   'layout.home': 'IntelChecker — home',
   'layout.tagline': 'Threat intel triage',
+  'layout.search': 'Search',
   'layout.history': 'History',
   'layout.admin': 'Admin',
   'layout.users': 'Users',
@@ -12,6 +13,7 @@ const en = {
 const es: Record<keyof typeof en, string> = {
   'layout.home': 'IntelChecker — inicio',
   'layout.tagline': 'Triaje de inteligencia de amenazas',
+  'layout.search': 'Búsqueda',
   'layout.history': 'Historial',
   'layout.admin': 'Admin',
   'layout.users': 'Usuarios',

@@ -238,9 +238,10 @@ const EXTRACTORS: Record<string, (d: any) => EngineIntel> = {
   recordedfuture: d => {
     const out = empty()
     const links = d?.insikt_links ?? {}
-    if (d?.kind === 'actor') {
+    if (d?.kind === 'actor' || d?.kind === 'company') {
       // The profile itself is the looked-up actor under RF's name (APT28 → BlueDelta):
-      // listing it as a "related" actor would relate the actor to itself.
+      // listing it as a "related" actor would relate the actor to itself. For a
+      // company, the linked actors / malware are the ones RF ties to it (targeting it).
       if (!d?.found) return out
       out.actors.push(...arr(links.actors).map(a => a?.name).map(it('rf.link')))
       out.families.push(...arr(links.malware).map(m => m?.name).map(it('rf.malware')))
@@ -348,6 +349,14 @@ const EXTRACTORS: Record<string, (d: any) => EngineIntel> = {
   // last seen are its first / last incident (leak-site claim, breach, infostealer).
   ransomwarelive: d => {
     const out = empty()
+    // Threat actor: the group's own leak-site activity window.
+    if (d?.kind === 'group') {
+      if (d?.found === true) {
+        out.firstSeen.push(d?.first_claim)
+        out.lastSeen.push(d?.last_claim)
+      }
+      return out
+    }
     if (d?.listed !== true) return out
     for (const v of arr(d?.matches)) {
       if (str(v?.group)) out.actors.push({ value: v.group, field: 'rlive.group', context: str(v?.victim) ?? undefined })

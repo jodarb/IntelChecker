@@ -41,15 +41,15 @@ def _error(r: httpx.Response) -> dict | None:
     return None
 
 
-def _best(needle: str, candidates: list) -> dict | None:
-    """Exact name/synonym match first, then Malpedia's own first hit."""
+def _best(needle: str, candidates: list) -> tuple[dict | None, bool]:
+    """Exact name/synonym match first, then Malpedia's own first hit (exact = False)."""
     n = _norm(needle)
     actors = [c for c in candidates if isinstance(c, dict) and c.get("name")]
     for c in actors:
         names = [c.get("name"), c.get("common_name"), *(c.get("synonyms") or [])]
         if any(isinstance(x, str) and _norm(x) == n for x in names):
-            return c
-    return actors[0] if actors else None
+            return c, True
+    return (actors[0], False) if actors else (None, False)
 
 
 async def lookup(actor: str) -> dict:
@@ -62,7 +62,7 @@ async def lookup(actor: str) -> dict:
             r = await client.get(f"{_BASE}/api/find/actor/{quote(needle, safe='')}")
             if err := _error(r):
                 return err
-            match = _best(needle, r.json() if isinstance(r.json(), list) else [])
+            match, exact = _best(needle, r.json() if isinstance(r.json(), list) else [])
             if not match:
                 return {"found": False, "query": needle}
             r = await client.get(f"{_BASE}/api/get/actor/{quote(match['name'], safe='')}")
@@ -95,6 +95,8 @@ async def lookup(actor: str) -> dict:
     refs = [x for x in meta.get("refs") or [] if isinstance(x, str)]
     return {
         "found": True,
+        # False: Malpedia's closest hit, no name or synonym equals the query.
+        "exact": exact,
         "query": needle,
         "id": match["name"],
         "name": data.get("value") or match.get("common_name") or match["name"],

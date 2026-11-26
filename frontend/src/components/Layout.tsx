@@ -1,12 +1,12 @@
-import { History, SlidersHorizontal, BookOpen, LogOut, UserRound, TriangleAlert, Users, Plug, Crosshair, Building2 } from 'lucide-react'
+import { Search, History, SlidersHorizontal, BookOpen, LogOut, UserRound, TriangleAlert, Users, Plug, Crosshair, Building2, VenetianMask } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import HeaderControls from '@/components/HeaderControls'
 import { useAuth } from '@/auth/context'
-import { useI18n } from '@/i18n/useI18n'
 import { rich } from '@/i18n/rich'
+import { useI18n } from '@/i18n/useI18n'
 
-export type SearchTab = 'artifacts' | 'companies'
+export type SearchTab = 'artifacts' | 'actors' | 'companies'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -14,13 +14,14 @@ interface LayoutProps {
   tab?: SearchTab
 }
 
-// The two search tools — artifacts (IOCs) and companies — as tabs right under the
+// The three search tools — artifacts (IOCs), threat actors and companies — as tabs right under the
 // header, not in the header menu: they are the app's two workspaces, the menu holds
 // everything else (history, admin, docs).
 function SearchTabs({ active }: { active: SearchTab }) {
   const { t } = useI18n()
   const tabs: { id: SearchTab; to: string; icon: React.ReactNode; label: string }[] = [
     { id: 'artifacts', to: '/', icon: <Crosshair className="h-5 w-5" />, label: t('tabs.artifacts') },
+    { id: 'actors', to: '/actors', icon: <VenetianMask className="h-5 w-5" />, label: t('tabs.actors') },
     { id: 'companies', to: '/companies', icon: <Building2 className="h-5 w-5" />, label: t('tabs.companies') },
   ]
   return (
@@ -32,8 +33,8 @@ function SearchTabs({ active }: { active: SearchTab }) {
             key={tab.id}
             to={tab.to}
             aria-current={on ? 'page' : undefined}
-            className={`inline-flex items-center gap-2 px-5 py-3 -mb-px border-b-2 text-base font-medium transition-colors ${
-              on ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+            className={`search-tab inline-flex items-center gap-2 px-5 py-3 -mb-px border-b-[3px] rounded-t-md text-base transition-colors ${
+              on ? 'font-semibold text-foreground' : 'font-medium border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40 hover:border-border'
             }`}
           >
             {tab.icon}
@@ -52,6 +53,8 @@ export default function Layout({ children, tab }: LayoutProps) {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b border-border px-6 py-3 flex items-center justify-between shrink-0">
+        {/* Brand, with the default admin / admin password warning right below the logo */}
+        <div className="flex flex-col items-start gap-1.5">
         <Link to="/" aria-label={t('layout.home')} className="flex items-center gap-3 hover:opacity-85 transition-opacity">
           <img src="/app-logo.png" alt="" className="h-20 w-auto" />
           <span className="brand-wordmark flex flex-col">
@@ -63,7 +66,23 @@ export default function Layout({ children, tab }: LayoutProps) {
             </span>
           </span>
         </Link>
+        {user?.default_password && (
+          <div role="alert" className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border-2 border-yellow-500/60 bg-yellow-500/10 text-xs whitespace-nowrap text-yellow-800 dark:text-yellow-200">
+            <TriangleAlert className="h-4 w-4 shrink-0 text-yellow-600 dark:text-yellow-400" />
+            <span>{rich(t('auth.defaultPasswordWarning'))}</span>
+          </div>
+        )}
+        </div>
         <div className="flex items-center gap-1">
+          {/* Back to the search tools from anywhere (history, admin, docs…) */}
+          {can('analyze') && (
+            <Button variant="ghost" size="sm" asChild className="gap-1.5">
+              <Link to="/">
+                <Search className="h-4 w-4" />
+                {t('layout.search')}
+              </Link>
+            </Button>
+          )}
           <Button variant="ghost" size="sm" asChild className="gap-1.5">
             <Link to="/history">
               <History className="h-4 w-4" />
@@ -118,14 +137,6 @@ export default function Layout({ children, tab }: LayoutProps) {
         </div>
       </header>
       {tab && can('analyze') && <SearchTabs active={tab} />}
-      {user?.default_password && (
-        <div className="flex justify-end px-6 pt-3">
-          <div role="alert" className="inline-flex items-center gap-2 max-w-xl px-3 py-2 rounded-md border border-yellow-500/40 bg-yellow-500/10 text-xs text-yellow-700 dark:text-yellow-300">
-            <TriangleAlert className="h-4 w-4 shrink-0" />
-            <span>{rich(t('auth.defaultPasswordWarning'))}</span>
-          </div>
-        </div>
-      )}
       {children}
     </div>
   )

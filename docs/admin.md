@@ -271,7 +271,7 @@ Archived history entries keep the value in force when they were run; entries sav
 | Kaspersky OpenTIP | 8 | 6 | also issues clean verdicts (Green) |
 | Wikidata | 0 | 6 | company only; context |
 | GLEIF | 0 | 4 | company only; context |
-| ransomware.live | 10 | 6 | company only; leak-site victims only |
+| ransomware.live | 10 | 6 | companies (leak-site victims) and threat actors (ransomware groups, context only) |
 | Hudson Rock | 7 | 5 | company only; needs a domain; also issues clean verdicts |
 | Have I Been Pwned | 5 | 3 | company only; needs a domain |
 | GDELT | 0 | 3 | company only; context |
@@ -296,7 +296,7 @@ CIRCL hashlookup, Tranco, CrowdSec, Kaspersky OpenTIP and EPSS are the sources t
 | ThreatFox | no match → no verdict; match → 7 + (confidence ÷ 100 × 3) |
 | URLhaus | no match → no verdict; URL online → 9, offline → 6 |
 | MalwareBazaar | sample on file → 10, otherwise no verdict |
-| Recorded Future | risk score ÷ 9.9. Score 0 with no risk rules triggered → no verdict. Threat actor → context only. |
+| Recorded Future | risk score ÷ 9.9. Score 0 with no risk rules triggered → no verdict. Threat actor and company → context only. |
 | urlscan.io | prior scans: 0 → no verdict, 1–2 → 3, 3–5 → 5, >5 → 6 |
 | PhishTank | not in DB → no verdict; marked invalid → clean; unverified → 5; verified → 10 |
 | ANY.RUN | no record → no verdict; threat level 0 → clean; 1 (suspicious) → 5; 2 (malicious) → 9 |
@@ -329,7 +329,7 @@ CIRCL hashlookup, Tranco, CrowdSec, Kaspersky OpenTIP and EPSS are the sources t
 
 | Source | None (0) | Basic (0.5) | Rich (1) |
 |---|---|---|---|
-| Recorded Future | not found | record without risk rules; actor profile with no links | ≥1 risk rule; actor linked to malware / techniques / infrastructure |
+| Recorded Future | not found | record without risk rules; actor or company with no links | ≥1 risk rule; actor or company linked to malware / techniques / infrastructure |
 | MISP | 0 attributes | 1–2 attributes | ≥3 attributes or ≥2 events |
 | OpenCTI | no match | entity with no indicators, relationships or reports | indicators, relationships or reports |
 | MITRE ATT&CK | not found | profile without techniques | techniques or software |
@@ -367,7 +367,7 @@ CIRCL hashlookup, Tranco, CrowdSec, Kaspersky OpenTIP and EPSS are the sources t
 | Kaspersky OpenTIP | not found / not applicable | Grey (known, not categorised) | Red / Orange / Yellow / Green |
 | Wikidata | not found | picked by name only, or no sector / country | the exact item, with sector or countries |
 | GLEIF | no unambiguous legal entity | matched by legal name only | LEI given or from Wikidata (or official name + country) |
-| ransomware.live | not listed | — | claimed as a victim |
+| ransomware.live | not listed / no such group | group without victims | claimed as a victim; group with victims |
 | Hudson Rock | no infections | users / third parties only | infected employees |
 | Have I Been Pwned | no breach | — | ≥1 breach |
 | GDELT | no headline names it | 1–2 headlines | ≥3 headlines |

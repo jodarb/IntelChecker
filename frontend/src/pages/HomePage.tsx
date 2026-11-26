@@ -34,16 +34,10 @@ export default function HomePage() {
 
   return (
     <Layout tab="artifacts">
-      <main className="flex-1 flex flex-col items-center justify-center px-4 py-10 gap-8">
-        <div className="text-center space-y-6">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">
-              {t('home.title')}
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              {t('home.subtitle')}
-            </p>
-          </div>
+      <main className="flex-1 flex flex-col items-center justify-start px-4 pt-16 pb-10 gap-8">
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">{t('home.title')}</h1>
+          <p className="text-muted-foreground text-sm">{t('home.subtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="w-full max-w-2xl flex flex-col gap-3">

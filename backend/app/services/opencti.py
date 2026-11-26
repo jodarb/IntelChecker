@@ -176,7 +176,7 @@ class OpenCTIEngine:
             "link": self._link(node.get("id")),
         }
 
-    def _context(self, data: dict, own_id: str) -> dict:
+    def _context(self, data: dict, own_id: str, max_relations: int = _MAX_RELATIONS) -> dict:
         obj = data.get("stixCoreObject") if isinstance(data.get("stixCoreObject"), dict) else {}
         reports_conn = obj.get("reports") if isinstance(obj.get("reports"), dict) else {}
         reports = [{
@@ -198,17 +198,22 @@ class OpenCTIEngine:
             if key in seen:
                 continue
             seen.add(key)
-            relations.append({
+            item = {
                 "type": rel.get("relationship_type"),
                 "direction": "out" if outgoing else "in",
                 "entity_type": other.get("entity_type"),
                 "name": name,
                 "link": self._link(other.get("id")),
-            })
+            }
+            # Only in the actor context: ATT&CK id, observable value, indicator pattern.
+            for k in ("x_mitre_id", "observable_value", "pattern", "x_opencti_main_observable_type"):
+                if isinstance(other.get(k), str) and other[k]:
+                    item[k] = other[k][:300]
+            relations.append(item)
         return {
             "reports": reports,
             "reports_total": total if isinstance(total, int) else len(reports),
-            "relations": relations[:_MAX_RELATIONS],
+            "relations": relations[:max_relations],
             "relations_total": len(relations),
             "threat_links": sum(1 for r in relations if r["entity_type"] in _THREAT_TYPES),
         }
@@ -310,7 +315,7 @@ class OpenCTIEngine:
                 "sophistication": match.get("sophistication"),
             },
         }
-        out.update(self._context(await self._query(client, Q.CONTEXT, {"id": match["id"]}), match["id"]))
+        out.update(self._context(await self._query(client, Q.ACTOR_CONTEXT, {"id": match["id"]}), match["id"], 300))
         return out
 
     async def dispatch(self, indicator: str, type: str) -> dict:
