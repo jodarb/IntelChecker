@@ -245,6 +245,7 @@ export default function DocsPage() {
               rows={QUADRANTS.map(q => [<QuadrantChip q={q} />, ...d.quadrants.rows[q].map(th)])}
             />
             <P>{d.quadrants.cve}</P>
+            <P>{d.quadrants.company}</P>
           </Section>
 
           <Section id="summary" title={d.summary.title}>

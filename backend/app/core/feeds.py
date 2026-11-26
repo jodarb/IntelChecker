@@ -1,10 +1,12 @@
-"""Downloaded blocklists kept in memory (SSLBL, OpenPhish, Spamhaus ASN-DROP, CISA KEV).
+"""Downloaded lists kept in memory (SSLBL, OpenPhish, Spamhaus ASN-DROP, CISA KEV,
+ransomware.live victims).
 
 A feed is fetched on the first lookup that needs it and re-fetched once its TTL has
 passed, under a lock so concurrent lookups share one download. If a refresh fails
 the previous copy keeps being used; only a feed that was never loaded reports the
 error. Lookups are still real time — this only avoids re-downloading a whole list
-per indicator.
+per indicator. `retry_after` spaces out failed downloads for sources that throttle
+them (ransomware.live: once every 30 min per IP); the last error is returned meanwhile.
 """
 import asyncio
 import time
@@ -17,8 +19,10 @@ _HEADERS = {"User-Agent": "IntelChecker/1.0 (internal CTI triage tool)"}
 
 class CachedFeed:
     def __init__(self, name: str, url: str, ttl: int, parse: Callable[[str], Any],
-                 count: Callable[[Any], int] = len):
+                 count: Callable[[Any], int] = len, timeout: float = 30, retry_after: float = 0):
         self.name, self.url, self.ttl, self._parse, self._count = name, url, ttl, parse, count
+        self.timeout, self.retry_after = timeout, retry_after
+        self._failed_at, self._last_error = 0.0, None
         self.data: Any = None
         self.size = 0
         self.fetched_at = 0.0
@@ -31,16 +35,20 @@ class CachedFeed:
     async def get(self) -> dict | None:
         """None when the feed is ready (read `.data`), or {"error": …}."""
         async with self._lock:
-            if self.data is not None and time.time() - self.fetched_at < self.ttl:
+            now = time.time()
+            if self.data is not None and now - self.fetched_at < self.ttl:
                 return None
+            if self._last_error and now - self._failed_at < self.retry_after:
+                return {"error": self._last_error} if self.data is None else None
             err = await self._refresh()
+            self._failed_at, self._last_error = (now, err) if err else (0.0, None)
             if err and self.data is None:
                 return {"error": err}
             return None
 
     async def _refresh(self) -> dict | None:
         try:
-            async with httpx.AsyncClient(timeout=30, headers=_HEADERS, follow_redirects=True) as client:
+            async with httpx.AsyncClient(timeout=self.timeout, headers=_HEADERS, follow_redirects=True) as client:
                 r = await client.get(self.url)
         except httpx.TimeoutException:
             return {"code": "Timeout", "message": f"Downloading the {self.name} list timed out."}

@@ -45,6 +45,7 @@ export const docsEs: DocsContent = {
       ['ASN', '`AS13335`'],
       ['Actor de amenaza', '`APT28`, `Kimsuky` (nombres y alias)'],
       ['Vulnerabilidad (CVE)', '`CVE-2021-44228` (en mayúsculas o minúsculas; se normaliza a mayúsculas)'],
+      ['Empresa (pestaña **Empresas**)', 'Las empresas tienen su propia pestaña de búsqueda bajo el header, junto a **Artefactos**, con sus fuentes y su informe (perfil, recuadros de exposición, cronología de incidentes y, al final, las tarjetas por fuente). `Iberia`, `iberia.com` o `Iberia (iberia.com, Q187972)`. Un nombre abre una lista de candidatos de **Wikidata**: al elegir uno se busca con su dominio, id de Wikidata y LEI, así todas las fuentes y el historial se refieren a la misma entidad. *Buscar tal cual* usa solo el nombre: Hudson Rock y Have I Been Pwned necesitan un dominio y quedan fuera del Knowledge.'],
     ],
     list: [
       'Usa el interruptor junto a una fuente para desactivarla; las fuentes desactivadas no se consultan y no cuentan en ninguna puntuación. La elección se recuerda solo en este navegador.',
@@ -96,7 +97,7 @@ export const docsEs: DocsContent = {
     list: [
       '**Solo crece** a medida que responden las fuentes: una fuente sin registro no suma nada, nunca resta.',
       '**Satura**: en cuanto el {fa}% del peso contado tiene registro, el Knowledge ya es 10 — un indicador no necesita que lo conozcan *todas* las fuentes para estar bien conocido. Se ajusta en Admin → *Saturación del Knowledge* (100% = sin saturación).',
-      'Una fuente que falla por un motivo **temporal** (límite de peticiones, tiempo agotado, red, servicio no disponible) **queda fuera del total**: un fallo puntual de una API no dice nada del indicador. Un fallo persistente (API key no válida, acceso denegado) o una fuente que aún está cargando cuenta en el total con profundidad 0.',
+      'Una fuente que falla por un motivo **temporal** (límite de peticiones, tiempo agotado, red, servicio no disponible) **queda fuera del total**: un fallo puntual de una API no dice nada del indicador. También una fuente que no puede evaluar esa entrada: una empresa buscada sin dominio, en las fuentes que buscan por dominio. Un fallo persistente (API key no válida, acceso denegado) o una fuente que aún está cargando cuenta en el total con profundidad 0.',
       'Muestra **N/D** hasta que responde al menos una fuente. La marca vertical de la barra es el umbral actual de “conocido” ({tk}), con su etiqueta debajo.',
     ],
     example: '**Ejemplo (consulta real, full_at 70%).** Recorded Future, OTX y ThreatFox con registro rico, MISP y TweetFeed básico, AbuseIPDB / URLhaus / Shodan sin registro y VirusTotal con límite de peticiones (fuera del total): 29,5 de 54 de peso contado.',
@@ -133,6 +134,7 @@ export const docsEs: DocsContent = {
       unknown: ['Poca o ninguna información.', 'La ausencia de datos no demuestra que sea seguro.'],
     },
     cve: 'Las **vulnerabilidades (CVE)** usan los mismos cuadrantes, pero Risk significa *riesgo de explotación* (CVSS de NVD, probabilidad EPSS, CISA KEV), así que las etiquetas cambian: *Riesgo de explotación alto*, *Riesgo alto · Pocos datos*, *Conocido · Riesgo bajo*, *Conocido · Riesgo moderado* (p. ej. grave pero con explotación improbable), *Conocido · Sin puntuar* y *CVE desconocido*.',
+    company: 'Las **empresas** también: Risk significa *exposición* —la empresa como víctima (publicaciones en leak sites de ransomware, infecciones de infostealer en empleados, brechas públicas)— y Knowledge lo bien identificada y cubierta que está (Wikidata, GLEIF). Etiquetas: *Exposición alta*, *Exposición · Pocos datos*, *Conocida · Sin exposición detectada*, *Conocida · Exposición baja*, *Conocida · Sin datos de exposición* y *Empresa desconocida*.',
   },
 
   summary: {
@@ -146,6 +148,7 @@ export const docsEs: DocsContent = {
       ['Ventana de actividad', 'La primera fecha en que se vio y la última, entre todas las fuentes, con la fuente de cada una.'],
       ['GeoIP · ASN · ISP · Tor · Puertos', 'Contexto de red, con cuántas fuentes coinciden en cada valor.'],
       ['CVSS · KEV · EPSS', 'Para CVEs: puntuación y severidad CVSS, si es una vulnerabilidad explotada conocida (lo indican CISA KEV, VulnCheck KEV y NVD) y la probabilidad EPSS con su percentil. La fecha de publicación en NVD es la primera vez visto del CVE.'],
+      ['Perfil y exposición de empresa', 'Para empresas: publicaciones en leak sites de ransomware (número · grupos · última), infostealers (empleados / usuarios infectados), brechas públicas, titulares de incidentes, sector, país de la sede, países con filiales (Wikidata, GLEIF), entidad legal (LEI) y empleados. Los grupos de ransomware que la publicaron aparecen como relación con actores, las familias de infostealer como familias de malware, y la ventana de actividad abarca sus incidentes.'],
     ],
     note: 'Cada familia muestra las fuentes que la reportaron. **Púlsala** para ver exactamente de dónde sale: fuente, campo (p. ej. *familia de malware del IOC*), el valor tal como lo escribió la fuente y el pulse o evento de MISP donde se encontró.',
   },
@@ -238,7 +241,10 @@ export const docsEs: DocsContent = {
       ['EPSS', 'probabilidad de explotación a 30 días: ≥ 50 % → 10, ≥ 20 % → 8, ≥ 5 % → 6, ≥ 1 % → 3, < 1 % → limpio; sin puntuación → sin veredicto.'],
       ['VulnCheck KEV', 'listado (explotación reportada públicamente u observada por los canaries de VulnCheck) → 9; además usado en ransomware → 10; no listado → sin veredicto.'],
       ['Kaspersky OpenTIP', 'zona: Red → 9, Orange → 7, Yellow → 5, Green → limpio; Grey (sin categorizar), no encontrado o un SHA-512 → sin veredicto.'],
-      ['Shodan, IPinfo, RIPEstat, MITRE ATT&CK, Malpedia, CIRCL Passive DNS', 'solo contexto — nunca dan subpuntuación.'],
+      ['ransomware.live', 'publicada como víctima en un leak site (mismo dominio, o mismo nombre sin tener en cuenta mayúsculas, acentos ni forma jurídica): última publicación ≤ 90 días → 10, ≤ 1 año → 9, más antigua → 7, sin fecha → 8; no listada → sin veredicto (los leak sites solo muestran a quien no pagó). Los nombres que solo contienen el de la empresa se listan, nunca se cuentan.'],
+      ['Hudson Rock', 'empleados infectados, última infección ≤ 90 días → 9, ≤ 1 año → 7, más antigua → 5; solo clientes / terceros → 2; nada para el dominio → limpio. Necesita dominio.'],
+      ['Have I Been Pwned', 'brecha pública de un servicio de la propia empresa: hace ≤ 1 año → 7, ≤ 3 años → 5, más → 3; ninguna → sin veredicto. Las listas de spam y brechas fabricadas no cuentan. Necesita dominio.'],
+      ['Shodan, IPinfo, RIPEstat, MITRE ATT&CK, Malpedia, CIRCL Passive DNS, Wikidata, GLEIF, GDELT', 'solo contexto — nunca dan subpuntuación.'],
     ],
   },
 
@@ -282,6 +288,12 @@ export const docsEs: DocsContent = {
       ['EPSS', 'sin puntuación', '—', 'puntuado'],
       ['VulnCheck KEV', 'no listado', '—', 'listado'],
       ['Kaspersky OpenTIP', 'no encontrado / no aplica', 'Grey (conocido, sin categorizar)', 'Red / Orange / Yellow / Green'],
+      ['Wikidata', 'no encontrada', 'elegida solo por nombre, o sin sector / país', 'el elemento exacto, con sector o países'],
+      ['GLEIF', 'ninguna entidad legal inequívoca', 'coincidencia solo por nombre legal', 'LEI indicado o de Wikidata (o nombre oficial + país)'],
+      ['ransomware.live', 'no listada', '—', 'publicada como víctima'],
+      ['Hudson Rock', 'sin infecciones', 'solo clientes / terceros', 'empleados infectados'],
+      ['Have I Been Pwned', 'sin brechas', '—', '≥1 brecha'],
+      ['GDELT', 'ningún titular la nombra', '1–2 titulares', '≥3 titulares'],
     ],
   },
 

@@ -45,6 +45,7 @@ export const docsEn = {
       ['ASN', '`AS13335`'],
       ['Threat Actor', '`APT28`, `Kimsuky` (names and aliases)'],
       ['Vulnerability (CVE)', '`CVE-2021-44228` (any case; normalised to upper case)'],
+      ['Company (**Companies** tab)', 'Companies have their own search tab under the header, next to **Artifacts**, with its own sources and report (profile, exposure tiles, incident timeline, then the source cards). `Iberia`, `iberia.com` or `Iberia (iberia.com, Q187972)`. A name opens a list of **Wikidata** candidates: picking one searches it with its domain, Wikidata id and LEI, so every source and the history refer to the same entity. *Search as typed* uses the name only — Hudson Rock and Have I Been Pwned need a domain and are then left out of Knowledge.'],
     ],
     list: [
       'Use the switch next to a source to turn it off; disabled sources aren\'t queried and don\'t count in either score. The choice is remembered on this browser only.',
@@ -96,7 +97,7 @@ export const docsEn = {
     list: [
       'It **only grows** as sources answer: a source with no record adds nothing, it never subtracts.',
       'It **saturates**: once {fa}% of the counted weight has a record, Knowledge is already 10 — an indicator doesn\'t need *every* source to know it to be well known. Set it in Admin → *Knowledge saturation* (100% = no saturation).',
-      'A source that fails for a **temporary** reason (rate limit, timeout, network, service unavailable) is **left out of the total**: an API hiccup says nothing about the indicator. A persistent failure (invalid key, forbidden) or a source still loading counts in the total with depth 0.',
+      'A source that fails for a **temporary** reason (rate limit, timeout, network, service unavailable) is **left out of the total**: an API hiccup says nothing about the indicator. So is a source that can’t evaluate this input — a company looked up without a domain, for the sources that search by domain. A persistent failure (invalid key, forbidden) or a source still loading counts in the total with depth 0.',
       'It shows **N/A** until at least one source has answered. The bar\'s vertical mark is the current “known” threshold ({tk}), labelled underneath.',
     ],
     example: '**Example (real lookup, full_at 70%).** Recorded Future, OTX and ThreatFox rich, MISP and TweetFeed basic, AbuseIPDB / URLhaus / Shodan with no record, VirusTotal rate-limited (left out): 29.5 of 54 counted weight.',
@@ -133,6 +134,7 @@ export const docsEn = {
       unknown: ['Little or no information.', 'Absence of data is not evidence of safety.'],
     },
     cve: '**Vulnerabilities (CVE)** use the same quadrants, but Risk means *exploitation risk* (NVD’s CVSS, EPSS probability, CISA KEV), so the labels read differently: *High exploitation risk*, *High risk · Little data*, *Known · Low risk*, *Known · Moderate risk* (e.g. severe but unlikely to be exploited), *Known · Not scored* and *Unknown CVE*.',
+    company: '**Companies** too: Risk means *exposure* — the company as a victim (ransomware leak-site claims, infostealer infections of employees, public breaches) — and Knowledge how well the company is identified (Wikidata, GLEIF) and covered. Labels: *High exposure*, *Exposure · Little data*, *Known · No exposure found*, *Known · Low exposure*, *Known · No exposure data* and *Unknown company*.',
   },
 
   summary: {
@@ -146,6 +148,7 @@ export const docsEn = {
       ['Activity window', 'Earliest first-seen and latest last-seen date across all sources, with the source each came from.'],
       ['GeoIP · ASN · ISP · Tor · Ports', 'Network context, with how many sources agree on each value.'],
       ['CVSS · KEV · EPSS', 'For CVEs: CVSS score and severity, whether it is a known exploited vulnerability (reported by CISA KEV, VulnCheck KEV and NVD) and the EPSS probability with its percentile. The NVD publication date is the CVE’s first seen.'],
+      ['Company profile & exposure', 'For companies: ransomware leak-site claims (count · groups · last), infostealers (infected employees / users), public breaches, incident headlines, sector, headquarters country, countries with subsidiaries (Wikidata, GLEIF), legal entity (LEI) and employees. The ransomware groups that claimed it appear as threat actor relations, infostealer families as malware families, and the activity window spans its incidents.'],
     ],
     note: 'Every family chip shows the sources that reported it. **Click it** to see exactly where it comes from: source, field (e.g. *malware family of the IOC*), the value as the source wrote it, and the pulse or MISP event it was found in.',
   },
@@ -238,7 +241,10 @@ export const docsEn = {
       ['EPSS', '30-day exploitation probability: ≥ 50 % → 10, ≥ 20 % → 8, ≥ 5 % → 6, ≥ 1 % → 3, < 1 % → clean; no score → no verdict.'],
       ['VulnCheck KEV', "listed (exploitation reported publicly or seen by VulnCheck's canaries) → 9; also used in ransomware → 10; not listed → no verdict."],
       ['Kaspersky OpenTIP', 'Zone: Red → 9, Orange → 7, Yellow → 5, Green → clean; Grey (not categorised), not found or a SHA-512 → no verdict.'],
-      ['Shodan, IPinfo, RIPEstat, MITRE ATT&CK, Malpedia, CIRCL Passive DNS', 'context only — never a subscore.'],
+      ['ransomware.live', 'claimed as a victim on a leak site (same domain, or same name ignoring case, accents and legal form): last claim ≤ 90 days → 10, ≤ 1 year → 9, older → 7, undated → 8; not listed → no verdict (leak sites only show who didn’t pay). Names that only contain the company’s are listed, never counted.'],
+      ['Hudson Rock', 'infected employees, last infection ≤ 90 days → 9, ≤ 1 year → 7, older → 5; only customers / third parties → 2; nothing for the domain → clean. Needs a domain.'],
+      ['Have I Been Pwned', 'public breach of the company’s own service: ≤ 1 year ago → 7, ≤ 3 years → 5, older → 3; none → no verdict. Spam lists and fabricated breaches don’t count. Needs a domain.'],
+      ['Shodan, IPinfo, RIPEstat, MITRE ATT&CK, Malpedia, CIRCL Passive DNS, Wikidata, GLEIF, GDELT', 'context only — never a subscore.'],
     ],
   },
 
@@ -282,6 +288,12 @@ export const docsEn = {
       ['EPSS', 'no score', '—', 'scored'],
       ['VulnCheck KEV', 'not listed', '—', 'listed'],
       ['Kaspersky OpenTIP', 'not found / not applicable', 'Grey (known, not categorised)', 'Red / Orange / Yellow / Green'],
+      ['Wikidata', 'not found', 'picked by name only, or no sector / country', 'the exact item, with sector or countries'],
+      ['GLEIF', 'no unambiguous legal entity', 'matched by legal name only', 'LEI given or from Wikidata (or official name + country)'],
+      ['ransomware.live', 'not listed', '—', 'claimed as a victim'],
+      ['Hudson Rock', 'no infections', 'customers / third parties only', 'infected employees'],
+      ['Have I Been Pwned', 'no breach', '—', '≥1 breach'],
+      ['GDELT', 'no headline names it', '1–2 headlines', '≥3 headlines'],
     ],
   },
 

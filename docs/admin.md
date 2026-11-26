@@ -139,7 +139,7 @@ The share of the Knowledge Score that source can contribute: its weight divided 
 
 *Button **Per type** on each row.*
 
-Lets a source have a different knowledge weight for a specific indicator type (IP, Domain, URL, Hash, ASN, Actor, CVE). Only the types the source supports are shown.
+Lets a source have a different knowledge weight for a specific indicator type (IP, Domain, URL, Hash, ASN, Actor, CVE, Company). Only the types the source supports are shown.
 
 - **Blank** → the general Knowledge value is used for that type.
 - **A number** (0–10) → that number replaces the general value for that type only.
@@ -269,10 +269,18 @@ Archived history entries keep the value in force when they were run; entries sav
 | CISA KEV | 10 | 3 | CVE only; listed CVEs only |
 | VulnCheck KEV | 10 | 4 | CVE only; listed CVEs only |
 | Kaspersky OpenTIP | 8 | 6 | also issues clean verdicts (Green) |
+| Wikidata | 0 | 6 | company only; context |
+| GLEIF | 0 | 4 | company only; context |
+| ransomware.live | 10 | 6 | company only; leak-site victims only |
+| Hudson Rock | 7 | 5 | company only; needs a domain; also issues clean verdicts |
+| Have I Been Pwned | 5 | 3 | company only; needs a domain |
+| GDELT | 0 | 3 | company only; context |
 
 ANY.RUN, Hybrid Analysis, GreyNoise and Safe Browsing ship with risk weight 0: they are scored, but don't move the Risk Score until you give them a weight.
 
 For **CVEs** the Risk Score means *exploitation risk*: NVD brings severity (CVSS), EPSS the probability of exploitation and CISA KEV confirmed exploitation, which is why KEV has the top risk weight and a low knowledge weight (most CVEs are not in it). The quadrants keep their logic but get vulnerability wording (*High exploitation risk*, *Known · Moderate risk*…).
+
+For **companies** the Risk Score means *exposure*: the company as a victim. ransomware.live (claimed on a leak site) has the top risk weight, Hudson Rock (infected employees) and Have I Been Pwned (breaches) follow; Wikidata, GLEIF and GDELT only identify and contextualise the company (Knowledge). Hudson Rock is the only company source that issues **clean** verdicts. Wording: *High exposure*, *Exposure · Little data*, *Known · No exposure found*, *Known · Low exposure*, *Known · No exposure data*, *Unknown company*.
 
 CIRCL hashlookup, Tranco, CrowdSec, Kaspersky OpenTIP and EPSS are the sources that most often issue an explicit **clean** verdict, which the *Known benign* quadrant needs. A clean verdict only counts with a risk weight above 0, and it also pulls the Risk Score down when other sources flag the indicator, which is why Tranco (popular domains can host abuse) and hashlookup (dual-use tools ship in distributions) have low risk weights.
 
@@ -312,7 +320,10 @@ CIRCL hashlookup, Tranco, CrowdSec, Kaspersky OpenTIP and EPSS are the sources t
 | EPSS | 30-day exploitation probability: ≥ 50 % → 10, ≥ 20 % → 8, ≥ 5 % → 6, ≥ 1 % → 3, < 1 % → clean; no score → no verdict |
 | VulnCheck KEV | listed (exploitation reported publicly or seen by VulnCheck's canaries) → 9; also used in ransomware → 10; not listed → no verdict. |
 | Kaspersky OpenTIP | Zone: Red → 9, Orange → 7, Yellow → 5, Green → clean; Grey (not categorised), not found or a SHA-512 → no verdict. |
-| Shodan, IPinfo, RIPEstat, MITRE ATT&CK, Malpedia, CIRCL Passive DNS | never return a risk subscore |
+| ransomware.live | claimed as a victim on a leak site (same domain, or same name ignoring case, accents and legal form): last claim ≤ 90 days → 10, ≤ 1 year → 9, older → 7, undated → 8; not listed → no verdict |
+| Hudson Rock | infected employees, last infection ≤ 90 days → 9, ≤ 1 year → 7, older → 5; only users / third parties → 2; no infections → clean |
+| Have I Been Pwned | public breach ≤ 1 year ago → 7, ≤ 3 years → 5, older → 3; none → no verdict (spam lists and fabricated breaches don't count) |
+| Shodan, IPinfo, RIPEstat, MITRE ATT&CK, Malpedia, CIRCL Passive DNS, Wikidata, GLEIF, GDELT | never return a risk subscore |
 
 ### Depth of record per source (Knowledge Score)
 
@@ -354,5 +365,11 @@ CIRCL hashlookup, Tranco, CrowdSec, Kaspersky OpenTIP and EPSS are the sources t
 | EPSS | no score | — | scored |
 | VulnCheck KEV | not listed | — | listed |
 | Kaspersky OpenTIP | not found / not applicable | Grey (known, not categorised) | Red / Orange / Yellow / Green |
+| Wikidata | not found | picked by name only, or no sector / country | the exact item, with sector or countries |
+| GLEIF | no unambiguous legal entity | matched by legal name only | LEI given or from Wikidata (or official name + country) |
+| ransomware.live | not listed | — | claimed as a victim |
+| Hudson Rock | no infections | users / third parties only | infected employees |
+| Have I Been Pwned | no breach | — | ≥1 breach |
+| GDELT | no headline names it | 1–2 headlines | ≥3 headlines |
 
 These rules are fixed in code (`frontend/src/verdictEngine.ts`); the Admin page only changes how much each source's result counts.

@@ -22,6 +22,7 @@ const en = {
   'type.asn': 'ASN',
   'type.threat-actor': 'Threat Actor',
   'type.cve': 'Vulnerability (CVE)',
+  'type.company': 'Company',
   'type.auto': 'Auto',
   'typeShort.ip': 'IP',
   'typeShort.domain': 'Domain',
@@ -30,6 +31,7 @@ const en = {
   'typeShort.asn': 'ASN',
   'typeShort.threat-actor': 'Actor',
   'typeShort.cve': 'CVE',
+  'typeShort.company': 'Company',
 
   // Backend error codes → actionable messages (the English text from the backend is
   // used as-is in English; these are the translations).
@@ -44,6 +46,7 @@ const en = {
   'apiError.BadRequest': '{source} could not query this value: check its format.',
   'apiError.ServiceUnavailable': '{source} is temporarily unavailable.',
   'apiError.ResolverBlocked': '{source} refuses queries from public DNS resolvers: set SPAMHAUS_DNS_SERVER to your own resolver or add a free DQS key on Connectors.',
+  'apiError.NeedsDomain': '{source} searches by domain: add the company\'s domain, e.g. "Acme (acme.com)" — or pick the company in the search box.',
 }
 
 const es: Record<keyof typeof en, string> = {
@@ -70,6 +73,7 @@ const es: Record<keyof typeof en, string> = {
   'type.asn': 'ASN',
   'type.threat-actor': 'Actor de amenaza',
   'type.cve': 'Vulnerabilidad (CVE)',
+  'type.company': 'Empresa',
   'type.auto': 'Auto',
   'typeShort.ip': 'IP',
   'typeShort.domain': 'Dominio',
@@ -78,6 +82,7 @@ const es: Record<keyof typeof en, string> = {
   'typeShort.asn': 'ASN',
   'typeShort.threat-actor': 'Actor',
   'typeShort.cve': 'CVE',
+  'typeShort.company': 'Empresa',
 
   'apiError.MissingApiKey': 'La API key de {source} no está configurada.',
   'apiError.Unauthorized': 'API key de {source} no válida.',
@@ -90,6 +95,7 @@ const es: Record<keyof typeof en, string> = {
   'apiError.BadRequest': '{source} no pudo consultar este valor: revisa su formato.',
   'apiError.ServiceUnavailable': '{source} no está disponible temporalmente.',
   'apiError.ResolverBlocked': '{source} rechaza consultas desde resolvers DNS públicos: configura SPAMHAUS_DNS_SERVER con tu propio resolver o añade una key DQS gratuita en Connectors.',
+  'apiError.NeedsDomain': '{source} busca por dominio: añade el dominio de la empresa, p. ej. "Acme (acme.com)", o elige la empresa en el buscador.',
 }
 
 export default { en, es }

@@ -42,7 +42,7 @@ Request body:
 | Field | Type | Default | Meaning |
 |---|---|---|---|
 | `indicator` | string | — | The IoC. Leading/trailing spaces are trimmed. |
-| `type` | string | — | `ip`, `domain`, `url`, `hash`, `asn`, `threat-actor` or `cve`. |
+| `type` | string | — | `ip`, `domain`, `url`, `hash`, `asn`, `threat-actor`, `cve` or `company`. A company is `Name`, `domain` or `Name (domain, Wikidata Q-id, LEI)`; `GET /company/resolve?q=<name>` (analyst+) returns Wikidata candidates, each with the `indicator` that pins it. |
 | `engines` | string[] | all | Only query these sources (ids as in `GET /engines/status`). |
 | `exclude` | string[] | `[]` | Skip these sources. |
 | `save` | bool | `true` | Store in History. `false` = just answer. |
@@ -92,6 +92,7 @@ Response:
 
 | Endpoint | Needs | Returns |
 |---|---|---|
+| `GET /company/resolve?q=` | analyst | Wikidata candidates for a company name or domain (`qid`, `name`, `description`, `countries`, `domain`, `lei`, `organization`, `domain_match`) with the `indicator` to search. |
 | `GET /engines/status` | any | Every source: `connected` (has its key), supported `types`, label and `kind` (`misp` / `opencti`) for MISP and OpenCTI instances. |
 | `POST /analyze/{engine}` `{indicator, type}` | analyst | One source's raw response, no verdict, not saved. |
 | `GET /history[?indicator=…]` | reader | Latest 200 lookups (all of them for one indicator): scores, quadrant, `username`, `via` (`ui` / `api`). |

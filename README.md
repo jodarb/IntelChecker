@@ -7,7 +7,7 @@
 ### One indicator in. One explainable verdict out.
 
 **IntelChecker queries 30+ threat intelligence sources in parallel and turns their answers into a single, traceable verdict, in seconds.**
-Built for SOC analysts and CTI teams who triage IPs, domains, URLs, hashes, ASNs, threat actors and CVEs all day.
+Built for SOC analysts and CTI teams who triage IPs, domains, URLs, hashes, ASNs, threat actors, CVEs and companies all day.
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
@@ -39,7 +39,7 @@ IntelChecker replaces that routine with **one search**:
   │  IP · domain │     │  parallel, each normalised to  │     │  Risk      0–10             │
   │  URL · hash  │     │  hit / clean / context /       │     │  ─────────────────────────  │
   │  ASN · actor │     │  no data, plus a depth of      │     │  Quadrant: Confirmed ·      │
-  │  CVE         │     │  record                        │     │  Isolated signal · Benign … │
+  │  CVE · company│    │  record                        │     │  Isolated signal · Benign … │
   └──────────────┘     └────────────────────────────────┘     └─────────────────────────────┘
 ```
 
@@ -54,7 +54,7 @@ Together they place the indicator in a **quadrant**:
 - *Known · Benign*.
 - *Unknown*.
 
-For CVEs the quadrants are worded as exploitation risk. Weights and thresholds are tunable per source from the Admin page. The full formulas are in the [user guide](docs/user-guide.md).
+For CVEs the quadrants are worded as exploitation risk, and for companies as exposure (the company as a victim). Weights and thresholds are tunable per source from the Admin page. The full formulas are in the [user guide](docs/user-guide.md).
 
 ## ✨ Features
 
@@ -66,6 +66,7 @@ For CVEs the quadrants are worded as exploitation risk. Weights and thresholds a
 | 🗺️ **Explainable** | The matrix view replays, source by source, how each answer moved both scores; *How is this calculated?* lists every contribution |
 | 🏢 **Your own intel** | Any number of **MISP** and **OpenCTI** instances (partners, ISACs, internal), with TLS / mTLS, added at runtime from the UI |
 | 🐞 **Vulnerabilities** | CVE lookups across NVD, CISA KEV, VulnCheck KEV, EPSS, OTX and OpenCTI: severity, exploitation probability, known exploitation, public exploits |
+| 🏭 **Companies** | Its own search tab and report. Pick the company from Wikidata candidates, then get sector, countries and subsidiaries (Wikidata, GLEIF), ransomware leak-site claims (dark web), infostealer infections of employees, public breaches and recent incident news, all keyless |
 | 🔌 **API** | `POST /lookup` with per-user tokens: every source plus the same verdict in one call, logged in History, ready for SOAR / scripts |
 | 🔐 **Access control** | Sign-in required; Admin · Analyst · Reader roles; server-side sessions; keys managed and tested from the **Connectors** page |
 | 🕓 **History** | Every lookup is stored with a frozen snapshot of every source's answer; recurring indicators are flagged |
@@ -73,7 +74,7 @@ For CVEs the quadrants are worded as exploitation risk. Weights and thresholds a
 
 ## 🔎 Sources
 
-**36 integrations across 7 indicator types.** 15 of them work with no API key at all, and most others have a free tier.
+**42 integrations across 8 indicator types.** 21 of them work with no API key at all, and most others have a free tier.
 
 | Category | Sources |
 |---|---|
@@ -83,49 +84,56 @@ For CVEs the quadrants are worded as exploitation risk. Weights and thresholds a
 | **Infrastructure context** | Shodan · IPinfo · RIPEstat · Tor exit nodes · RDAP · Tranco · CIRCL Passive DNS · CIRCL hashlookup |
 | **Threat actors** | MITRE ATT&CK · Malpedia · Recorded Future · OTX · OpenCTI |
 | **Vulnerabilities** | NVD · CISA KEV · VulnCheck KEV · EPSS · OTX · OpenCTI |
+| **Companies** | Wikidata · GLEIF · ransomware.live · Hudson Rock · Have I Been Pwned · GDELT |
 | **Your platforms** | MISP (N instances) · OpenCTI (N instances, 6.0+) |
 
 <details>
 <summary><b>Full coverage table (which types each source supports)</b></summary>
 
-| Source | IP | Domain | URL | Hash | ASN | Threat Actor | CVE |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| [AbuseIPDB](https://www.abuseipdb.com) | ✅ | | | | | | |
-| [VirusTotal](https://www.virustotal.com) | ✅ | ✅ | ✅ | ✅ | | | |
-| [ThreatFox · abuse.ch](https://threatfox.abuse.ch) | ✅ | | | ✅ | | | |
-| [AlienVault OTX](https://otx.alienvault.com) | ✅ | ✅ | ✅ | ✅ | | ✅ | ✅ |
-| [IPinfo](https://ipinfo.io) | ✅ | | | | | | |
-| [Shodan](https://www.shodan.io) | ✅ | | | | ✅ | | |
-| [Tor Exit Nodes (dan.me.uk)](https://www.dan.me.uk/tornodes) | ✅ | | | | | | |
-| [URLhaus · abuse.ch](https://urlhaus.abuse.ch) | ✅ | ✅ | ✅ | ✅ | | | |
-| [MITRE ATT&CK](https://attack.mitre.org) | | | | | | ✅ | |
-| [RIPEstat](https://stat.ripe.net) | ✅ | | | | ✅ | | |
-| [urlscan.io](https://urlscan.io) | | ✅ | ✅ | | | | |
-| [MalwareBazaar · abuse.ch](https://bazaar.abuse.ch) | | | | ✅ | | | |
-| [PhishTank](https://phishtank.org) | | | ✅ | | | | |
-| [MISP](https://www.misp-project.org) *(any number of instances)* | ✅ | ✅ | ✅ | ✅ | | | |
-| [OpenCTI](https://filigran.io/platforms/opencti/) *(any number of instances, 6.0+)* | ✅ | ✅ | ✅ | ✅ | | ✅ | ✅ |
-| [Recorded Future](https://www.recordedfuture.com) *(+ Insikt links, Threat Map)* | ✅ | ✅ | ✅ | ✅ | | ✅ | |
-| [ANY.RUN](https://any.run) *(TI Lookup)* | ✅ | ✅ | ✅ | ✅ | | | |
-| [GreyNoise](https://greynoise.io) *(Community)* | ✅ | | | | | | |
-| [Hybrid Analysis](https://hybrid-analysis.com) *(Falcon Sandbox)* | ✅ | ✅ | ✅ | ✅ | | | |
-| [Google Safe Browsing](https://safebrowsing.google.com) | | | ✅ | | | | |
-| [TweetFeed](https://tweetfeed.live) | ✅ | ✅ | ✅ | ✅ | | | |
-| [CrowdSec CTI](https://www.crowdsec.net/cti) | ✅ | | | | | | |
-| [CIRCL hashlookup](https://hashlookup.circl.lu) *(known-good files)* | | | | ✅ | | | |
-| RDAP *(domain registration / age)* | | ✅ | ✅ | | | | |
-| [Tranco](https://tranco-list.eu) *(top 1M domains)* | | ✅ | | | | | |
-| [Malpedia](https://malpedia.caad.fkie.fraunhofer.de) | | | | | | ✅ | |
-| [Spamhaus](https://www.spamhaus.org) *(ZEN, DBL, ASN-DROP)* | ✅ | ✅ | ✅ | | ✅ | | |
-| [OpenPhish](https://openphish.com) *(community feed)* | ✅ | ✅ | ✅ | | | | |
-| [YARAify · abuse.ch](https://yaraify.abuse.ch) | | | | ✅ | | | |
-| [SSLBL · abuse.ch](https://sslbl.abuse.ch) *(certificate SHA-1)* | | | | ✅ | | | |
-| [CIRCL Passive DNS](https://www.circl.lu/services/passive-dns/) | ✅ | ✅ | | | | | |
-| [NVD (NIST)](https://nvd.nist.gov) *(CVSS, CWE, affected products)* | | | | | | | ✅ |
-| [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) *(known exploited)* | | | | | | | ✅ |
-| [EPSS · FIRST](https://www.first.org/epss) *(exploitation probability)* | | | | | | | ✅ |
-| [Kaspersky OpenTIP](https://opentip.kaspersky.com) | ✅ | ✅ | ✅ | ✅ | | | |
-| [VulnCheck KEV](https://vulncheck.com/kev) *(known exploited, earlier and wider than CISA)* | | | | | | | ✅ |
+| Source | IP | Domain | URL | Hash | ASN | Threat Actor | CVE | Company |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| [AbuseIPDB](https://www.abuseipdb.com) | ✅ | | | | | | | |
+| [VirusTotal](https://www.virustotal.com) | ✅ | ✅ | ✅ | ✅ | | | | |
+| [ThreatFox · abuse.ch](https://threatfox.abuse.ch) | ✅ | | | ✅ | | | | |
+| [AlienVault OTX](https://otx.alienvault.com) | ✅ | ✅ | ✅ | ✅ | | ✅ | ✅ | |
+| [IPinfo](https://ipinfo.io) | ✅ | | | | | | | |
+| [Shodan](https://www.shodan.io) | ✅ | | | | ✅ | | | |
+| [Tor Exit Nodes (dan.me.uk)](https://www.dan.me.uk/tornodes) | ✅ | | | | | | | |
+| [URLhaus · abuse.ch](https://urlhaus.abuse.ch) | ✅ | ✅ | ✅ | ✅ | | | | |
+| [MITRE ATT&CK](https://attack.mitre.org) | | | | | | ✅ | | |
+| [RIPEstat](https://stat.ripe.net) | ✅ | | | | ✅ | | | |
+| [urlscan.io](https://urlscan.io) | | ✅ | ✅ | | | | | |
+| [MalwareBazaar · abuse.ch](https://bazaar.abuse.ch) | | | | ✅ | | | | |
+| [PhishTank](https://phishtank.org) | | | ✅ | | | | | |
+| [MISP](https://www.misp-project.org) *(any number of instances)* | ✅ | ✅ | ✅ | ✅ | | | | |
+| [OpenCTI](https://filigran.io/platforms/opencti/) *(any number of instances, 6.0+)* | ✅ | ✅ | ✅ | ✅ | | ✅ | ✅ | |
+| [Recorded Future](https://www.recordedfuture.com) *(+ Insikt links, Threat Map)* | ✅ | ✅ | ✅ | ✅ | | ✅ | | |
+| [ANY.RUN](https://any.run) *(TI Lookup)* | ✅ | ✅ | ✅ | ✅ | | | | |
+| [GreyNoise](https://greynoise.io) *(Community)* | ✅ | | | | | | | |
+| [Hybrid Analysis](https://hybrid-analysis.com) *(Falcon Sandbox)* | ✅ | ✅ | ✅ | ✅ | | | | |
+| [Google Safe Browsing](https://safebrowsing.google.com) | | | ✅ | | | | | |
+| [TweetFeed](https://tweetfeed.live) | ✅ | ✅ | ✅ | ✅ | | | | |
+| [CrowdSec CTI](https://www.crowdsec.net/cti) | ✅ | | | | | | | |
+| [CIRCL hashlookup](https://hashlookup.circl.lu) *(known-good files)* | | | | ✅ | | | | |
+| RDAP *(domain registration / age)* | | ✅ | ✅ | | | | | |
+| [Tranco](https://tranco-list.eu) *(top 1M domains)* | | ✅ | | | | | | |
+| [Malpedia](https://malpedia.caad.fkie.fraunhofer.de) | | | | | | ✅ | | |
+| [Spamhaus](https://www.spamhaus.org) *(ZEN, DBL, ASN-DROP)* | ✅ | ✅ | ✅ | | ✅ | | | |
+| [OpenPhish](https://openphish.com) *(community feed)* | ✅ | ✅ | ✅ | | | | | |
+| [YARAify · abuse.ch](https://yaraify.abuse.ch) | | | | ✅ | | | | |
+| [SSLBL · abuse.ch](https://sslbl.abuse.ch) *(certificate SHA-1)* | | | | ✅ | | | | |
+| [CIRCL Passive DNS](https://www.circl.lu/services/passive-dns/) | ✅ | ✅ | | | | | | |
+| [NVD (NIST)](https://nvd.nist.gov) *(CVSS, CWE, affected products)* | | | | | | | ✅ | |
+| [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) *(known exploited)* | | | | | | | ✅ | |
+| [EPSS · FIRST](https://www.first.org/epss) *(exploitation probability)* | | | | | | | ✅ | |
+| [Kaspersky OpenTIP](https://opentip.kaspersky.com) | ✅ | ✅ | ✅ | ✅ | | | | |
+| [VulnCheck KEV](https://vulncheck.com/kev) *(known exploited, earlier and wider than CISA)* | | | | | | | ✅ | |
+| [Wikidata](https://www.wikidata.org) *(sector, countries, subsidiaries)* | | | | | | | | ✅ |
+| [GLEIF](https://www.gleif.org) *(legal entity, LEI, parent / subsidiaries)* | | | | | | | | ✅ |
+| [ransomware.live](https://www.ransomware.live) *(ransomware leak-site victims)* | | | | | | | | ✅ |
+| [Hudson Rock](https://www.hudsonrock.com/free-tools) *(infostealer infections, by domain)* | | | | | | | | ✅ |
+| [Have I Been Pwned](https://haveibeenpwned.com) *(public breaches, by domain)* | | | | | | | | ✅ |
+| [GDELT](https://www.gdeltproject.org) *(incident news, 90 days)* | | | | | | | | ✅ |
 
 </details>
 

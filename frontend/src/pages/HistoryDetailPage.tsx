@@ -5,6 +5,7 @@ import { ArrowLeft, History } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Layout from '@/components/Layout'
 import SummarySection from '@/components/results/SummarySection'
+import CompanyReport from '@/components/company/CompanyReport'
 import SearchFrequencyCard from '@/components/results/SearchFrequencyCard'
 import RawJsonModal from '@/components/results/RawJsonModal'
 import { useEngines } from '@/EnginesContext'
@@ -139,6 +140,28 @@ export default function HistoryDetailPage() {
     })
     .sort((x, y) => compareCards(x.rank, y.rank))
 
+  const cards = orderedResults.map(({ engineId, stored }) => {
+    const engine = engines.find(e => e.id === engineId)
+    if (!engine) {
+      return <UnknownEngineCard key={engineId} label={stored.label} data={stored.data} />
+    }
+    const Component = engine.component
+    const assessment = assessments[engineId]
+    return (
+      <Component
+        key={engineId}
+        loading={false}
+        error={stored.error === BACKEND_DOWN ? t('common.backendDown') : stored.error}
+        data={stored.data}
+        label={stored.label}
+        score={assessment.subscore}
+        weight={{ ...weightsOf(engineId), depth: assessment.depth }}
+        indicator={entry.indicator}
+        type={entry.type}
+      />
+    )
+  })
+
   return (
     <Layout>
       <main className="flex-1 px-6 py-6 w-full max-w-5xl mx-auto flex flex-col gap-6">
@@ -167,6 +190,11 @@ export default function HistoryDetailPage() {
 
         <SearchFrequencyCard indicator={entry.indicator} excludeSelf />
 
+        {entry.type === 'company' ? (
+          <CompanyReport indicator={entry.indicator} results={resultsForSummary} verdict={verdict} thresholds={config?.thresholds ?? null}>
+            {cards}
+          </CompanyReport>
+        ) : (<>
         <SummarySection
           indicator={entry.indicator}
           type={entry.type}
@@ -186,32 +214,9 @@ export default function HistoryDetailPage() {
 
         <div className="flex flex-col gap-3">
           <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">{t('results.byEngine')}</p>
-          <div className="grid grid-cols-1 gap-4">
-            {orderedResults.map(({ engineId, stored }) => {
-              const engine = engines.find(e => e.id === engineId)
-              if (!engine) {
-                return <UnknownEngineCard key={engineId} label={stored.label} data={stored.data} />
-              }
-              const Component = engine.component
-              const assessment = assessments[engineId]
-              const score = assessment.subscore
-              const weight = { ...weightsOf(engineId), depth: assessment.depth }
-              return (
-                <Component
-                  key={engineId}
-                  loading={false}
-                  error={stored.error === BACKEND_DOWN ? t('common.backendDown') : stored.error}
-                  data={stored.data}
-                  label={stored.label}
-                  score={score}
-                  weight={weight}
-                  indicator={entry.indicator}
-                  type={entry.type}
-                />
-              )
-            })}
-          </div>
+          <div className="grid grid-cols-1 gap-4">{cards}</div>
         </div>
+        </>)}
 
       </main>
     </Layout>

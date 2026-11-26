@@ -8,13 +8,14 @@ How IntelChecker turns the answers of every CTI source into a verdict, and how t
 
 Sign in with the account your admin gave you (the first time you'll be asked to choose your own password). Running lookups needs the **Analyst** or **Admin** role; **Readers** can only browse History. Roles are described in [admin.md § 0](admin.md#0-users-and-roles).
 
-Type an indicator on the home page, pick its type (IP, Domain, URL, File Hash, ASN, Threat Actor, Vulnerability (CVE)) and press **Analyze**. Every source that supports the type is queried **in parallel**, and each card appears as soon as its own source answers.
+Type an indicator on the home page, pick its type (IP, Domain, URL, File Hash, ASN, Threat Actor, Vulnerability (CVE)) and press **Analyze**. Two tabs under the header switch between the two search tools: **Artifacts** (indicators, this section) and **Companies** (below). Every source that supports the type is queried **in parallel**, and each card appears as soon as its own source answers.
 
 - The source list under the search box shows only the configured sources (admins also see how many are missing, with a link to **Connectors**). Its switch turns a source off for that browser; disabled sources aren't queried and don't count in any score.
 - Each source shows its **R** (risk) and **K** (knowledge) weight. Sources are sorted by risk weight, then knowledge weight.
 - Sources without an API key are left out of the lookup and **not shown on the results page** at all (the Summary says how many there are).
 - **Card order on the results page** (and in History entries): first the sources with a result, highest risk subscore first — clean (0) before context-only — and, on ties, the larger Knowledge contribution (knowledge weight × depth). Then the sources still loading, and at the end those without a result: no record, errors, and sources you switched off. Cards move up as their answers arrive.
 - Lookups are always live — nothing is cached.
+- **Companies** (the **Companies** tab, `/companies`): its own sources, and a **company report** instead of the artifact results — the profile (sector, headquarters, countries, legal entity, parent, employees, website), the verdict as *Exposure* / *Identification*, four exposure tiles (dark web · ransomware, infostealers, data breaches, incidents in the news), an incident timeline and, at the end, the per-source cards. History entries of companies open in the same report. A company name is ambiguous ("Iberia" is an airline, a piano suite and a peninsula), so pressing **Analyze** first lists the matching **Wikidata** organisations with country, domain and Wikidata id. Pick one and it is searched as `Name (domain, Q-id[, LEI])`, so every source — and the history — refers to that exact entity. *Search as typed* uses only what you wrote. You can also type that format yourself, e.g. `Iberia (iberia.com)`, or just a domain. Hudson Rock and Have I Been Pwned search by domain: without one they say so and are left out of Knowledge.
 
 ## 2. The two scores
 
@@ -71,6 +72,8 @@ In the "known, low risk" cell the label depends on *why* the risk is low:
 
 **Vulnerabilities (CVE)** use the same quadrants with wording about *exploitation risk*: *High exploitation risk*, *High risk · Little data*, *Known · Low risk*, *Known · Moderate risk* (e.g. a severe CVE that is unlikely to be exploited), *Known · Not scored* and *Unknown CVE*. Risk combines NVD's CVSS, the EPSS probability, CISA KEV and VulnCheck KEV (known exploitation) and OTX (seen in the wild, public exploits).
 
+**Companies** use the same quadrants with wording about *exposure* — the company as a victim: *High exposure*, *Exposure · Little data*, *Known · No exposure found*, *Known · Low exposure*, *Known · No exposure data* and *Unknown company*. Risk combines ransomware leak-site claims (ransomware.live), infostealer infections of employees (Hudson Rock) and public breaches (Have I Been Pwned); Knowledge also counts how well Wikidata and GLEIF identify the company and recent incident headlines (GDELT).
+
 Default thresholds: knowledge ≥ 4, risk ≥ 5 (both editable in Admin). The per-source subscore and depth rules are listed in [admin.md § 6](admin.md#6-reference-defaults-and-scoring-rules-per-source).
 
 ## 3. The results page
@@ -83,6 +86,7 @@ Default thresholds: knowledge ≥ 4, risk ≥ 5 (both editable in Admin). The pe
 - **Threat actor relations** — one row per actor with every source that relates the indicator to it (OTX pulse adversaries, MISP threat-actor galaxies, OpenCTI related actors, actors and malware Recorded Future links to the indicator (only when its RF risk is ≥ 25: below that, links describe what uses the infrastructure), the Malpedia actor profile, actor names found in any source's tags, matched against MITRE ATT&CK). Recorded Future "Linked to APT" rules appear as unnamed relations. If sources answered and none relates it to an actor, the block says so. Campaigns (TweetFeed) are listed underneath.
 - **Activity window** — earliest first-seen and latest last-seen across all sources.
 - **GeoIP · ASN · ISP · Tor · Ports** — network context with how many sources agree on each value.
+- **Company profile & exposure** — for company lookups: ransomware leak-site claims (count · groups · last), infostealers (infected employees / users), public breaches, incident headlines, sector, headquarters country, countries with subsidiaries, legal entity (LEI) and employees. The ransomware groups that claimed it show up as threat actor relations and the infostealer families as malware families.
 - **CVSS · Exploited (KEV) · EPSS** — for CVE lookups: the CVSS score and severity, whether it's a known exploited vulnerability (reported by CISA KEV, VulnCheck KEV and NVD) and the EPSS probability with its percentile. The NVD publication date is the CVE's *first seen*.
 
 ### Matrix view and breakdown

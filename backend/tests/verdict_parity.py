@@ -30,16 +30,17 @@ sys.path.insert(0, str(ROOT / "backend"))
 from app.core.verdict import compute_verdict, get_engine_assessment  # noqa: E402
 
 CLI = ROOT / "frontend" / "scripts" / "verdict-cli.ts"
-TYPES = ["ip", "domain", "url", "hash", "asn", "threat-actor", "cve"]
+TYPES = ["ip", "domain", "url", "hash", "asn", "threat-actor", "cve", "company"]
 ENGINE_IDS = [
     "abuseipdb", "virustotal", "abusech", "alienvault", "ipinfo", "shodan", "torexitlist", "urlhaus",
     "mitreattack", "ripestat", "urlscan", "malwarebazaar", "phishtank", "recordedfuture", "anyrun",
     "greynoise", "hybridanalysis", "safebrowsing", "tweetfeed", "crowdsec", "hashlookup", "rdap", "tranco",
     "malpedia", "spamhaus", "openphish", "sslbl", "yaraify", "circlpdns", "nvd", "cisakev", "epss", "opentip", "vulncheckkev",
+    "wikidata", "gleif", "ransomwarelive", "hudsonrock", "hibp", "gdelt",
     "misp_1", "misp_2", "opencti_1", "opencti_2",
 ]
 ERROR_CODES = ["NotFound", "MissingApiKey", "RateLimitExceeded", "Timeout", "NetworkError",
-               "ServiceUnavailable", "HttpError", "Unauthorized", "UnsupportedType", "ApiError"]
+               "ServiceUnavailable", "HttpError", "Unauthorized", "UnsupportedType", "ApiError", "NeedsDomain"]
 
 
 def maybe(r: random.Random, value, p_missing=0.15):
@@ -162,6 +163,21 @@ def payload(r: random.Random, engine: str):
     if engine == "opentip":
         return obj(Zone=m(r.choice(["Red", "Orange", "Yellow", "Green", "Grey", "red", "", "constructor", 3])),
                    applicable=m(r.choice([True, False, None])))
+    days = [0, 1, 89, 90, 91, 364, 365, 366, 1094, 1095, 1096, 5000, -1, "30", True, None]
+    if engine == "wikidata":
+        return obj(found=m(r.choice([True, False, 1])), exact=m(r.choice([True, False, 1, "true"])),
+                   sectors=m(r.choice([[], ["airline"], "airline"])), countries=m(r.choice([[], ["Spain"], {}])))
+    if engine == "gleif":
+        return obj(found=m(r.choice([True, False, 1, ""])), exact=m(r.choice([True, False, 1])))
+    if engine == "ransomwarelive":
+        return obj(listed=m(r.choice([True, False, 1, "true"])), days_since_last=m(r.choice(days)))
+    if engine == "hudsonrock":
+        return obj(total=m(r.choice([0, 1, 36301, -1, "5", True])), employees=m(r.choice([0, 1, 1623, -2, "3", True])),
+                   days_since_employee=m(r.choice(days)))
+    if engine == "hibp":
+        return obj(count=m(r.choice([0, 1, 3, -1, "2", True])), days_since_latest=m(r.choice(days)))
+    if engine == "gdelt":
+        return obj(in_title=m(r.choice([0, 1, 2, 3, 40, -1, "4", True])))
     if engine == "vulncheckkev":
         return obj(listed=m(r.choice([True, False, 1])), ransomware=m(r.choice(["Known", "Unknown", ""])))
     if engine.startswith("opencti_"):

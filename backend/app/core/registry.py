@@ -48,6 +48,13 @@ STATIC_ENGINES: dict[str, dict] = {
     "epss":           _engine("EPSS · FIRST", ["cve"], None),
     "opentip":        _engine("Kaspersky OpenTIP", ["ip", "domain", "url", "hash"], "KASPERSKY_OPENTIP_API_KEY"),
     "vulncheckkev":   _engine("VulnCheck KEV", ["cve"], "VULNCHECK_API_KEY"),
+    # Companies (organisations): profile, leak sites, infostealers, breaches, news.
+    "wikidata":       _engine("Wikidata", ["company"], None),
+    "gleif":          _engine("GLEIF (LEI)", ["company"], None),
+    "ransomwarelive": _engine("ransomware.live", ["company"], None),
+    "hudsonrock":     _engine("Hudson Rock (infostealers)", ["company"], None),
+    "hibp":           _engine("Have I Been Pwned", ["company"], None),
+    "gdelt":          _engine("GDELT (news)", ["company"], None),
 }
 
 # MISP and OpenCTI are multi-instance: any number of servers, managed from the Connectors page
@@ -83,4 +90,4 @@ def is_connected(meta: dict) -> bool:
     return True if meta["key"] is None else bool(connectors.secret(meta["key"]))
 
 
-INDICATOR_TYPES = ("ip", "domain", "url", "hash", "asn", "threat-actor", "cve")
+INDICATOR_TYPES = ("ip", "domain", "url", "hash", "asn", "threat-actor", "cve", "company")

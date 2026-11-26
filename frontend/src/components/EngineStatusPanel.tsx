@@ -10,6 +10,8 @@ import { useAuth } from '@/auth/context'
 
 interface Props {
   selectedType: string
+  /** Which search tab the panel belongs to: only that tab's sources are listed */
+  scope?: 'artifacts' | 'companies'
 }
 
 function ToggleSwitch({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
@@ -105,7 +107,7 @@ function EngineCard({
   )
 }
 
-export default function EngineStatusPanel({ selectedType }: Props) {
+export default function EngineStatusPanel({ selectedType, scope = 'artifacts' }: Props) {
   const { engines, status } = useEngines()
   const { disabled, toggle } = useEngineToggles()
   const config = useVerdictWeights()
@@ -114,7 +116,11 @@ export default function EngineStatusPanel({ selectedType }: Props) {
 
   if (!status) return null
 
-  const enriched = engines.map(engine => {
+  // Each search tab lists only its own sources: company sources on the company tab,
+  // the rest on the artifact tab.
+  const inScope = (supports: string[]) =>
+    scope === 'companies' ? supports.includes('company') : supports.some(t => t !== 'company')
+  const enriched = engines.filter(engine => inScope(status[engine.id]?.supports ?? engine.supports)).map(engine => {
     const s = status[engine.id]
     const connected = s?.connected ?? false
     const supports: string[] = s?.supports ?? engine.supports

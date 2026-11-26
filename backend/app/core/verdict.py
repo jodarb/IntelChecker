@@ -86,6 +86,10 @@ DEFAULT_SCORING = {"knowledge_full_at": 70}
 
 TRANSIENT_ERROR_CODES = {"RateLimitExceeded", "Timeout", "NetworkError", "ServiceUnavailable", "HttpError"}
 
+# The source can't evaluate this kind of input (company without a domain): also left
+# out of the knowledge total.
+NOT_APPLICABLE_ERROR_CODES = {"NeedsDomain"}
+
 NO_DATA_ERROR_CODES = {"NotFound"}
 
 TRANCO_CLEAN_MAX_RANK = 100000
@@ -431,6 +435,48 @@ def _vulncheck_kev_subscore(d: Any) -> float | None:
     return 10 if _get(d, "ransomware") == "Known" else 9
 
 
+# ── Companies: "risk" is exposure (the company as a victim) ──
+
+def _ransomwarelive_subscore(d: Any) -> float | None:
+    if _get(d, "listed") is not True:
+        return None
+    days = _get(d, "days_since_last")
+    if not _is_num(days):
+        return 8
+    if days <= 90:
+        return 10
+    if days <= 365:
+        return 9
+    return 7
+
+
+def _hudsonrock_subscore(d: Any) -> float | None:
+    total = _get(d, "total")
+    if not _is_num(total):
+        return None
+    employees = _get(d, "employees") if _is_num(_get(d, "employees")) else 0
+    if employees > 0:
+        days = _get(d, "days_since_employee")
+        if _is_num(days) and days <= 90:
+            return 9
+        if _is_num(days) and days <= 365:
+            return 7
+        return 5
+    return 2 if total > 0 else 0
+
+
+def _hibp_subscore(d: Any) -> float | None:
+    count = _get(d, "count")
+    if not _is_num(count) or count <= 0:
+        return None
+    days = _get(d, "days_since_latest")
+    if _is_num(days) and days <= 365:
+        return 7
+    if _is_num(days) and days <= 1095:
+        return 5
+    return 3
+
+
 def _misp_subscore(d: Any) -> float | None:
     attrs = _get(d, "Attribute")
     if not isinstance(attrs, list):
@@ -502,6 +548,9 @@ _VERDICT_NORMALIZERS: dict[str, dict] = {
     "epss": {"cve": _epss_subscore},
     "opentip": _for(_ALL4, _opentip_subscore),
     "vulncheckkev": {"cve": _vulncheck_kev_subscore},
+    "ransomwarelive": {"company": _ransomwarelive_subscore},
+    "hudsonrock": {"company": _hudsonrock_subscore},
+    "hibp": {"company": _hibp_subscore},
 }
 
 
@@ -762,6 +811,44 @@ def _vulncheck_kev_depth(d: Any) -> float:
     return 1 if _get(d, "listed") is True else 0
 
 
+def _wikidata_depth(d: Any) -> float:
+    if not _truthy(_get(d, "found")):
+        return 0
+    if _get(d, "exact") is True and (len(_arr(_get(d, "sectors"))) > 0 or len(_arr(_get(d, "countries"))) > 0):
+        return 1
+    return 0.5
+
+
+def _gleif_depth(d: Any) -> float:
+    if not _truthy(_get(d, "found")):
+        return 0
+    return 1 if _get(d, "exact") is True else 0.5
+
+
+def _ransomwarelive_depth(d: Any) -> float:
+    return 1 if _get(d, "listed") is True else 0
+
+
+def _hudsonrock_depth(d: Any) -> float:
+    total = _get(d, "total")
+    if not _is_num(total) or total <= 0:
+        return 0
+    employees = _get(d, "employees")
+    return 1 if _is_num(employees) and employees > 0 else 0.5
+
+
+def _hibp_depth(d: Any) -> float:
+    count = _get(d, "count")
+    return 1 if _is_num(count) and count > 0 else 0
+
+
+def _gdelt_depth(d: Any) -> float:
+    n = _get(d, "in_title")
+    if not _is_num(n) or n <= 0:
+        return 0
+    return 0.5 if n <= 2 else 1
+
+
 _DEPTH_FNS = {
     "tweetfeed": _tweetfeed_depth,
     "virustotal": _vt_depth,
@@ -797,6 +884,12 @@ _DEPTH_FNS = {
     "epss": _epss_depth,
     "opentip": _opentip_depth,
     "vulncheckkev": _vulncheck_kev_depth,
+    "wikidata": _wikidata_depth,
+    "gleif": _gleif_depth,
+    "ransomwarelive": _ransomwarelive_depth,
+    "hudsonrock": _hudsonrock_depth,
+    "hibp": _hibp_depth,
+    "gdelt": _gdelt_depth,
 }
 
 
@@ -850,7 +943,7 @@ def _is_transient_failure(result: dict | None) -> bool:
     if _truthy(result.get("error")):
         return True
     code = _error_code(result.get("data"))
-    return _truthy(code) and code in TRANSIENT_ERROR_CODES
+    return _truthy(code) and (_key(code) in TRANSIENT_ERROR_CODES or _key(code) in NOT_APPLICABLE_ERROR_CODES)
 
 
 def compute_verdict(config: dict, engines: list[dict], results: dict[str, dict], type: str) -> dict:

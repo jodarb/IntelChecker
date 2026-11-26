@@ -34,11 +34,20 @@ import CisaKevCard from '@/components/results/CisaKevCard'
 import EpssCard from '@/components/results/EpssCard'
 import OpenTipCard from '@/components/results/OpenTipCard'
 import VulnCheckKevCard from '@/components/results/VulnCheckKevCard'
+import WikidataCard from '@/components/results/WikidataCard'
+import GleifCard from '@/components/results/GleifCard'
+import RansomwareLiveCard from '@/components/results/RansomwareLiveCard'
+import HudsonRockCard from '@/components/results/HudsonRockCard'
+import HibpCard from '@/components/results/HibpCard'
+import GdeltCard from '@/components/results/GdeltCard'
 
-export type IndicatorType = 'ip' | 'domain' | 'url' | 'hash' | 'asn' | 'threat-actor' | 'cve'
+export type IndicatorType = 'ip' | 'domain' | 'url' | 'hash' | 'asn' | 'threat-actor' | 'cve' | 'company'
 
 /** Every indicator type, in the order of the search box and the Docs coverage table. */
-export const INDICATOR_TYPES: IndicatorType[] = ['ip', 'domain', 'url', 'hash', 'asn', 'threat-actor', 'cve']
+export const INDICATOR_TYPES: IndicatorType[] = ['ip', 'domain', 'url', 'hash', 'asn', 'threat-actor', 'cve', 'company']
+
+/** Types of the artifact search (companies have their own search tab). */
+export const ARTIFACT_TYPES: IndicatorType[] = INDICATOR_TYPES.filter(t => t !== 'company')
 
 export interface CardProps {
   loading: boolean
@@ -306,6 +315,49 @@ export const STATIC_ENGINES: EngineConfig[] = [
     supports: ['cve'],
     component: VulnCheckKevCard as React.ComponentType<CardProps>,
     logo: '/logos/vulncheckkev.png',
+  },
+  // Companies
+  {
+    id: 'wikidata',
+    label: 'Wikidata',
+    supports: ['company'],
+    component: WikidataCard as React.ComponentType<CardProps>,
+    logo: '/logos/wikidata.png',
+  },
+  {
+    id: 'gleif',
+    label: 'GLEIF (LEI)',
+    supports: ['company'],
+    component: GleifCard as React.ComponentType<CardProps>,
+    logo: '/logos/gleif.png',
+  },
+  {
+    id: 'ransomwarelive',
+    label: 'ransomware.live',
+    supports: ['company'],
+    component: RansomwareLiveCard as React.ComponentType<CardProps>,
+    logo: '/logos/ransomwarelive.png',
+  },
+  {
+    id: 'hudsonrock',
+    label: 'Hudson Rock (infostealers)',
+    supports: ['company'],
+    component: HudsonRockCard as React.ComponentType<CardProps>,
+    logo: '/logos/hudsonrock.png',
+  },
+  {
+    id: 'hibp',
+    label: 'Have I Been Pwned',
+    supports: ['company'],
+    component: HibpCard as React.ComponentType<CardProps>,
+    logo: '/logos/hibp.png',
+  },
+  {
+    id: 'gdelt',
+    label: 'GDELT (news)',
+    supports: ['company'],
+    component: GdeltCard as React.ComponentType<CardProps>,
+    logo: '/logos/gdelt.png',
   },
 ]
 

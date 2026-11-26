@@ -19,7 +19,9 @@ from app.services import (
     crowdsec, hashlookup, rdap, tranco, malpedia,
     spamhaus, openphish, yaraify, sslbl, circlpdns,
     nvd, cisakev, epss, opentip, vulncheckkev,
+    wikidata, gleif, ransomwarelive, hudsonrock, hibp, gdelt,
 )
+from app.core import company as company_core
 
 
 log = logging.getLogger("intelchecker")
@@ -81,6 +83,12 @@ _SERVICES = {
     "epss": epss,
     "opentip": opentip,
     "vulncheckkev": vulncheckkev,
+    "wikidata": wikidata,
+    "gleif": gleif,
+    "ransomwarelive": ransomwarelive,
+    "hudsonrock": hudsonrock,
+    "hibp": hibp,
+    "gdelt": gdelt,
 }
 
 
@@ -257,6 +265,7 @@ _TEST_INDICATORS = {
     "asn": "AS15169",
     "threat-actor": "APT28",
     "cve": "CVE-2021-44228",
+    "company": "Adobe (adobe.com, Q207922)",
 }
 
 
@@ -498,6 +507,16 @@ async def lookup(req: LookupRequest, user: dict = CanAnalyze):
         "sources": sources,
         "contributions": verdict["contributions"],
     }
+
+
+@app.get("/company/resolve", dependencies=[CanAnalyze])
+async def company_resolve(q: str):
+    """Wikidata candidates for a company name or domain, for the search box: each one
+    with the indicator ("Name (domain, QID[, LEI])") that pins the exact entity."""
+    q = q.strip()
+    if not q:
+        raise auth.api_error(422, "InvalidIndicator", "The query is empty.")
+    return await company_core.resolve(q[:200])
 
 
 @app.get("/mitre/aliases", dependencies=[SignedIn])

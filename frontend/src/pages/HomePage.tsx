@@ -13,7 +13,7 @@ import {
 import Layout from '@/components/Layout'
 import EngineStatusPanel from '@/components/EngineStatusPanel'
 import { useI18n } from '@/i18n/useI18n'
-import { INDICATOR_TYPES } from '@/registry'
+import { ARTIFACT_TYPES } from '@/registry'
 
 // "cve 2021 44228", "cve-2021-44228" → "CVE-2021-44228", so history entries group together.
 const normalizeIndicator = (value: string, type: string) =>
@@ -27,12 +27,13 @@ export default function HomePage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!query.trim()) return
-    navigate(`/results?indicator=${encodeURIComponent(normalizeIndicator(query.trim(), iocType))}&type=${iocType}`)
+    const q = query.trim()
+    if (!q) return
+    navigate(`/results?indicator=${encodeURIComponent(normalizeIndicator(q, iocType))}&type=${iocType}`)
   }
 
   return (
-    <Layout>
+    <Layout tab="artifacts">
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-10 gap-8">
         <div className="text-center space-y-6">
           <div className="space-y-2">
@@ -52,7 +53,7 @@ export default function HomePage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {INDICATOR_TYPES.map(type => (
+                {ARTIFACT_TYPES.map(type => (
                   <SelectItem key={type} value={type}>
                     {t(`type.${type}`)}
                   </SelectItem>

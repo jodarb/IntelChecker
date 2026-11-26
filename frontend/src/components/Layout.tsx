@@ -1,4 +1,4 @@
-import { History, SlidersHorizontal, BookOpen, LogOut, UserRound, TriangleAlert, Users, Plug } from 'lucide-react'
+import { History, SlidersHorizontal, BookOpen, LogOut, UserRound, TriangleAlert, Users, Plug, Crosshair, Building2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import HeaderControls from '@/components/HeaderControls'
@@ -6,11 +6,46 @@ import { useAuth } from '@/auth/context'
 import { useI18n } from '@/i18n/useI18n'
 import { rich } from '@/i18n/rich'
 
+export type SearchTab = 'artifacts' | 'companies'
+
 interface LayoutProps {
   children: React.ReactNode
+  /** Shows the search tabs under the header, with this one active (search and result pages) */
+  tab?: SearchTab
 }
 
-export default function Layout({ children }: LayoutProps) {
+// The two search tools — artifacts (IOCs) and companies — as tabs right under the
+// header, not in the header menu: they are the app's two workspaces, the menu holds
+// everything else (history, admin, docs).
+function SearchTabs({ active }: { active: SearchTab }) {
+  const { t } = useI18n()
+  const tabs: { id: SearchTab; to: string; icon: React.ReactNode; label: string }[] = [
+    { id: 'artifacts', to: '/', icon: <Crosshair className="h-4 w-4" />, label: t('tabs.artifacts') },
+    { id: 'companies', to: '/companies', icon: <Building2 className="h-4 w-4" />, label: t('tabs.companies') },
+  ]
+  return (
+    <nav aria-label={t('tabs.label')} className="border-b border-border px-6 flex gap-1 shrink-0 bg-muted/10">
+      {tabs.map(tab => {
+        const on = tab.id === active
+        return (
+          <Link
+            key={tab.id}
+            to={tab.to}
+            aria-current={on ? 'page' : undefined}
+            className={`inline-flex items-center gap-2 px-4 py-2.5 -mb-px border-b-2 text-sm font-medium transition-colors ${
+              on ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+            }`}
+          >
+            {tab.icon}
+            {tab.label}
+          </Link>
+        )
+      })}
+    </nav>
+  )
+}
+
+export default function Layout({ children, tab }: LayoutProps) {
   const { t } = useI18n()
   const { user, can, logout } = useAuth()
 
@@ -82,6 +117,7 @@ export default function Layout({ children }: LayoutProps) {
           )}
         </div>
       </header>
+      {tab && can('analyze') && <SearchTabs active={tab} />}
       {user?.default_password && (
         <div role="alert" className="flex items-center gap-2 px-6 py-2.5 border-b border-yellow-500/40 bg-yellow-500/10 text-sm text-yellow-700 dark:text-yellow-300">
           <TriangleAlert className="h-4 w-4 shrink-0" />

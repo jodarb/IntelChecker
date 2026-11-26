@@ -56,6 +56,12 @@ DEFAULT_ENGINE_WEIGHTS: dict[str, dict] = {
     "cisakev":        {"risk": 10, "knowledge": 3},
     "opentip":        {"risk": 8,  "knowledge": 6},
     "vulncheckkev":   {"risk": 10, "knowledge": 4},
+    "wikidata":       {"risk": 0,  "knowledge": 6},
+    "gleif":          {"risk": 0,  "knowledge": 4},
+    "ransomwarelive": {"risk": 10, "knowledge": 6},
+    "hudsonrock":     {"risk": 7,  "knowledge": 5},
+    "hibp":           {"risk": 5,  "knowledge": 3},
+    "gdelt":          {"risk": 0,  "knowledge": 3},
 }
 
 DEFAULT_THRESHOLDS = {"knowledge": 4, "risk": 5}

@@ -2,6 +2,8 @@ import type { ReactElement } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import HomePage from '@/pages/HomePage'
 import ResultsPage from '@/pages/ResultsPage'
+import CompanySearchPage from '@/pages/CompanySearchPage'
+import CompanyReportPage from '@/pages/CompanyReportPage'
 import HistoryPage from '@/pages/HistoryPage'
 import HistoryDetailPage from '@/pages/HistoryDetailPage'
 import AdminPage from '@/pages/AdminPage'
@@ -23,6 +25,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Allowed permission="analyze"><HomePage /></Allowed>} />
         <Route path="/results" element={<Allowed permission="analyze"><ResultsPage /></Allowed>} />
+        <Route path="/companies" element={<Allowed permission="analyze"><CompanySearchPage /></Allowed>} />
+        <Route path="/companies/report" element={<Allowed permission="analyze"><CompanyReportPage /></Allowed>} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/history/:id" element={<HistoryDetailPage />} />
         <Route path="/admin" element={<Allowed permission="admin"><AdminPage /></Allowed>} />

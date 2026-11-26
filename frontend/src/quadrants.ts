@@ -37,12 +37,15 @@ export const OUTCOME_META: Record<EngineOutcome, { className: string }> = {
   excluded: { className: 'text-red-400/80' },
 }
 
-// Vulnerabilities (CVE) reuse the same quadrants, but "risk" there is exploitation
-// risk, not maliciousness: they get their own wording (`quadrant.cve.<id>.*`).
+// Vulnerabilities (CVE) and companies reuse the same quadrants, but "risk" there is
+// exploitation risk / exposure, not maliciousness: they get their own wording
+// (`quadrant.cve.<id>.*`, `quadrant.company.<id>.*`).
+const quadrantPrefix = (type?: IndicatorType) =>
+  type === 'cve' ? 'quadrant.cve' : type === 'company' ? 'quadrant.company' : 'quadrant'
 export const quadrantLabel = (q: Quadrant, t: TFunction, type?: IndicatorType) =>
-  t(type === 'cve' ? `quadrant.cve.${q}.label` : `quadrant.${q}.label`)
+  t(`${quadrantPrefix(type)}.${q}.label` as Parameters<TFunction>[0])
 export const quadrantHint = (q: Quadrant, t: TFunction, type?: IndicatorType) =>
-  t(type === 'cve' ? `quadrant.cve.${q}.hint` : `quadrant.${q}.hint`)
+  t(`${quadrantPrefix(type)}.${q}.hint` as Parameters<TFunction>[0])
 export const outcomeLabel = (o: EngineOutcome, t: TFunction) => t(`outcome.${o}`)
 
 export function depthLabel(depth: number | null | undefined, t: TFunction): string {

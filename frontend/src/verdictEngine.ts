@@ -53,6 +53,13 @@ export const TRANSIENT_ERROR_CODES = new Set([
   'RateLimitExceeded', 'Timeout', 'NetworkError', 'ServiceUnavailable', 'HttpError',
 ])
 
+/**
+ * Error codes meaning the source can't evaluate *this kind of input* (a company
+ * looked up by name only, for a source that searches by domain): also left out of
+ * the knowledge total — the source isn't saying it doesn't know the company.
+ */
+export const NOT_APPLICABLE_ERROR_CODES = new Set(['NeedsDomain'])
+
 /** Knowledge Score from the weighted sum, the counted total and the saturation %. Unrounded. */
 export function knowledgeFromSums(num: number, total: number, fullAtPct: number): number {
   if (total <= 0) return 0
@@ -484,6 +491,50 @@ function vulncheckKevSubscore(d: unknown): number | null {
   if (p?.listed !== true) return null
   return p?.ransomware === 'Known' ? 10 : 9
 }
+
+// ── Companies: "risk" is exposure (the company as a victim), not maliciousness ──
+
+// ransomware.live: claimed as a victim on a ransomware leak site. The more recent
+// the claim, the higher: ≤ 90 days → 10, ≤ 1 year → 9, older → 7 (undated → 8).
+// Not listed is no data, never clean: leak sites only show who didn't pay.
+function ransomwareLiveSubscore(d: unknown): number | null {
+  const p = d as any
+  if (p?.listed !== true) return null
+  const days = p?.days_since_last
+  if (typeof days !== 'number') return 8
+  if (days <= 90) return 10
+  if (days <= 365) return 9
+  return 7
+}
+
+// Hudson Rock: employees with infostealer infections leak corporate access — recent
+// ones (≤ 90 days → 9, ≤ 1 year → 7, older → 5). Only customers / third parties → 2.
+// Nothing in the whole database for the domain is an explicit clean (0).
+function hudsonRockSubscore(d: unknown): number | null {
+  const p = d as any
+  const total = p?.total
+  if (typeof total !== 'number') return null
+  const employees = typeof p?.employees === 'number' ? p.employees : 0
+  if (employees > 0) {
+    const days = p?.days_since_employee
+    if (typeof days === 'number' && days <= 90) return 9
+    if (typeof days === 'number' && days <= 365) return 7
+    return 5
+  }
+  return total > 0 ? 2 : 0
+}
+
+// HIBP: public breach of the company's own service. Breach ≤ 1 year ago → 7,
+// ≤ 3 years → 5, older → 3. No breach is no data (HIBP only lists known ones).
+function hibpSubscore(d: unknown): number | null {
+  const p = d as any
+  const count = p?.count
+  if (typeof count !== 'number' || count <= 0) return null
+  const days = p?.days_since_latest
+  if (typeof days === 'number' && days <= 365) return 7
+  if (typeof days === 'number' && days <= 1095) return 5
+  return 3
+}
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 function mispSubscore(d: unknown): number | null {
@@ -556,6 +607,9 @@ const VERDICT_NORMALIZERS: Record<string, Partial<Record<IndicatorType, (data: u
   epss: { cve: epssSubscore },
   opentip: { ip: opentipSubscore, domain: opentipSubscore, url: opentipSubscore, hash: opentipSubscore },
   vulncheckkev: { cve: vulncheckKevSubscore },
+  ransomwarelive: { company: ransomwareLiveSubscore },
+  hudsonrock: { company: hudsonRockSubscore },
+  hibp: { company: hibpSubscore },
 }
 
 // Per-engine 0-10 score for a single result, independent of weight — this is what
@@ -795,6 +849,41 @@ function vulncheckKevDepth(d: any): Depth {
   return d?.listed === true ? 1 : 0
 }
 
+// Wikidata: the exact item with sector or countries is a full profile; a bare item,
+// or one picked by name only (no QID / domain match), is basic.
+function wikidataDepth(d: any): Depth {
+  if (!d?.found) return 0
+  return d?.exact === true && (arr(d?.sectors).length > 0 || arr(d?.countries).length > 0) ? 1 : 0.5
+}
+
+// GLEIF: the LEI was given or came from Wikidata → full; a legal-name match only → basic.
+function gleifDepth(d: any): Depth {
+  if (!d?.found) return 0
+  return d?.exact === true ? 1 : 0.5
+}
+
+function ransomwareLiveDepth(d: any): Depth {
+  return d?.listed === true ? 1 : 0
+}
+
+// Hudson Rock: infected employees → full record; only customers / third parties → basic.
+function hudsonRockDepth(d: any): Depth {
+  const total = d?.total
+  if (typeof total !== 'number' || total <= 0) return 0
+  return typeof d?.employees === 'number' && d.employees > 0 ? 1 : 0.5
+}
+
+function hibpDepth(d: any): Depth {
+  return typeof d?.count === 'number' && d.count > 0 ? 1 : 0
+}
+
+// GDELT: only articles whose title names the company count; 1–2 → basic, 3+ → full.
+function gdeltDepth(d: any): Depth {
+  const n = d?.in_title
+  if (typeof n !== 'number' || n <= 0) return 0
+  return n <= 2 ? 0.5 : 1
+}
+
 const DEPTH_FNS: Record<string, (data: any) => Depth> = {
   tweetfeed: tweetFeedDepth,
   virustotal: vtDepth,
@@ -830,6 +919,12 @@ const DEPTH_FNS: Record<string, (data: any) => Depth> = {
   epss: epssDepth,
   opentip: opentipDepth,
   vulncheckkev: vulncheckKevDepth,
+  wikidata: wikidataDepth,
+  gleif: gleifDepth,
+  ransomwarelive: ransomwareLiveDepth,
+  hudsonrock: hudsonRockDepth,
+  hibp: hibpDepth,
+  gdelt: gdeltDepth,
 }
 
 /* eslint-enable @typescript-eslint/no-explicit-any */
@@ -879,7 +974,7 @@ function isTransientFailure(result: QueryResult | undefined): boolean {
   if (!result || result.loading) return false
   if (result.error) return true
   const code = (result.data as { error?: { code?: string } } | null)?.error?.code
-  return !!code && TRANSIENT_ERROR_CODES.has(code)
+  return !!code && (TRANSIENT_ERROR_CODES.has(code) || NOT_APPLICABLE_ERROR_CODES.has(code))
 }
 
 export function computeVerdict(
