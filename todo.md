@@ -68,6 +68,6 @@ Puntos detectados en el repaso de la sesión de actores / empresas / cabecera qu
 
 - [x] **Cabecera en pantallas estrechas.** Se reparte en varias líneas, iconos sin texto por debajo de `xl`, aviso que puede partirse en móvil y pestañas con scroll horizontal.
 - [ ] **Botón "Volver".** Se quitó del detalle del historial, pero sigue en los resultados en vivo ("← Volver"). Decidir un criterio común.
-- [ ] **Lista del historial en escritorio.** Las IPs se recortan ("107.163.56.2…") porque la parte derecha de la fila (usuario, fecha, cuadrante, puntuaciones) tiene prioridad. Valorar dar ancho mínimo al indicador.
+- [x] **Lista del historial.** Orden de la fila: marca de tiempo, artefacto (icono, indicador, tipo) y usuario; las puntuaciones a la derecha. En móvil la hora va en su propia línea. Las IPs ya no se recortan.
 - [ ] **Botón "Búsqueda".** Siempre lleva a Artefactos. Valorar recordar la última pestaña usada (Artefactos, Actores o Empresas).
 - [x] **`docs/screenshot.png`.** Ahora muestra el informe de actor (The Gentlemen, inglés, modo claro).

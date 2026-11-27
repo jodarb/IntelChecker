@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useFetchJson } from '@/hooks/useFetchJson'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, History, RotateCw } from 'lucide-react'
+import { ArrowLeft, History, RotateCw, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Layout from '@/components/Layout'
 import SummarySection from '@/components/results/SummarySection'
@@ -187,7 +187,7 @@ export default function HistoryDetailPage() {
               <span aria-hidden>·</span>
               <History className="h-3 w-3" />
               {t('history.archived', { date: formatTimestamp(entry.timestamp, locale) })}
-              {entry.username && <> · {t('history.ranBy', { username: entry.username })}</>}
+              {entry.username && <><span aria-hidden>·</span><span className="inline-flex items-center gap-1 whitespace-nowrap"><UserRound className="h-3 w-3" aria-hidden />{t('history.ranBy', { username: entry.username })}</span></>}
               {entry.via === 'api' && <> · {t('history.viaApi')}</>}
             </span>
           </div>

@@ -1,6 +1,6 @@
 import { useFetchJson } from '@/hooks/useFetchJson'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, ChevronRight, X, Crosshair, Building2, VenetianMask, RotateCw } from 'lucide-react'
+import { ArrowLeft, ChevronRight, X, Crosshair, Building2, VenetianMask, RotateCw, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Layout from '@/components/Layout'
 import ScoreBadge from '@/components/results/ScoreBadge'
@@ -42,7 +42,7 @@ export default function HistoryPage() {
 
   return (
     <Layout>
-      <main className="flex-1 px-6 py-6 w-full max-w-4xl mx-auto flex flex-col gap-6">
+      <main className="flex-1 px-6 py-6 w-full max-w-5xl mx-auto flex flex-col gap-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" asChild className="shrink-0">
             <Link to="/">
@@ -92,33 +92,43 @@ export default function HistoryPage() {
                 to={`/history/${entry.id}`}
                 className="flex-1 min-w-0 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 px-4 py-3 hover:bg-muted/40 transition-colors"
               >
-                {/* On narrow screens the details wrap below the indicator instead of covering it */}
-                <div className="flex items-center gap-4 min-w-0 flex-1 basis-56">
-                  {/* Same icons as the search tabs: companies, actors, artifacts */}
-                  {entry.type === 'company'
-                    ? <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" aria-label={t('tabs.companies')}><title>{t('tabs.companies')}</title></Building2>
-                    : entry.type === 'threat-actor'
-                    ? <VenetianMask className="h-4 w-4 shrink-0 text-muted-foreground" aria-label={t('tabs.actors')}><title>{t('tabs.actors')}</title></VenetianMask>
-                    : <Crosshair className="h-4 w-4 shrink-0 text-muted-foreground" aria-label={t('tabs.artifacts')}><title>{t('tabs.artifacts')}</title></Crosshair>}
-                  <span className="font-mono text-sm text-foreground font-medium truncate">
-                    {entry.indicator}
+                {/* When, what, who — then the scores on the right. On narrow screens the
+                    scores wrap below instead of covering the indicator. */}
+                <div className="flex flex-wrap sm:flex-nowrap items-center gap-x-4 gap-y-1 min-w-0 flex-1 basis-72">
+                  {/* Phones: the time on its own line, so the indicator keeps its width */}
+                  <span className="basis-full sm:basis-auto text-xs text-muted-foreground tabular-nums shrink-0">{formatTimestamp(entry.timestamp, locale)}</span>
+                  <span className="flex items-center gap-2 min-w-0 flex-1 sm:flex-initial">
+                    {/* Same icons as the search tabs: companies, actors, artifacts */}
+                    {entry.type === 'company'
+                      ? <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" aria-label={t('tabs.companies')}><title>{t('tabs.companies')}</title></Building2>
+                      : entry.type === 'threat-actor'
+                      ? <VenetianMask className="h-4 w-4 shrink-0 text-muted-foreground" aria-label={t('tabs.actors')}><title>{t('tabs.actors')}</title></VenetianMask>
+                      : <Crosshair className="h-4 w-4 shrink-0 text-muted-foreground" aria-label={t('tabs.artifacts')}><title>{t('tabs.artifacts')}</title></Crosshair>}
+                    <span className="font-mono text-sm text-foreground font-medium truncate" title={entry.indicator}>
+                      {entry.indicator}
+                    </span>
+                    {/* Short of room, the type label gives way before the indicator */}
+                    <span className="hidden sm:inline text-xs text-muted-foreground uppercase tracking-wide min-w-0 truncate shrink-[6]">
+                      {t(`type.${entry.type as IndicatorType}`)}
+                    </span>
                   </span>
-                  <span className="text-xs text-muted-foreground uppercase tracking-wide shrink-0">
-                    {t(`type.${entry.type as IndicatorType}`)}
-                  </span>
+                  {(entry.username || entry.via === 'api') && (
+                    <span className="flex items-center gap-1.5 shrink-0">
+                      {entry.username && (
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title={t('history.ranBy', { username: entry.username })}>
+                          <UserRound className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                          {entry.username}
+                        </span>
+                      )}
+                      {entry.via === 'api' && (
+                        <span className="inline-flex px-1.5 py-0.5 rounded border border-border text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground" title={t('history.viaApiTitle')}>
+                          API
+                        </span>
+                      )}
+                    </span>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 ml-auto justify-end">
-                  {entry.via === 'api' && (
-                    <span className="inline-flex px-1.5 py-0.5 rounded border border-border text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground" title={t('history.viaApiTitle')}>
-                      API
-                    </span>
-                  )}
-                  {entry.username && (
-                    <span className="hidden sm:inline text-xs text-muted-foreground" title={t('history.ranBy', { username: entry.username })}>
-                      {entry.username}
-                    </span>
-                  )}
-                  <span className="text-xs text-muted-foreground">{formatTimestamp(entry.timestamp, locale)}</span>
                   {/* No risk/knowledge scoring shown for companies for now; actors have no
                       risk (activity replaces it), so only their Knowledge is listed */}
                   {entry.type !== 'company' && (<>
