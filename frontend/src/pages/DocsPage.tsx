@@ -1,7 +1,5 @@
 import { useMemo } from 'react'
-import { Link } from 'react-router-dom'
-import { ArrowLeft, BookOpen, PowerOff, ShieldCheck, Users } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { BookOpen, PowerOff, ShieldCheck, Users } from 'lucide-react'
 import Layout from '@/components/Layout'
 import { useEngines } from '@/EnginesContext'
 import { useVerdictWeights } from '@/hooks/useVerdictWeights'
@@ -12,6 +10,7 @@ import { useI18n } from '@/i18n/useI18n'
 import { rich } from '@/i18n/rich'
 import { docsEn, type DocsContent } from '@/i18n/docs/en'
 import { docsEs } from '@/i18n/docs/es'
+import BackButton from '@/components/BackButton'
 
 // In-app documentation for analysts and admins. The text lives in i18n/docs/{en,es}.ts;
 // the weights, thresholds and coverage tables are read live from the backend.
@@ -166,9 +165,7 @@ export default function DocsPage() {
 
         <article className="flex-1 min-w-0 flex flex-col gap-8 pb-16">
           <div className="flex items-start gap-4">
-            <Button variant="ghost" size="sm" asChild className="mt-0.5 shrink-0">
-              <Link to="/"><ArrowLeft className="h-4 w-4 mr-1" /> {t('common.back')}</Link>
-            </Button>
+            <BackButton />
             <div>
               <h1 className="text-2xl font-semibold text-foreground flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-primary" /> {d.title}

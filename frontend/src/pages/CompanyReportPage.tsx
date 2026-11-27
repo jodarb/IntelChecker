@@ -1,27 +1,22 @@
-import { useSearchParams, Link } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { useSearchParams } from 'react-router-dom'
 import Layout from '@/components/Layout'
 import CompanyReport from '@/components/company/CompanyReport'
 import SearchFrequencyCard from '@/components/results/SearchFrequencyCard'
 import EngineCard from '@/components/results/EngineCard'
 import { useLookup } from '@/hooks/useLookup'
-import { useI18n } from '@/i18n/useI18n'
+import BackButton from '@/components/BackButton'
 
 /** Live company report: the company sources on the pinned entity, then the report. */
 export default function CompanyReportPage() {
   const [searchParams] = useSearchParams()
   const indicator = searchParams.get('q') ?? ''
-  const { t } = useI18n()
   const { sortedEngines, results, config, disabled } = useLookup(indicator, 'company')
 
   return (
     <Layout tab="companies">
       <main className="flex-1 px-6 py-6 w-full max-w-5xl mx-auto flex flex-col gap-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <Button variant="ghost" size="sm" asChild className="w-fit">
-            <Link to="/companies"><ArrowLeft className="h-4 w-4 mr-1" />{t('report.newSearch')}</Link>
-          </Button>
+          <BackButton fallback="/companies" />
           <SearchFrequencyCard indicator={indicator} />
         </div>
         <CompanyReport indicator={indicator} results={results}>

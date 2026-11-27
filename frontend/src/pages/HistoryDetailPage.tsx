@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useFetchJson } from '@/hooks/useFetchJson'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, History, RotateCw, UserRound } from 'lucide-react'
+import { History, RotateCw, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Layout from '@/components/Layout'
 import SummarySection from '@/components/results/SummarySection'
@@ -11,8 +11,7 @@ import SearchFrequencyCard from '@/components/results/SearchFrequencyCard'
 import RawJsonModal from '@/components/results/RawJsonModal'
 import { useEngines } from '@/EnginesContext'
 import {
-  getEngineAssessment, type Quadrant, type VerdictContributions, type VerdictResult,
-} from '@/verdictEngine'
+  getEngineAssessment, type Quadrant, type VerdictContributions, type VerdictResult } from '@/verdictEngine'
 import { useVerdictWeights } from '@/hooks/useVerdictWeights'
 import type { IndicatorType, QueryResult } from '@/registry'
 import { useI18n } from '@/i18n/useI18n'
@@ -20,6 +19,7 @@ import { BACKEND_DOWN } from '@/i18n/errors'
 import { cardState, compareCards } from '@/resultOrder'
 import { useAuth } from '@/auth/context'
 import { rerunUrl } from '@/lib/rerun'
+import BackButton from '@/components/BackButton'
 
 interface StoredEngineResult {
   label: string
@@ -91,9 +91,7 @@ export default function HistoryDetailPage() {
     return (
       <Layout>
         <main className="flex-1 px-6 py-6 w-full max-w-5xl mx-auto flex flex-col gap-6">
-          <Button variant="ghost" size="sm" asChild className="w-fit">
-            <Link to="/history"><ArrowLeft className="h-4 w-4 mr-1" /> {t('history.backToHistory')}</Link>
-          </Button>
+          <BackButton fallback="/history" />
           <p className="text-sm text-red-400">{error}</p>
         </main>
       </Layout>
@@ -126,16 +124,14 @@ export default function HistoryDetailPage() {
     contributions: entry.contributions,
     responded: Object.values(assessments).filter(a => a.outcome !== 'excluded').length,
     queried: Object.values(entry.results)
-      .filter(r => (r.data as { error?: { code?: string } })?.error?.code !== 'MissingApiKey').length,
-  }
+      .filter(r => (r.data as { error?: { code?: string } })?.error?.code !== 'MissingApiKey').length }
   const isLegacy = entry.knowledge_score == null && entry.contributions.knowledge.length === 0
 
   // Same order as the live results page (resultOrder.ts), with the weights stored
   // in the entry. Sources that had no API key at the time are not shown.
   const weightsOf = (engineId: string) => ({
     risk: entry.contributions.risk.find(c => c.engineId === engineId)?.weight ?? 0,
-    knowledge: entry.contributions.knowledge.find(c => c.engineId === engineId)?.weight ?? 0,
-  })
+    knowledge: entry.contributions.knowledge.find(c => c.engineId === engineId)?.weight ?? 0 })
   const orderedResults = Object.entries(entry.results)
     .filter(([, stored]) => (stored.data as { error?: { code?: string } } | null)?.error?.code !== 'MissingApiKey')
     .map(([engineId, stored]) => {
@@ -145,9 +141,7 @@ export default function HistoryDetailPage() {
         engineId, stored,
         rank: {
           state: cardState(resultsForSummary[engineId], a), subscore: a.subscore, depth: a.depth,
-          riskWeight: w.risk, knowledgeWeight: w.knowledge,
-        },
-      }
+          riskWeight: w.risk, knowledgeWeight: w.knowledge } }
     })
     .sort((x, y) => compareCards(x.rank, y.rank))
 
@@ -177,8 +171,9 @@ export default function HistoryDetailPage() {
     <Layout>
       <main className="flex-1 px-6 py-6 w-full max-w-5xl mx-auto flex flex-col gap-6">
 
-        {/* Title first, flush left; search frequency on the right */}
+        {/* "Back" first, then the title; "run again" and the search frequency on the right */}
         <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
+          <BackButton fallback="/history" />
           <div className="min-w-0 flex-1 basis-64">
             <h2 className="text-xl font-semibold text-foreground font-mono break-all">{entry.indicator}</h2>
             {/* Type, then when / by whom it was archived, on one line */}

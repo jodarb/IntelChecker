@@ -482,7 +482,9 @@ async def lookup(req: LookupRequest, user: dict = CanAnalyze):
     for e in selected:
         data, error = results[e]["data"], results[e]["error"]
         api_err = data.get("error") if isinstance(data, dict) else None
-        a = get_engine_assessment(e, req.type, results[e])
+        # Companies are not scored: no outcome / subscore / depth per source either.
+        a = (get_engine_assessment(e, req.type, results[e]) if req.type != "company"
+             else {"outcome": None, "subscore": None, "depth": None})
         entry = {
             "label": all_engines[e]["label"],
             "outcome": a["outcome"],
@@ -559,18 +561,33 @@ def reset_weights():
 # username comes from the session, never from the request body.
 @app.post("/history")
 def create_history_entry(entry: HistoryEntryRequest, user: dict = CanAnalyze):
+    # Companies are not scored, whatever the client sends.
+    scored = entry.type != "company"
     entry_id = history_db.save_query(
-        entry.indicator, entry.type, entry.score, entry.knowledge_score, entry.quadrant,
-        entry.results, entry.contributions, user["username"],
+        entry.indicator, entry.type,
+        entry.score if scored else None, entry.knowledge_score if scored else None,
+        entry.quadrant if scored else None,
+        entry.results, entry.contributions if scored else {"risk": [], "knowledge": []}, user["username"],
     )
     return {"id": entry_id}
+
+
+def _unscored_company(entry: dict) -> dict:
+    """Companies are not scored. Entries saved before that still hold a score in the
+    database: left untouched there, but never returned."""
+    if entry.get("type") == "company":
+        entry = {**entry, "score": None, "knowledge_score": None, "quadrant": None}
+        if "contributions" in entry:
+            entry["contributions"] = {"risk": [], "knowledge": []}
+    return entry
 
 
 @app.get("/history", dependencies=[CanReadHistory])
 def list_history_entries(indicator: str | None = None):
     # No cap when filtering to one indicator — the point is an accurate global
     # count, not just what fits in the default recent-activity page size.
-    return history_db.list_history(limit=100000 if indicator else 200, indicator=indicator)
+    entries = history_db.list_history(limit=100000 if indicator else 200, indicator=indicator)
+    return [_unscored_company(e) for e in entries]
 
 
 # Must be registered before /history/{entry_id} — otherwise "frequency" would be
@@ -585,4 +602,4 @@ def get_history_entry(entry_id: int):
     entry = history_db.get_entry(entry_id)
     if not entry:
         raise HTTPException(status_code=404, detail="History entry not found")
-    return entry
+    return _unscored_company(entry)

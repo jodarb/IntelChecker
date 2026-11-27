@@ -54,7 +54,7 @@ Together they place the indicator in a **quadrant**:
 - *Known · Benign*.
 - *Unknown*.
 
-For CVEs the quadrants are worded as exploitation risk, and for companies as exposure (the company as a victim; computed and stored, not shown for now). Threat actors have no Risk score: their report shows Activity next to Knowledge. Weights and thresholds are tunable per source from the Admin page. The full formulas are in the [user guide](docs/user-guide.md).
+For CVEs the quadrants are worded as exploitation risk. Companies are not scored: their lookup only gathers information. Threat actors have no Risk score: their report shows Activity next to Knowledge. Weights and thresholds are tunable per source from the Admin page. The full formulas are in the [user guide](docs/user-guide.md).
 
 ## ✨ Features
 

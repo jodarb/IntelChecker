@@ -85,6 +85,7 @@ Response:
 - `sources.<id>.outcome` — `hit` (risk signal), `clean` (explicit benign verdict), `context` (has a record, no verdict), `no_data` (no record) or `excluded` (failed — see `error`).
 - `contributions` — what each source added to each score; the same data the results page's **View matrix** and **How is this calculated?** use.
 - `history_id` — open it in the UI at `/history/<id>`; `null` with `save: false`.
+- **Companies are not scored**: for `type: company`, `risk`, `knowledge` and `quadrant` are `null`, `contributions` is empty and each source's `outcome` / `subscore` / `depth` is `null` — only `data` (with `include_raw`) and `error` matter.
 
 ---
 

@@ -75,6 +75,7 @@ IntelChecker/
 │   │   ├── opencti_schema_check.py  # Validates the OpenCTI queries against any release's schema
 │   │   ├── actor_resolve_check.py   # Pinned /actor/resolve candidates (offline, fixtures/actor_catalog.json)
 │   │   ├── feeds_persist_check.py   # Downloaded lists saved to / restored from data/feeds/
+│   │   ├── company_unscored_check.py  # Companies get no verdict; old entries' scores are not returned
 │   │   └── fixtures/
 │   ├── certs/                   # mTLS client certs — gitignored, mounted
 │   ├── data/                    # history.db, users.db, weights.json, connectors.json — gitignored, mounted

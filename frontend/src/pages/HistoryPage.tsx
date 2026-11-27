@@ -1,7 +1,6 @@
 import { useFetchJson } from '@/hooks/useFetchJson'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, ChevronRight, X, Crosshair, Building2, VenetianMask, RotateCw, UserRound } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { ChevronRight, X, Crosshair, Building2, VenetianMask, RotateCw, UserRound } from 'lucide-react'
 import Layout from '@/components/Layout'
 import ScoreBadge from '@/components/results/ScoreBadge'
 import { QUADRANT_META, quadrantLabel } from '@/quadrants'
@@ -10,6 +9,7 @@ import { useI18n } from '@/i18n/useI18n'
 import type { IndicatorType } from '@/registry'
 import { useAuth } from '@/auth/context'
 import { rerunUrl } from '@/lib/rerun'
+import BackButton from '@/components/BackButton'
 
 interface HistoryListEntry {
   id: number
@@ -43,13 +43,8 @@ export default function HistoryPage() {
   return (
     <Layout>
       <main className="flex-1 px-6 py-6 w-full max-w-5xl mx-auto flex flex-col gap-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" asChild className="shrink-0">
-            <Link to="/">
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              {t('common.back')}
-            </Link>
-          </Button>
+        <div className="flex items-start gap-4">
+          <BackButton />
           <h2 className="text-xl font-semibold text-foreground">{t('history.title')}</h2>
         </div>
 

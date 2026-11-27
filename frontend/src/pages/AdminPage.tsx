@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ArrowLeft, ChevronDown, RotateCcw, Save, Undo2 } from 'lucide-react'
+import { ChevronDown, RotateCcw, Save, Undo2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Layout from '@/components/Layout'
 import { useEngines } from '@/EnginesContext'
@@ -9,6 +8,7 @@ import { DEFAULT_SCORING, type EngineWeight, type VerdictConfig } from '@/verdic
 import type { IndicatorType } from '@/registry'
 import { useI18n } from '@/i18n/useI18n'
 import { rich } from '@/i18n/rich'
+import BackButton from '@/components/BackButton'
 
 /** Every weight (and both thresholds) lives on a 0–10 scale; the backend rejects anything else. */
 const WEIGHT_MIN = 0
@@ -17,8 +17,7 @@ const WEIGHT_MAX = 10
 const clampWeight = (v: number) => Math.min(WEIGHT_MAX, Math.max(WEIGHT_MIN, v))
 
 function NumberInput({
-  value, onChange, min = WEIGHT_MIN, max = WEIGHT_MAX, step = 1, placeholder, className = '', ariaLabel,
-}: {
+  value, onChange, min = WEIGHT_MIN, max = WEIGHT_MAX, step = 1, placeholder, className = '', ariaLabel }: {
   value: number | '' | undefined
   onChange: (v: number | '') => void
   min?: number
@@ -56,8 +55,7 @@ function NumberInput({
 
 /** Slider + numeric input bound to the same 0–10 weight. */
 function WeightControl({
-  value, onChange, label,
-}: {
+  value, onChange, label }: {
   value: number
   onChange: (v: number) => void
   label: string
@@ -85,8 +83,7 @@ function WeightControl({
 }
 
 function EngineRow({
-  id, label, logo, supports, weight, onChange,
-}: {
+  id, label, logo, supports, weight, onChange }: {
   id: string
   label: string
   logo?: string
@@ -161,9 +158,7 @@ export default function AdminPage() {
     <Layout>
       <main className="flex-1 px-6 py-6 w-full max-w-4xl mx-auto flex flex-col gap-6">
         <div className="flex items-start gap-4">
-          <Button variant="ghost" size="sm" asChild className="mt-0.5 shrink-0">
-            <Link to="/"><ArrowLeft className="h-4 w-4 mr-1" /> {t('common.back')}</Link>
-          </Button>
+          <BackButton />
           <div>
             <h2 className="text-xl font-semibold text-foreground">{t('admin.title')}</h2>
             <p className="text-sm text-muted-foreground mt-1">
@@ -198,8 +193,12 @@ function WeightsEditor() {
     return Object.keys(draft.engines)
       .map(id => {
         const engine = engines.find(e => e.id === id)
-        return { id, label: engine?.label ?? id, logo: engine?.logo, supports: engine?.supports ?? [] }
+        // Companies are not scored: their type gets no weights, and sources used only
+        // for companies (Wikidata, GLEIF, Hudson Rock…) are not listed.
+        const supports = (engine?.supports ?? []).filter(type => type !== 'company')
+        return { id, label: engine?.label ?? id, logo: engine?.logo, supports, companyOnly: !!engine && supports.length === 0 }
       })
+      .filter(r => !r.companyOnly)
       .sort((a, b) =>
         (draft.engines[b.id].risk - draft.engines[a.id].risk)
         || (draft.engines[b.id].knowledge - draft.engines[a.id].knowledge)

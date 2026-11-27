@@ -953,6 +953,11 @@ def _is_transient_failure(result: dict | None) -> bool:
 
 def compute_verdict(config: dict, engines: list[dict], results: dict[str, dict], type: str) -> dict:
     """engines: [{"id", "label"}] in display order; results: engine id → result."""
+    # Companies are not scored: their lookup only gathers information (no Risk, no
+    # Knowledge, no quadrant). Mirrors EMPTY_VERDICT in verdictEngine.ts.
+    if type == "company":
+        return {"risk": None, "knowledge": None, "quadrant": None,
+                "contributions": {"risk": [], "knowledge": []}, "responded": 0, "queried": 0}
     risk: list[dict] = []
     knowledge: list[dict] = []
     responded = 0

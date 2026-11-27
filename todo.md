@@ -1,38 +1,21 @@
 # Pendientes
 
-Puntos detectados en el repaso de la sesión de actores / empresas / cabecera que conviene plantear con calma, más las funcionalidades pedidas. Están ordenados por prioridad dentro de cada bloque.
+Lo que queda por hacer o decidir, ordenado por prioridad dentro de cada bloque. Al final, lo ya hecho en esta tanda.
 
-Última actualización: 2026-11-27 (sobre el commit `0da5beb`, cambios sin commit).
+Última actualización: 2026-11-27 (sobre el commit `aba56c3`, cambios sin commit).
 
-## Nuevas funcionalidades
+## Decisiones pendientes (tuyas)
 
-- [x] **Relanzar una búsqueda desde el historial.** Hecho: botón ↻ en cada fila y "Relanzar" arriba en el detalle (`lib/rerun.ts`). Botón en la lista (`HistoryPage`) y en el detalle (`HistoryDetailPage`) para repetir en vivo la consulta de esa entrada, según su tipo:
-  - artefacto (IP, dominio, URL, hash, ASN, CVE) → `/results` con el mismo tipo e indicador;
-  - actor → resultados de actor con el nombre guardado (sin volver a pasar por el selector de `/actor/resolve`);
-  - empresa → `/companies/report` con el indicador completo `Name (domain, Q-id, LEI)`, para que no haya que desambiguar otra vez.
-  - Solo con permiso `analyze` (`useAuth().can('analyze')`): los `reader` ven el historial pero no pueden lanzar consultas. Textos en EN / ES.
-- [x] **País de origen del actor.** Hecho: `lib/countries.ts` (`toCountryCode`, `originCountriesInText`) y `profile.origins`; insignia "Origen" (+N si no coinciden) y bloque "País de origen" en el lateral. Fuentes: MITRE (descripción), Malpedia (país y patrocinador), RF (categoría "<país> Nation State Sponsored") y OpenCTI (`originates-from`, que ya no se cuenta como país atacado). Pendiente: probar OpenCTI con datos reales; la lectura de la descripción de MITRE es heurística (dos primeras frases). Mostrarlo en la ficha del actor como se hace con el país de una IP: nombre localizado (`regionName`) y, si encaja, bandera o código.
-  - Normalizar los nombres a código ISO antes de comparar ("Russia", "Russian Federation", "RU" → `RU`; "North Korea", "Korea, Democratic People's Republic of" → `KP`; "Iran, Islamic Republic of" → `IR`…).
-  - Indicar cuántas fuentes dan cada país ("Rusia · 3 fuentes", "China · 1 fuente") y cuáles son, para que se vean los desacuerdos.
-  - Hoy `profile.country` sale solo de Malpedia (el primero que llega, `prov.country`). Revisar qué más fuentes lo aportan: Recorded Future (ubicaciones o categorías), OpenCTI (relación `originates-from` con un `Country`; ahora todas las relaciones con países se cuentan como países atacados, aunque sean de origen) y la nacionalidad que dan los alias o descripciones de MITRE.
-  - No confundirlo con "Países más atacados", que son las víctimas.
+- [ ] **ESLint no pasa en todo `src`.** 54 errores anteriores a esta tanda: `no-explicit-any` en `verdictEngine.ts` y `summaryRegistry.ts`, y `react-refresh/only-export-components` en `EnginesContext.tsx` y `components/ui/button.tsx`. Decidir si se tipan o se relaja la regla en esos ficheros. Los ficheros nuevos y los tocados pasan.
 
-## Verificación
+## Interfaz
 
-- [x] **Revisión visual en navegador** (2026-11-27). Capturas con Playwright de inicio, Actores, Empresas, historial y detalle (actor, persona, empresa, IP) en escritorio (1440), tablet (1024) y móvil (390), modo claro y oscuro. Corregido: cabecera y pestañas desbordaban en móvil, título partido por la píldora de frecuencia, chips de TTP largos, eslogan solapado, plural "1 fuentes", columnas del modal pegadas. Pendiente lo de abajo (botones anidados, contraste, rejilla de cifras).
-- [x] **Tests automáticos del frontend.** `npm test` (runner de Node, sin dependencias; `tests/resolve-alias.mjs` resuelve `@/`). Fixtures reales de las entradas #8 y #10 en `frontend/tests/fixtures/`.
-- [x] **Tests de `/actor/resolve`.** `backend/tests/actor_resolve_check.py` (unittest, sin red: catálogo MITRE + ransomware.live del 2026-11-27 en `tests/fixtures/actor_catalog.json`, Malpedia / RF simulados). Si cambia el catálogo real, regenerar el fixture.
-- [x] **`<button>` dentro de `<button>`.** Hecho: las 20 cabeceras son `div role="button"` con teclado (`lib/a11y.ts`); la consola ya no avisa. El botón RAW va dentro del botón que pliega la cabecera de cada tarjeta de fuente (~50 tarjetas y `SourceCard`). React avisa en consola y no es HTML válido (accesibilidad). Pasar la cabecera a `div role="button"` o sacar RAW del botón.
-- [x] **Contraste en modo claro.** Hecho: tonos 700 en claro y los de siempre en oscuro (píldoras de `ScoreBadge`, insignias y actividad del actor). Las píldoras amarillas "Sin puntuación" / "Sin resultados" y la etiqueta "Ransomware · RaaS" se leen mal sobre fondo claro.
-- [x] **Rejilla de cifras del actor.** Hecho: filas equilibradas (5 → 3 + 2) sin huecos. Con 5 cifras, la segunda fila deja tres huecos rellenos de gris.
-- [x] **Menú en tablet / móvil.** Hecho: por debajo de `md` un botón de menú con desplegable (textos, idioma / tema, cuenta); entre `md` y `xl`, iconos. La lista del historial pasa a dos líneas en móvil. Por debajo de `xl` (1280 px) el menú muestra solo iconos (con tooltip); en móvil ocupa dos filas. Valorar un menú desplegable.
-- [ ] **OpenCTI contra una instancia real.** `ACTOR_CONTEXT` (300 relaciones, `x_mitre_id`, `observable_value`, `pattern`) valida contra el esquema 6.0 y master, pero no se ha probado con datos reales ni se ha medido el tamaño de la respuesta.
+- [ ] **Admin en móvil.** La tabla de pesos (anchos fijos) desborda 179 px a 390 px de ancho. Ya pasaba antes; envolverla en un contenedor con scroll o apilar los controles.
 
-## Calidad de código
+## Verificación con datos reales
 
-- [ ] **ESLint no pasa en todo `src`.** Hay 54 errores que ya existían antes de esta sesión: `no-explicit-any` en `verdictEngine.ts` y `summaryRegistry.ts`, y `react-refresh/only-export-components` en `EnginesContext.tsx` y `components/ui/button.tsx`. Decidir si se tipan o se relaja la regla en esos ficheros.
-- [x] **`HistoryDetailPage`.** `archivedAt` memorizado antes de los `return` tempranos.
-- [ ] **`ScoreBadge` / `WeightBadge` ocultos por contexto (`HideScores`).** Funciona para empresas. Si se recuperan las puntuaciones, quitar el contexto en lugar de dejarlo a `false`.
+- [ ] **OpenCTI contra una instancia real.** `ACTOR_CONTEXT` (300 relaciones, `x_mitre_id`, `observable_value`, `pattern`) valida contra el esquema 6.0 y master, pero no se ha probado con datos reales ni se ha medido el tamaño de la respuesta. Comprobar también el país de origen (`originates-from` → `Country`).
+- [ ] **Caché de ransomware.live con el servicio real.** La persistencia en `backend/data/feeds/` está probada sin red; la lista Tor ya se guarda y se restaura en Docker, pero las de ransomware.live solo se crearán con la primera consulta de actor o empresa que las use.
 
 ## Actores
 
@@ -40,13 +23,10 @@ Puntos detectados en el repaso de la sesión de actores / empresas / cabecera qu
   - La agrupación por alias en común (claves de 3 o más caracteres) podría unir actores distintos que comparten un alias genérico.
   - La detección de "persona" depende de las categorías de Recorded Future.
   - Probar con más casos: APT28/APT29, subgrupos de Lazarus, nombres comunes como "Play" o "Medusa".
-- [ ] **Arsenal atribuido frente a mencionado.** La regla actual es: atribuido si una fuente dice que lo usa, si lleva su nombre o si lo dan varias fuentes; mencionado si lo nombra una sola fuente por coocurrencia. Revisarla con más actores.
-- [ ] **ransomware.live.**
-  - ~~Tras reiniciar el backend, la fuente daba `RateLimitExceeded` hasta 30 min.~~ Hecho: `CachedFeed(persist=…)` guarda la última descarga buena en `backend/data/feeds/` (gzip); al arrancar se usa si está en TTL y, si caducó y la descarga falla, se sirve la copia antigua. Tests en `backend/tests/feeds_persist_check.py`.
-- [x] **Tor Exit Nodes (dan.me.uk).** Mismo límite de 30 min (responde 403): ahora usa `CachedFeed` con `persist="tor-exit-nodes"` y `rate_limit_status=(403, 429)`, con refresco en segundo plano al caducar.
-  - ~~"LockBit 3.0" (clave `lockbit30`) no casa con `lockbit3`.~~ Hecho: las versiones `N.0` también se buscan sin `.0`.
-  - El grupo se busca solo por el nombre consultado, no por los alias que dan otras fuentes.
-- [ ] **Coste de `/actor/resolve`.** Hace hasta 6 llamadas externas por búsqueda (Recorded Future y Malpedia, cada una con hasta 3 términos). Valorar una caché breve y vigilar la cuota de RF.
+- [ ] **País de origen desde la descripción de MITRE.** Es heurístico (dos primeras frases, patrones como "China-based" o "attributed to Russia's…"). Revisarlo con más grupos y vigilar falsos positivos.
+- [ ] **Arsenal atribuido frente a mencionado.** Atribuido si una fuente dice que lo usa, si lleva su nombre o si lo dan varias fuentes; mencionado si lo nombra una sola fuente por coocurrencia. Revisar la regla con más actores.
+- [ ] **ransomware.live busca solo por el nombre consultado**, no por los alias que dan otras fuentes.
+- [ ] **Coste de `/actor/resolve`.** Hasta 6 llamadas externas por búsqueda (Recorded Future y Malpedia, hasta 3 términos cada una). Valorar una caché breve y vigilar la cuota de RF.
 - [ ] **OTX para actores.**
   - La búsqueda de pulses es de texto libre y devuelve 10 resultados por relevancia, no por fecha, así que los "informes en 90 días" pueden quedarse cortos.
   - Para "Gentleman" dio timeout.
@@ -54,20 +34,40 @@ Puntos detectados en el repaso de la sesión de actores / empresas / cabecera qu
 - [ ] **Actividad.**
   - El Threat Map de Recorded Future da 403 en este despliegue (falta privilegio), así que no aporta informes.
   - La lista del historial no muestra la actividad de los actores, solo su Knowledge. Valorar guardar el nivel de actividad al guardar la entrada.
-- [x] **Modal "Cómo se calcula" en actores.** Solo Knowledge: sin pestaña Risk ni cuadrante.
 - [ ] **Historial antiguo.** Las entradas anteriores a estos cambios no tienen leak sites, `exact` de Malpedia ni `persona` de RF. Se muestran con valores por defecto: pestaña vacía y la coincidencia exacta deducida de los alias.
 - [ ] **Títulos de leak sites.** Son texto controlado por el atacante. React los escapa, pero valorar ocultarlos o truncarlos más.
 
 ## Empresas
 
-- [ ] **Puntuaciones ocultas "de momento".** El veredicto se sigue calculando, guardando en el historial y devolviendo en `POST /lookup` (con `quadrant` y `score`). Decidir si se recupera la vista, se rediseña o se deja de calcular.
-- [ ] **Peso de Recorded Future en empresas.** Usa el Knowledge general de RF (9), que es alto para una fuente que solo da contexto. Valorar un `knowledge_by_type.company` propio.
+- [ ] **Peso de Recorded Future en empresas.** Usa el Knowledge general de RF (9), alto para una fuente que solo da contexto. Valorar un `knowledge_by_type.company` propio.
 - [ ] **Desambiguación en Recorded Future.** `entity-match` elige por nombre y alias; no se puede filtrar por dominio. "Iberia" encuentra la aerolínea, pero otros nombres ambiguos pueden fallar. El endpoint de riesgo de terceros (`/v2/company`) necesita un permiso que la clave actual no tiene.
 
-## Interfaz
+---
 
-- [x] **Cabecera en pantallas estrechas.** Se reparte en varias líneas, iconos sin texto por debajo de `xl`, aviso que puede partirse en móvil y pestañas con scroll horizontal.
-- [ ] **Botón "Volver".** Se quitó del detalle del historial, pero sigue en los resultados en vivo ("← Volver"). Decidir un criterio común.
-- [x] **Lista del historial.** Orden de la fila: marca de tiempo, artefacto (icono, indicador, tipo) y usuario; las puntuaciones a la derecha. En móvil la hora va en su propia línea. Las IPs ya no se recortan.
-- [ ] **Botón "Búsqueda".** Siempre lleva a Artefactos. Valorar recordar la última pestaña usada (Artefactos, Actores o Empresas).
-- [x] **`docs/screenshot.png`.** Ahora muestra el informe de actor (The Gentlemen, inglés, modo claro).
+## Hecho (2026-11-27)
+
+**Decisiones aplicadas**
+- [x] **Las empresas no se puntúan.** `computeVerdict` / `compute_verdict` devuelven un veredicto vacío para `company` (sin Risk, Knowledge ni cuadrante); `POST /history` guarda nulos, `POST /lookup` los devuelve (y `outcome` / `subscore` / `depth` nulos por fuente); las entradas antiguas conservan su puntuación en la base de datos pero la API ya no la devuelve. Admin no muestra las fuentes solo de empresa (Wikidata, GLEIF, Hudson Rock, Have I Been Pwned, GDELT) ni el ajuste por tipo "Empresa". Quitadas las etiquetas `quadrant.company.*`. La valoración interna por fuente solo ordena las tarjetas del informe.
+- [x] **Botón "Volver" unificado** (`components/BackButton.tsx`): en todas las vistas salvo las tres de búsqueda y el inicio de sesión, siempre primero, a la izquierda del título, con el texto "Volver". Vuelve a la pantalla anterior de la app; si la página se abrió directamente, a su vista padre.
+- [x] **"Búsqueda" siempre lleva a Artefactos**: no recuerda la última pestaña (decidido; ya era así).
+
+**Funcionalidades**
+- [x] **Relanzar desde el historial** (`d655752`). Botón ↻ en cada fila y "Relanzar" en el detalle (`lib/rerun.ts`): artefactos con el mismo tipo, actores con el nombre guardado, empresas con `Nombre (dominio, Q-id, LEI)`. Solo con permiso `analyze`.
+- [x] **País de origen del actor** (`d655752`). `lib/countries.ts` normaliza a ISO (códigos, nombres oficiales, nombres en español, gentilicios); `profile.origins` cuenta cuántas fuentes dan cada país. Insignia "Origen" (+N si no coinciden) y bloque "País de origen" en el lateral. Fuentes: MITRE (descripción), Malpedia (país y patrocinador), RF ("<país> Nation State Sponsored"), OpenCTI (`originates-from`, que ya no se cuenta como país atacado).
+- [x] **Lista del historial** (`aba56c3`). Marca de tiempo, artefacto (icono, indicador, tipo) y usuario con icono; puntuaciones a la derecha. En móvil la hora va en su propia línea; las IPs ya no se recortan.
+
+**Fuentes y backend**
+- [x] **Caché persistente** (`d655752`, `2c0e291`). `CachedFeed(persist=…)` guarda la última descarga buena en `backend/data/feeds/` (gzip): ransomware.live (víctimas y grupos) y Tor Exit Nodes (dan.me.uk, que responde 403 al pasar el límite: `rate_limit_status`). Al reiniciar se parte de la copia; si caducó y la descarga falla, se sirve la antigua.
+- [x] **"LockBit 3.0"** casa con `lockbit3` (`0da5beb`).
+
+**Interfaz**
+- [x] **Revisión visual** con Playwright en escritorio, tablet y móvil, modo claro y oscuro (`0da5beb`, `d655752`).
+- [x] **Cabecera y menú**: se reparte en varias líneas; iconos entre `md` y `xl`; desplegable en móvil; pestañas con scroll.
+- [x] **`<button>` dentro de `<button>`**: las 20 cabeceras de tarjeta son `div role="button"` con teclado (`lib/a11y.ts`).
+- [x] **Contraste en modo claro** de píldoras, insignias y actividad.
+- [x] **Ficha del actor**: cifras en filas equilibradas, chips largos recortados, plural "1 fuente", modal "Cómo se calcula" solo con Knowledge.
+- [x] **`docs/screenshot.png`** con el informe de actor.
+
+**Calidad**
+- [x] **Tests**: frontend `npm test` (45: perfil, actividad, `relevantPulses`, países); backend `actor_resolve_check.py` (9) y `feeds_persist_check.py` (10); paridad del veredicto sin cambios.
+- [x] **`archivedAt`** memorizado en `HistoryDetailPage`.

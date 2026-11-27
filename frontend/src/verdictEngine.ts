@@ -988,6 +988,9 @@ export function computeVerdict(
   results: Record<string, QueryResult>,
   type: IndicatorType,
 ): VerdictResult {
+  // Companies are not scored: their lookup only gathers information (no Risk, no
+  // Knowledge, no quadrant). Per-source assessments still order the report's cards.
+  if (type === 'company') return EMPTY_VERDICT
   const risk: RiskContribution[] = []
   const knowledge: KnowledgeContribution[] = []
   let responded = 0
