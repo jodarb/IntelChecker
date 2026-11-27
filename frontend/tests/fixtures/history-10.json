@@ -1,0 +1,1149 @@
+{
+    "id": 10,
+    "indicator": "The Gentlemen",
+    "timestamp": "2026-11-26 18:59:40",
+    "results": {
+        "alienvault": {
+            "label": "AlienVault OTX",
+            "data": {
+                "count": 106,
+                "results": [
+                    {
+                        "id": "5ee7247cdb3820b358b37a71",
+                        "name": "Phishing &  scam domain names",
+                        "description": "Phishing, scams, all junk goes here.",
+                        "author_name": "RiskReact.eu",
+                        "modified": "2026-11-22T08:49:36.891000",
+                        "created": "2020-06-15T07:34:20.062000",
+                        "tags": [],
+                        "references": [],
+                        "public": 1,
+                        "adversary": "phishing",
+                        "targeted_countries": [],
+                        "malware_families": [],
+                        "attack_ids": [],
+                        "industries": [],
+                        "TLP": "green",
+                        "revision": 8,
+                        "groups": [],
+                        "in_group": false,
+                        "author": {
+                            "username": "RiskReact.eu",
+                            "id": "116639",
+                            "avatar_url": "/otxapi/users/avatar_image/media/avatars/user_116639/resized/80/avatar_30b576054c.png",
+                            "is_subscribed": false,
+                            "is_following": false
+                        },
+                        "is_subscribing": null
+                    },
+                    {
+                        "id": "627a3399312417bb7f844a55",
+                        "name": "hoster.kz",
+                        "description": "WebPacker.ru is a web-based tool designed to help people find and find the best way to get through the web, but only if you are a browser user or an administrator.",
+                        "author_name": "adjadex1@gmail.com",
+                        "modified": "2022-06-09T00:00:13.607000",
+                        "created": "2022-05-10T09:42:49.434000",
+                        "tags": [],
+                        "references": [],
+                        "public": 1,
+                        "adversary": "",
+                        "targeted_countries": [],
+                        "malware_families": [],
+                        "attack_ids": [],
+                        "industries": [],
+                        "TLP": "white",
+                        "revision": 1,
+                        "groups": [],
+                        "in_group": false,
+                        "author": {
+                            "username": "adjadex1@gmail.com",
+                            "id": "187163",
+                            "avatar_url": "https://otx.alienvault.com/assets/images/default-avatar.png",
+                            "is_subscribed": false,
+                            "is_following": false
+                        },
+                        "is_subscribing": null
+                    },
+                    {
+                        "id": "6294dff43e654c0ddb63c1dd",
+                        "name": "www.rockthevote.org:%22",
+                        "description": "",
+                        "author_name": "Kailula4",
+                        "modified": "2022-06-29T00:00:46.963000",
+                        "created": "2022-05-30T15:17:08.044000",
+                        "tags": [],
+                        "references": [],
+                        "public": 1,
+                        "adversary": "",
+                        "targeted_countries": [],
+                        "malware_families": [],
+                        "attack_ids": [],
+                        "industries": [],
+                        "TLP": "white",
+                        "revision": 1,
+                        "groups": [],
+                        "in_group": false,
+                        "author": {
+                            "username": "Kailula4",
+                            "id": "131997",
+                            "avatar_url": "https://otx.alienvault.com/assets/images/default-avatar.png",
+                            "is_subscribed": false,
+                            "is_following": false
+                        },
+                        "is_subscribing": null
+                    },
+                    {
+                        "id": "653e8484ba7c285929cb5e0d",
+                        "name": "CERT.PL list of malicious domains",
+                        "description": "See: https://cert.pl/en/warning-list/\n\n(archived version here: https://web.archive.org/web/20231029161224/https://cert.pl/en/posts/2020/03/malicious_domains/)",
+                        "author_name": "tomtomalien",
+                        "modified": "2026-11-26T15:21:28.328000",
+                        "created": "2023-10-29T16:12:52.580000",
+                        "tags": [],
+                        "references": [],
+                        "public": 1,
+                        "adversary": "",
+                        "targeted_countries": [],
+                        "malware_families": [],
+                        "attack_ids": [],
+                        "industries": [],
+                        "TLP": "white",
+                        "revision": 6,
+                        "groups": [],
+                        "in_group": false,
+                        "author": {
+                            "username": "tomtomalien",
+                            "id": "258713",
+                            "avatar_url": "/otxapi/users/avatar_image/media/avatars/user_258713/resized/80/avatar_3b9c358f36.png",
+                            "is_subscribed": false,
+                            "is_following": false
+                        },
+                        "is_subscribing": null
+                    },
+                    {
+                        "id": "65708f2998104f0fc06f2de7",
+                        "name": "www.rockthevote.org:%22",
+                        "description": "",
+                        "author_name": "StreamMiningEx",
+                        "modified": "2023-12-06T15:11:37.820000",
+                        "created": "2023-12-06T15:11:37.820000",
+                        "tags": [],
+                        "references": [],
+                        "public": 1,
+                        "adversary": "",
+                        "targeted_countries": [],
+                        "malware_families": [],
+                        "attack_ids": [],
+                        "industries": [],
+                        "TLP": "green",
+                        "revision": 1,
+                        "groups": [],
+                        "in_group": false,
+                        "author": {
+                            "username": "StreamMiningEx",
+                            "id": "262917",
+                            "avatar_url": "https://otx.alienvault.com/assets/images/default-avatar.png",
+                            "is_subscribed": false,
+                            "is_following": false
+                        },
+                        "is_subscribing": null
+                    },
+                    {
+                        "id": "65b2909ffdc623904cbfd91d",
+                        "name": "PEXE - DOS executable (COM)",
+                        "description": "I don't have a very good description. I can say this was found in a law firms website and it's not uncommon. Certain attorneys may be under attack based on clients represented. I other instances attorneys use a tool box of malware and other cyber weaponry to track, intimidating and spy on opposition. Very aggressive tactics use. Unfortunately attacks against opponents aren't limited to \"contactless\" attacks. Tracking. cyber espionage, malvertizing, iOS 'remotwd' , location tracking, reputation abuse.",
+                        "author_name": "scoreblue",
+                        "modified": "2024-02-24T16:01:22.095000",
+                        "created": "2024-01-25T16:47:26.970000",
+                        "tags": [],
+                        "references": [],
+                        "public": 1,
+                        "adversary": "",
+                        "targeted_countries": [],
+                        "malware_families": [],
+                        "attack_ids": [],
+                        "industries": [],
+                        "TLP": "white",
+                        "revision": 1,
+                        "groups": [],
+                        "in_group": false,
+                        "author": {
+                            "username": "scoreblue",
+                            "id": "254100",
+                            "avatar_url": "/otxapi/users/avatar_image/media/avatars/user_254100/resized/80/avatar_3b9c358f36.png",
+                            "is_subscribed": false,
+                            "is_following": false
+                        },
+                        "is_subscribing": null
+                    },
+                    {
+                        "id": "6654fbea9e0d6d8668c2cb19",
+                        "name": "New .COM domains list download 2024-05-11",
+                        "description": "",
+                        "author_name": "skocherhan",
+                        "modified": "2024-05-27T21:32:26.558000",
+                        "created": "2024-05-27T21:32:26.558000",
+                        "tags": [],
+                        "references": [],
+                        "public": 1,
+                        "adversary": "",
+                        "targeted_countries": [],
+                        "malware_families": [],
+                        "attack_ids": [],
+                        "industries": [],
+                        "TLP": "white",
+                        "revision": 1,
+                        "groups": [],
+                        "in_group": false,
+                        "author": {
+                            "username": "skocherhan",
+                            "id": "249290",
+                            "avatar_url": "/otxapi/users/avatar_image/media/avatars/user_249290/resized/80/avatar_3b9c358f36.png",
+                            "is_subscribed": false,
+                            "is_following": false
+                        },
+                        "is_subscribing": null
+                    },
+                    {
+                        "id": "667f111dcdeeba812adc4fd4",
+                        "name": "DoS:Win32/Rask | ZingoStealer | Used by  Law/Legal/Tesms/Gov/IBM",
+                        "description": "It sure takes a lot to make, framing, spying, shadowing look like an investigation. I can't help but notice the excessive gay, teen porn and blackpu**y love.",
+                        "author_name": "scoreblue",
+                        "modified": "2024-07-28T18:04:28.664000",
+                        "created": "2024-06-28T19:38:05.236000",
+                        "tags": [],
+                        "references": [],
+                        "public": 1,
+                        "adversary": "",
+                        "targeted_countries": [],
+                        "malware_families": [],
+                        "attack_ids": [],
+                        "industries": [],
+                        "TLP": "green",
+                        "revision": 1,
+                        "groups": [],
+                        "in_group": false,
+                        "author": {
+                            "username": "scoreblue",
+                            "id": "254100",
+                            "avatar_url": "/otxapi/users/avatar_image/media/avatars/user_254100/resized/80/avatar_3b9c358f36.png",
+                            "is_subscribed": false,
+                            "is_following": false
+                        },
+                        "is_subscribing": null
+                    },
+                    {
+                        "id": "6681f3f6b512c5b6aacffa39",
+                        "name": "DoS:Win32/Rask | ZingoStealer | Used by Law/Legal/Tesms/Gov/IBM ",
+                        "description": "",
+                        "author_name": "OctoSeek",
+                        "modified": "2024-07-28T18:04:28.664000",
+                        "created": "2024-07-01T00:10:30.700000",
+                        "tags": [],
+                        "references": [],
+                        "public": 1,
+                        "adversary": "",
+                        "targeted_countries": [],
+                        "malware_families": [],
+                        "attack_ids": [],
+                        "industries": [],
+                        "TLP": "green",
+                        "revision": 1,
+                        "groups": [],
+                        "in_group": false,
+                        "author": {
+                            "username": "OctoSeek",
+                            "id": "243548",
+                            "avatar_url": "/otxapi/users/avatar_image/media/avatars/user_243548/resized/80/avatar_3b9c358f36.png",
+                            "is_subscribed": false,
+                            "is_following": false
+                        },
+                        "is_subscribing": null
+                    },
+                    {
+                        "id": "66bcc7ddfb310b8721212f4c",
+                        "name": "AS57724 DDoS-Guard Ltd",
+                        "description": "",
+                        "author_name": "skocherhan",
+                        "modified": "2024-09-13T14:02:11.114000",
+                        "created": "2024-08-14T15:06:05.922000",
+                        "tags": [],
+                        "references": [],
+                        "public": 1,
+                        "adversary": "",
+                        "targeted_countries": [],
+                        "malware_families": [],
+                        "attack_ids": [],
+                        "industries": [],
+                        "TLP": "white",
+                        "revision": 2,
+                        "groups": [],
+                        "in_group": false,
+                        "author": {
+                            "username": "skocherhan",
+                            "id": "249290",
+                            "avatar_url": "/otxapi/users/avatar_image/media/avatars/user_249290/resized/80/avatar_3b9c358f36.png",
+                            "is_subscribed": false,
+                            "is_following": false
+                        },
+                        "is_subscribing": null
+                    }
+                ],
+                "exact_match": "",
+                "previous": null,
+                "next": "https://otx.alienvault.com/api/v1/search/pulses?q=The+Gentlemen&limit=10&page=2"
+            },
+            "error": null
+        },
+        "mitreattack": {
+            "label": "MITRE ATT&CK",
+            "data": {
+                "attack_id": "G1058",
+                "name": "The Gentlemen",
+                "aliases": [
+                    "The Gentlemen",
+                    "Storm-2697",
+                    "GOLD SHERWOOD"
+                ],
+                "description": "The Gentlemen is a group that maintains the The Gentlemen Ransomware-as-a-service (RaaS). The Gentlemen was first observed in mid-2025 who had posed The Gentlemen Ransomware as a closed ransomware and shortly later opened the ransomware as a RaaS to affiliates in September 2025. The Gentlemen has been affiliated with the threat group Storm-2697 and GOLD SHERWOOD.",
+                "techniques": [
+                    {
+                        "attack_id": "T1027.002",
+                        "name": "Software Packing"
+                    },
+                    {
+                        "attack_id": "T1068",
+                        "name": "Exploitation for Privilege Escalation"
+                    },
+                    {
+                        "attack_id": "T1583.001",
+                        "name": "Domains"
+                    },
+                    {
+                        "attack_id": "T1486",
+                        "name": "Data Encrypted for Impact"
+                    },
+                    {
+                        "attack_id": "T1585.001",
+                        "name": "Social Media Accounts"
+                    },
+                    {
+                        "attack_id": "T1683.001",
+                        "name": "Written Content"
+                    },
+                    {
+                        "attack_id": "T1036",
+                        "name": "Masquerading"
+                    },
+                    {
+                        "attack_id": "T1036.005",
+                        "name": "Match Legitimate Resource Name or Location"
+                    },
+                    {
+                        "attack_id": "T1036.001",
+                        "name": "Invalid Code Signature"
+                    },
+                    {
+                        "attack_id": "T1190",
+                        "name": "Exploit Public-Facing Application"
+                    },
+                    {
+                        "attack_id": "T1657",
+                        "name": "Financial Theft"
+                    },
+                    {
+                        "attack_id": "T1683.002",
+                        "name": "Audio-Visual Content"
+                    },
+                    {
+                        "attack_id": "T1219.002",
+                        "name": "Remote Desktop Software"
+                    },
+                    {
+                        "attack_id": "T1585",
+                        "name": "Establish Accounts"
+                    },
+                    {
+                        "attack_id": "T1588.002",
+                        "name": "Tool"
+                    },
+                    {
+                        "attack_id": "T1018",
+                        "name": "Remote System Discovery"
+                    },
+                    {
+                        "attack_id": "T1078",
+                        "name": "Valid Accounts"
+                    }
+                ],
+                "software": [
+                    {
+                        "attack_id": "S0645",
+                        "name": "Wevtutil"
+                    },
+                    {
+                        "attack_id": "S9051",
+                        "name": "The Gentlemen Ransomware"
+                    },
+                    {
+                        "attack_id": "S0029",
+                        "name": "PsExec"
+                    }
+                ],
+                "url": "https://attack.mitre.org/groups/G1058"
+            },
+            "error": null
+        },
+        "recordedfuture": {
+            "label": "Recorded Future",
+            "data": {
+                "kind": "actor",
+                "found": true,
+                "exact": true,
+                "query": "The Gentlemen",
+                "id": "-AqQvJ",
+                "name": "The Gentlemen Ransomware Group",
+                "common_names": [],
+                "aliases": [
+                    "Storm-2697",
+                    "The Gentlemen",
+                    "The Gentlemen Ransomware",
+                    "The Gentlemen Ransomware Group",
+                    "TheGentlemen",
+                    "Thegentlemen ransomware group"
+                ],
+                "aliases_total": 6,
+                "categories": [
+                    "Ransomware and Extortion Groups"
+                ],
+                "insikt_links": {
+                    "malware": [
+                        {
+                            "id": "qlAmKT",
+                            "name": "Abyss Locker",
+                            "source": "insikt"
+                        },
+                        {
+                            "id": "nu89JI",
+                            "name": "Agenda Ransomware",
+                            "source": "insikt"
+                        },
+                        {
+                            "id": "BFMXUgJ",
+                            "name": "AiLock Ransomware",
+                            "source": "insikt"
+                        },
+                        {
+                            "id": "8vRLvQ",
+                            "name": "BlackNevas Ransomware",
+                            "source": "insikt"
+                        },
+                        {
+                            "id": "srI2oU",
+                            "name": "3AM Ransomware",
+                            "source": "insikt"
+                        },
+                        {
+                            "id": "rGIF_D",
+                            "name": "Akira Ransomware",
+                            "source": "insikt"
+                        },
+                        {
+                            "id": "-Aqw_a",
+                            "name": "Gentlemen Ransomware",
+                            "source": "technical"
+                        },
+                        {
+                            "id": "R6qIvk",
+                            "name": "Anubis Ransomware",
+                            "source": "insikt"
+                        },
+                        {
+                            "id": "k5UlUR",
+                            "name": "ALPHV  Ransomware",
+                            "source": "insikt"
+                        },
+                        {
+                            "id": "BNT4Sz3",
+                            "name": "BL4CK SP1D3R",
+                            "source": "insikt"
+                        }
+                    ],
+                    "mitre": [
+                        {
+                            "id": "mitre:T1006",
+                            "name": "T1006",
+                            "source": "technical",
+                            "label": "T1006 (Direct Volume Access | ATT&CK Enterprise)"
+                        },
+                        {
+                            "id": "mitre:T1027.013",
+                            "name": "T1027.013",
+                            "source": "insikt",
+                            "label": "T1027.013 (Obfuscated Files or Information: Encrypted/Encoded File | ATT&CK Enterprise)"
+                        },
+                        {
+                            "id": "mitre:T1016",
+                            "name": "T1016",
+                            "source": "technical",
+                            "label": "T1016 (System Network Configuration Discovery | ATT&CK Enterprise)"
+                        },
+                        {
+                            "id": "mitre:T1053.005",
+                            "name": "T1053.005",
+                            "source": "technical",
+                            "label": "T1053.005 (Scheduled Task/Job: Scheduled Task | ATT&CK Enterprise)"
+                        },
+                        {
+                            "id": "mitre:T1047",
+                            "name": "T1047",
+                            "source": "technical",
+                            "label": "T1047 (Windows Management Instrumentation | ATT&CK Enterprise)"
+                        },
+                        {
+                            "id": "mitre:T1021.002",
+                            "name": "T1021.002",
+                            "source": "insikt",
+                            "label": "T1021.002 (Remote Services: SMB/Windows Admin Shares | ATT&CK Enterprise)"
+                        },
+                        {
+                            "id": "mitre:T1005",
+                            "name": "T1005",
+                            "source": "insikt",
+                            "label": "T1005 (Data from Local System | ATT&CK Enterprise)"
+                        },
+                        {
+                            "id": "mitre:T1059.001",
+                            "name": "T1059.001",
+                            "source": "technical",
+                            "label": "T1059.001 (Command and Scripting Interpreter: PowerShell | ATT&CK Enterprise)"
+                        },
+                        {
+                            "id": "mitre:T1039",
+                            "name": "T1039",
+                            "source": "insikt",
+                            "label": "T1039 (Data from Network Shared Drive | ATT&CK Enterprise)"
+                        },
+                        {
+                            "id": "mitre:T1003.001",
+                            "name": "T1003.001",
+                            "source": "insikt",
+                            "label": "T1003.001 (OS Credential Dumping: LSASS Memory | ATT&CK Enterprise)"
+                        }
+                    ],
+                    "ips": [
+                        {
+                            "id": "ip:38.110.228.43",
+                            "name": "38.110.228.43",
+                            "source": "insikt",
+                            "risk_score": 44,
+                            "criticality": "Suspicious"
+                        },
+                        {
+                            "id": "ip:77.110.122.58",
+                            "name": "77.110.122.58",
+                            "source": "insikt",
+                            "risk_score": 36,
+                            "criticality": "Suspicious"
+                        },
+                        {
+                            "id": "ip:38.110.228.125",
+                            "name": "38.110.228.125",
+                            "source": "insikt",
+                            "risk_score": 24,
+                            "criticality": "Unusual"
+                        },
+                        {
+                            "id": "ip:50.114.167.112",
+                            "name": "50.114.167.112",
+                            "source": "insikt",
+                            "risk_score": 24,
+                            "criticality": "Unusual"
+                        },
+                        {
+                            "id": "ip:77.110.122.137",
+                            "name": "77.110.122.137",
+                            "source": "insikt",
+                            "risk_score": 24,
+                            "criticality": "Unusual"
+                        },
+                        {
+                            "id": "ip:185.117.72.215",
+                            "name": "185.117.72.215",
+                            "source": "insikt",
+                            "risk_score": 24,
+                            "criticality": "Unusual"
+                        },
+                        {
+                            "id": "ip:146.103.127.44",
+                            "name": "146.103.127.44",
+                            "source": "insikt",
+                            "risk_score": 24,
+                            "criticality": "Unusual"
+                        },
+                        {
+                            "id": "ip:185.45.193.151",
+                            "name": "185.45.193.151",
+                            "source": "insikt",
+                            "risk_score": 24,
+                            "criticality": "Unusual"
+                        },
+                        {
+                            "id": "ip:77.110.126.46",
+                            "name": "77.110.126.46",
+                            "source": "insikt",
+                            "risk_score": 24,
+                            "criticality": "Unusual"
+                        },
+                        {
+                            "id": "ip:38.110.228.33",
+                            "name": "38.110.228.33",
+                            "source": "insikt",
+                            "risk_score": 20,
+                            "criticality": "Unusual"
+                        }
+                    ],
+                    "domains": [
+                        {
+                            "id": "idn:savvyhawk.net",
+                            "name": "savvyhawk.net",
+                            "source": "insikt",
+                            "risk_score": 66,
+                            "criticality": "Malicious"
+                        },
+                        {
+                            "id": "idn:unitedpharmacy.sa",
+                            "name": "unitedpharmacy.sa",
+                            "source": "insikt",
+                            "risk_score": 29,
+                            "criticality": "Suspicious"
+                        },
+                        {
+                            "id": "idn:ninv.com",
+                            "name": "ninv.com",
+                            "source": "insikt",
+                            "risk_score": 28,
+                            "criticality": "Suspicious"
+                        },
+                        {
+                            "id": "idn:confluent.io",
+                            "name": "confluent.io",
+                            "source": "insikt",
+                            "risk_score": 27,
+                            "criticality": "Suspicious"
+                        },
+                        {
+                            "id": "idn:dexcom.com",
+                            "name": "dexcom.com",
+                            "source": "insikt",
+                            "risk_score": 27,
+                            "criticality": "Suspicious"
+                        },
+                        {
+                            "id": "idn:eteaminc.com",
+                            "name": "eteaminc.com",
+                            "source": "insikt",
+                            "risk_score": 27,
+                            "criticality": "Suspicious"
+                        },
+                        {
+                            "id": "idn:humboldt.ca",
+                            "name": "humboldt.ca",
+                            "source": "insikt",
+                            "risk_score": 27,
+                            "criticality": "Suspicious"
+                        },
+                        {
+                            "id": "idn:edcon.co.za",
+                            "name": "edcon.co.za",
+                            "source": "insikt",
+                            "risk_score": 27,
+                            "criticality": "Suspicious"
+                        },
+                        {
+                            "id": "idn:intense.pl",
+                            "name": "intense.pl",
+                            "source": "insikt",
+                            "risk_score": 27,
+                            "criticality": "Suspicious"
+                        },
+                        {
+                            "id": "idn:hlefcu.com",
+                            "name": "hlefcu.com",
+                            "source": "insikt",
+                            "risk_score": 27,
+                            "criticality": "Suspicious"
+                        }
+                    ],
+                    "hashes": [
+                        {
+                            "id": "hash:3ab9575225e00a83a4ac2b534da5a710bdcf6eb72884944c437b5fbe5c5c9235",
+                            "name": "3ab9575225e00a83a4ac2b534da5a710bdcf6eb72884944c437b5fbe5c5c9235",
+                            "source": "technical",
+                            "risk_score": 89,
+                            "criticality": "Malicious"
+                        },
+                        {
+                            "id": "hash:c0979ec20b87084317d1bfa50405f7149c3b5c5f",
+                            "name": "c0979ec20b87084317d1bfa50405f7149c3b5c5f",
+                            "source": "insikt",
+                            "risk_score": 89,
+                            "criticality": "Malicious"
+                        },
+                        {
+                            "id": "hash:e00293ce0eb534874efd615ae590cf6aa3858ba4",
+                            "name": "e00293ce0eb534874efd615ae590cf6aa3858ba4",
+                            "source": "insikt",
+                            "risk_score": 89,
+                            "criticality": "Malicious"
+                        },
+                        {
+                            "id": "hash:0d07a653649aefcc92c3315925cde3085b02b9a50f60cddf50b571fde3763955",
+                            "name": "0d07a653649aefcc92c3315925cde3085b02b9a50f60cddf50b571fde3763955",
+                            "source": "technical",
+                            "risk_score": 80,
+                            "criticality": "Malicious"
+                        },
+                        {
+                            "id": "hash:f4c87a1df04274b7497cbf9a4619b946c915cf5210b6e2eaa2fee1629f4ff196",
+                            "name": "f4c87a1df04274b7497cbf9a4619b946c915cf5210b6e2eaa2fee1629f4ff196",
+                            "source": "insikt",
+                            "risk_score": 78,
+                            "criticality": "Malicious"
+                        },
+                        {
+                            "id": "hash:b69a6ee387f00518de0c284c384ec17f819ed04cceb054d0eec2271d0e8d64f1",
+                            "name": "b69a6ee387f00518de0c284c384ec17f819ed04cceb054d0eec2271d0e8d64f1",
+                            "source": "technical",
+                            "risk_score": 75,
+                            "criticality": "Malicious"
+                        },
+                        {
+                            "id": "hash:c12c4d58541cc4f75ae19b65295a52c559570054",
+                            "name": "c12c4d58541cc4f75ae19b65295a52c559570054",
+                            "source": "insikt",
+                            "risk_score": 73,
+                            "criticality": "Malicious"
+                        },
+                        {
+                            "id": "hash:bd61c2880920bbfb86c12df439dd1ca0258a10e532433698fd029aef2a5b33f2",
+                            "name": "bd61c2880920bbfb86c12df439dd1ca0258a10e532433698fd029aef2a5b33f2",
+                            "source": "insikt",
+                            "risk_score": 72,
+                            "criticality": "Malicious"
+                        },
+                        {
+                            "id": "hash:cbbee3fb9c6f5c6c5bbf9abbdebeb5e2824c26b1a2c19a86a13de39c4edef86d",
+                            "name": "cbbee3fb9c6f5c6c5bbf9abbdebeb5e2824c26b1a2c19a86a13de39c4edef86d",
+                            "source": "technical",
+                            "risk_score": 70,
+                            "criticality": "Malicious"
+                        },
+                        {
+                            "id": "hash:df249727c12741ca176d5f1ccba3ce188a546d28",
+                            "name": "df249727c12741ca176d5f1ccba3ce188a546d28",
+                            "source": "insikt",
+                            "risk_score": 69,
+                            "criticality": "Malicious"
+                        }
+                    ],
+                    "organizations": [
+                        {
+                            "id": "Cae5TU",
+                            "name": "American Board of Preventive Medicine",
+                            "source": "insikt",
+                            "risk_score": 97,
+                            "criticality": "Very Malicious"
+                        },
+                        {
+                            "id": "-JdJbv",
+                            "name": "SES-MT",
+                            "source": "insikt",
+                            "risk_score": 89,
+                            "criticality": "Malicious"
+                        },
+                        {
+                            "id": "C7076",
+                            "name": "Bristol City Council",
+                            "source": "insikt",
+                            "risk_score": 81,
+                            "criticality": "Malicious"
+                        },
+                        {
+                            "id": "CciCV",
+                            "name": "Royal Thai Air Force",
+                            "source": "insikt",
+                            "risk_score": 78,
+                            "criticality": "Malicious"
+                        },
+                        {
+                            "id": "nS1vvz",
+                            "name": "Hospital de la Santa Creu i Sant Pau",
+                            "source": "insikt",
+                            "risk_score": 76,
+                            "criticality": "Malicious"
+                        },
+                        {
+                            "id": "CCphj",
+                            "name": "Oral Roberts University",
+                            "source": "insikt",
+                            "risk_score": 75,
+                            "criticality": "Malicious"
+                        },
+                        {
+                            "id": "B_pP5",
+                            "name": "University of Liverpool",
+                            "source": "insikt",
+                            "risk_score": 75,
+                            "criticality": "Malicious"
+                        },
+                        {
+                            "id": "T6QDMX",
+                            "name": "Morselife Health System",
+                            "source": "insikt",
+                            "risk_score": 73,
+                            "criticality": "Malicious"
+                        },
+                        {
+                            "id": "PFhx52",
+                            "name": "Minor League Baseball",
+                            "source": "insikt",
+                            "risk_score": 71,
+                            "criticality": "Malicious"
+                        },
+                        {
+                            "id": "qNY1ME",
+                            "name": "INDRHI RD",
+                            "source": "insikt",
+                            "risk_score": 70,
+                            "criticality": "Malicious"
+                        }
+                    ]
+                },
+                "threat_map": null,
+                "on_threat_map": null,
+                "link": "https://app.recordedfuture.com/live/sc/entity/-AqQvJ",
+                "threat_map_error": {
+                    "code": "Forbidden",
+                    "message": "The Recorded Future token has no access to the Threat Map (missing API privileges)."
+                }
+            },
+            "error": null
+        },
+        "malpedia": {
+            "label": "Malpedia",
+            "data": {
+                "found": true,
+                "query": "The Gentlemen",
+                "id": "the_gentlemen",
+                "name": "The Gentlemen",
+                "description": "The Gentlemen is a ransomware group that employs a dual-extortion strategy, encrypting sensitive files while exfiltrating critical business data to pressure victims into paying ransoms. Their operations leverage advanced techniques such as abusing legitimate utilities like PowerRun.exe for privilege escalation, using custom-built tools for defense evasion, and employing flexible encryption methods based on file size. The group targets medium to large organizations across various sectors, particularly in the Asia-Pacific region, and has demonstrated a high level of technical maturity and operational discipline. Their activities include systematic compromise of enterprise environments, mass account enumeration, and the use of encrypted channels for data exfiltration.",
+                "synonyms": [],
+                "country": null,
+                "state_sponsor": null,
+                "victims": [],
+                "target_category": [],
+                "incident_type": null,
+                "attribution_confidence": null,
+                "families": [
+                    {
+                        "id": "win.gentlemen",
+                        "common_name": "Gentlemen",
+                        "alt_names": [],
+                        "updated": "2026-10-30",
+                        "link": "https://malpedia.caad.fkie.fraunhofer.de/details/win.gentlemen"
+                    }
+                ],
+                "refs": [
+                    "https://socradar.io/blog/dark-web-profile-the-gentlemen-ransomware/",
+                    "https://www.trendmicro.com/en_us/research/25/i/unmasking-the-gentlemen-ransomware.html",
+                    "https://www.cybereason.com/blog/the-gentlemen-ransomware",
+                    "https://www.sprocketsecurity.com/blog/tracing-a-threat-actors-footprints-on-tor"
+                ],
+                "refs_total": 4,
+                "link": "https://malpedia.caad.fkie.fraunhofer.de/actor/the_gentlemen"
+            },
+            "error": null
+        },
+        "ransomwarelive": {
+            "label": "ransomware.live",
+            "data": {
+                "kind": "group",
+                "found": true,
+                "query": "The Gentlemen",
+                "groups": [
+                    {
+                        "name": "thegentlemen",
+                        "altname": "Storm-2697",
+                        "lineage": null,
+                        "first_seen": "2025-09-09",
+                        "raas": true,
+                        "description": "The Gentlemen is a RaaS group that emerged in July\u2013August 2025, rapidly claiming over 320 victims across 17+ countries by offering affiliates a 90% revenue share, deploying a Go-based locker against Windows, Linux, NAS, and BSD systems; a compromised C2 server in 2026 revealed more than 1,570 linked victims.",
+                        "leak_sites": 2,
+                        "leak_sites_up": 1,
+                        "link": "https://www.ransomware.live/group/thegentlemen"
+                    }
+                ],
+                "victim_count": 1139,
+                "last_claim": "2026-11-24",
+                "days_since_last": 2,
+                "first_claim": "2025-09-09",
+                "claims_30d": 133,
+                "claims_90d": 349,
+                "claims_365d": 1074,
+                "top_sectors": [
+                    {
+                        "name": "Manufacturing",
+                        "count": 218
+                    },
+                    {
+                        "name": "Technology",
+                        "count": 151
+                    },
+                    {
+                        "name": "Professional Services",
+                        "count": 129
+                    },
+                    {
+                        "name": "Healthcare",
+                        "count": 115
+                    },
+                    {
+                        "name": "Retail & E-Commerce",
+                        "count": 81
+                    },
+                    {
+                        "name": "Other",
+                        "count": 66
+                    }
+                ],
+                "top_countries": [
+                    {
+                        "name": "US",
+                        "count": 238
+                    },
+                    {
+                        "name": "DE",
+                        "count": 53
+                    },
+                    {
+                        "name": "GB",
+                        "count": 51
+                    },
+                    {
+                        "name": "FR",
+                        "count": 47
+                    },
+                    {
+                        "name": "TH",
+                        "count": 44
+                    },
+                    {
+                        "name": "BR",
+                        "count": 43
+                    }
+                ],
+                "recent": [
+                    {
+                        "victim": "Queens Public Library",
+                        "group": "thegentlemen",
+                        "domain": "queenslibrary.org",
+                        "country": "US",
+                        "sector": "Education",
+                        "attack_date": "2026-11-22",
+                        "discovered": "2026-11-24",
+                        "data_size": null,
+                        "ransom": null,
+                        "link": null,
+                        "claim_url": null
+                    },
+                    {
+                        "victim": "Steinecke",
+                        "group": "thegentlemen",
+                        "domain": "steinecke.de",
+                        "country": "DE",
+                        "sector": "Manufacturing",
+                        "attack_date": "2026-11-23",
+                        "discovered": "2026-11-24",
+                        "data_size": null,
+                        "ransom": null,
+                        "link": null,
+                        "claim_url": null
+                    },
+                    {
+                        "victim": "Berkeley orinda Oral Surgery",
+                        "group": "thegentlemen",
+                        "domain": "berkeleyoralsurgery.com",
+                        "country": "US",
+                        "sector": "Healthcare",
+                        "attack_date": "2026-11-23",
+                        "discovered": "2026-11-24",
+                        "data_size": null,
+                        "ransom": null,
+                        "link": null,
+                        "claim_url": null
+                    },
+                    {
+                        "victim": "TC Industries",
+                        "group": "thegentlemen",
+                        "domain": "tcindustries.com",
+                        "country": "US",
+                        "sector": "Manufacturing",
+                        "attack_date": "2026-11-23",
+                        "discovered": "2026-11-24",
+                        "data_size": null,
+                        "ransom": null,
+                        "link": null,
+                        "claim_url": null
+                    },
+                    {
+                        "victim": "Arendal",
+                        "group": "thegentlemen",
+                        "domain": "arendal.com.mx",
+                        "country": "MX",
+                        "sector": "Other",
+                        "attack_date": "2026-11-23",
+                        "discovered": "2026-11-24",
+                        "data_size": null,
+                        "ransom": null,
+                        "link": null,
+                        "claim_url": null
+                    },
+                    {
+                        "victim": "Cimmino",
+                        "group": "thegentlemen",
+                        "domain": "cimmino.com",
+                        "country": "IT",
+                        "sector": "Other",
+                        "attack_date": "2026-11-23",
+                        "discovered": "2026-11-24",
+                        "data_size": null,
+                        "ransom": null,
+                        "link": null,
+                        "claim_url": null
+                    },
+                    {
+                        "victim": "New Teeth Now",
+                        "group": "thegentlemen",
+                        "domain": "newteethnow.com",
+                        "country": "US",
+                        "sector": "Healthcare",
+                        "attack_date": "2026-11-23",
+                        "discovered": "2026-11-24",
+                        "data_size": null,
+                        "ransom": null,
+                        "link": null,
+                        "claim_url": null
+                    },
+                    {
+                        "victim": "Nuova PSC",
+                        "group": "thegentlemen",
+                        "domain": "nuovapsc.it",
+                        "country": "IT",
+                        "sector": "Professional Services",
+                        "attack_date": "2026-11-23",
+                        "discovered": "2026-11-24",
+                        "data_size": null,
+                        "ransom": null,
+                        "link": null,
+                        "claim_url": null
+                    },
+                    {
+                        "victim": "Mechanix Wear",
+                        "group": "thegentlemen",
+                        "domain": "mechanix.com",
+                        "country": "US",
+                        "sector": "Retail & E-Commerce",
+                        "attack_date": "2026-11-23",
+                        "discovered": "2026-11-24",
+                        "data_size": null,
+                        "ransom": null,
+                        "link": null,
+                        "claim_url": null
+                    },
+                    {
+                        "victim": "Stadtwerke Achim AG",
+                        "group": "thegentlemen",
+                        "domain": "stadtwerke-achim.de",
+                        "country": "DE",
+                        "sector": "Energy & Utilities",
+                        "attack_date": "2026-11-23",
+                        "discovered": "2026-11-24",
+                        "data_size": null,
+                        "ransom": null,
+                        "link": null,
+                        "claim_url": null
+                    },
+                    {
+                        "victim": "University Goce Delcev At Stip",
+                        "group": "thegentlemen",
+                        "domain": "ugd.edu.mk",
+                        "country": "MK",
+                        "sector": "Education",
+                        "attack_date": "2026-11-23",
+                        "discovered": "2026-11-24",
+                        "data_size": null,
+                        "ransom": null,
+                        "link": null,
+                        "claim_url": null
+                    },
+                    {
+                        "victim": "Groupe Gagneraud",
+                        "group": "thegentlemen",
+                        "domain": "gagneraud.fr",
+                        "country": "FR",
+                        "sector": "Manufacturing",
+                        "attack_date": "2026-11-23",
+                        "discovered": "2026-11-24",
+                        "data_size": null,
+                        "ransom": null,
+                        "link": null,
+                        "claim_url": "http://tezwsse5czllksjb7cwp65rvnk4oobmzti2znn42i43bjdfd2prqqkad.onion/groupe_gagneraud"
+                    },
+                    {
+                        "victim": "HT Global Circuits",
+                        "group": "thegentlemen",
+                        "domain": "htglobalcircuits.com",
+                        "country": "TW",
+                        "sector": "Manufacturing",
+                        "attack_date": "2026-11-23",
+                        "discovered": "2026-11-24",
+                        "data_size": null,
+                        "ransom": null,
+                        "link": null,
+                        "claim_url": null
+                    },
+                    {
+                        "victim": "********* Casino",
+                        "group": "thegentlemen",
+                        "domain": null,
+                        "country": null,
+                        "sector": "Hospitality",
+                        "attack_date": "2026-11-18",
+                        "discovered": "2026-11-21",
+                        "data_size": null,
+                        "ransom": null,
+                        "link": null,
+                        "claim_url": null
+                    },
+                    {
+                        "victim": "PanLink",
+                        "group": "thegentlemen",
+                        "domain": "panlink.se",
+                        "country": "SE",
+                        "sector": "Technology",
+                        "attack_date": "2026-11-18",
+                        "discovered": "2026-11-21",
+                        "data_size": null,
+                        "ransom": null,
+                        "link": null,
+                        "claim_url": null
+                    }
+                ],
+                "list_updated": "2026-11-26T18:59:19Z",
+                "link": "https://www.ransomware.live/group/thegentlemen"
+            },
+            "error": null
+        }
+    }
+}

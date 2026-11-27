@@ -71,7 +71,9 @@ IntelChecker/
 │   │                            # serve N instances; opencti_queries.py holds the GraphQL documents
 │   ├── tests/
 │   │   ├── verdict_parity.py    # TypeScript ↔ Python verdict fuzz (Node ≥ 23)
-│   │   └── opencti_schema_check.py  # Validates the OpenCTI queries against any release's schema
+│   │   ├── opencti_schema_check.py  # Validates the OpenCTI queries against any release's schema
+│   │   ├── actor_resolve_check.py   # Pinned /actor/resolve candidates (offline, fixtures/actor_catalog.json)
+│   │   └── fixtures/
 │   ├── certs/                   # mTLS client certs — gitignored, mounted
 │   ├── data/                    # history.db, users.db, weights.json, connectors.json — gitignored, mounted
 │   ├── Dockerfile
@@ -143,6 +145,12 @@ The frontend fires one `POST /analyze/{engine}` per source in parallel, so each 
 
   ```bash
   cd backend && .venv/bin/python tests/verdict_parity.py            # add --history data/history.db to replay real lookups
+  ```
+- Threat actors: the profile / activity modules and the actor search box have offline tests (frontend fixtures are real history entries in `frontend/tests/fixtures/`):
+
+  ```bash
+  cd frontend && npm test                                            # actorProfile.ts, actorActivity.ts, relevantPulses (Node ≥ 23)
+  cd backend && .venv/bin/python -m unittest tests/actor_resolve_check.py   # GET /actor/resolve candidates
   ```
 - New source: also add it to `backend/app/core/registry.py` with the same order, label and supported types as `frontend/src/registry.tsx` (the results page queries what the frontend registry declares).
 - OpenCTI: after touching `backend/app/services/opencti_queries.py`, validate the GraphQL documents against old and new releases (dev-only dependency, no instance needed):

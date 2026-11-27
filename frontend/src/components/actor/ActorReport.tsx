@@ -71,10 +71,11 @@ function Chip({ item, mono = false }: { item: ProfileItem; mono?: boolean }) {
   const label = item.country ? countryName(item.country, locale) : item.value
   return (
     <span title={t('ar.sources', { sources: item.sources.join(', ') })}
-      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-border bg-muted/30 text-xs text-foreground/90 whitespace-nowrap">
-      <span className={mono ? 'font-mono' : undefined}>{label}</span>
-      {item.detail && <span className="text-muted-foreground">{item.detail}</span>}
-      <span className={`text-[0.65rem] ${item.sources.length > 1 ? 'font-semibold text-primary' : 'text-muted-foreground/80'}`}>
+      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-border bg-muted/30 text-xs text-foreground/90 whitespace-nowrap max-w-full">
+      <span className={`shrink-0 ${mono ? 'font-mono' : ''}`}>{label}</span>
+      {/* Long technique names are cut on narrow screens (full text in the tooltip) */}
+      {item.detail && <span className="text-muted-foreground truncate min-w-0" title={item.detail}>{item.detail}</span>}
+      <span className={`shrink-0 text-[0.65rem] ${item.sources.length > 1 ? 'font-semibold text-primary' : 'text-muted-foreground/80'}`}>
         {item.sources.slice(0, 2).map(short).join(' · ')}{item.sources.length > 2 ? ` +${item.sources.length - 2}` : ''}
       </span>
     </span>
@@ -258,7 +259,7 @@ function Side({ profile, activity, verdict, thresholds, loading }: {
       </div>
       {profile.identities.length > 0 && (
         <div className="flex flex-col gap-1.5">
-          <span className={lbl}>{t('ar.identifiedBy', { n: profile.identities.length })}</span>
+          <span className={lbl}>{tn('ar.identifiedBy', profile.identities.length)}</span>
           <div className="flex flex-wrap gap-1">
             {profile.identities.map(i => (
               <span key={i.engineId} title={i.name} className="px-1.5 py-0.5 rounded bg-muted/50 text-xs text-muted-foreground">

@@ -184,8 +184,14 @@ def group_key(name: str | None) -> str:
     return re.sub(r"[^a-z0-9]+", "", (name or "").lower())
 
 
+_DOT_ZERO_VERSION = re.compile(r"(\d+)\.0+\b")
+
+
 def _needle_keys(name: str) -> set[str]:
-    keys = {group_key(name), group_key(_ACTOR_NOISE.sub(" ", name))}
+    # "LockBit 3.0" is keyed lockbit3 by ransomware.live, not lockbit30.
+    unversioned = _DOT_ZERO_VERSION.sub(r"\1", name)
+    keys = {group_key(n) for n in {name, unversioned}}
+    keys |= {group_key(_ACTOR_NOISE.sub(" ", n)) for n in {name, unversioned}}
     return {k for k in keys if len(k) >= 3}
 
 

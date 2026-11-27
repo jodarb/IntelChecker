@@ -1,0 +1,354 @@
+{
+    "id": 8,
+    "indicator": "Gentleman",
+    "timestamp": "2026-11-26 16:40:46",
+    "results": {
+        "alienvault": {
+            "label": "AlienVault OTX",
+            "data": {
+                "count": 252,
+                "results": [
+                    {
+                        "id": "5cc53cf14656d9e5737690eb",
+                        "name": "Nivdort - Malware Domain Feed V2",
+                        "description": "Command and Control domains for malware known as Nivdort. These domains are extracted from malware sandbox reports using                             a Machine Learning model trained on a corpus of good and bad domains.",
+                        "author_name": "otxrobottwo",
+                        "modified": "2026-11-25T12:37:16.896000",
+                        "created": "2019-04-28T05:41:05.723000",
+                        "tags": [],
+                        "references": [],
+                        "public": 1,
+                        "adversary": "",
+                        "targeted_countries": [],
+                        "malware_families": [],
+                        "attack_ids": [],
+                        "industries": [],
+                        "TLP": "white",
+                        "revision": 1,
+                        "groups": [],
+                        "in_group": false,
+                        "author": {
+                            "username": "otxrobottwo",
+                            "id": "78495",
+                            "avatar_url": "/otxapi/users/avatar_image/media/avatars/user_78495/resized/80/avatar_ba5a8acdbd.png",
+                            "is_subscribed": false,
+                            "is_following": false
+                        },
+                        "is_subscribing": null
+                    },
+                    {
+                        "id": "5cc9b40546aaa6da964b11ce",
+                        "name": "W32.Bayrob - Malware Domain Feed V2",
+                        "description": "Command and Control domains for malware known as W32.Bayrob. These domains are extracted from malware sandbox reports using                             a Machine Learning model trained on a corpus of good and bad domains.",
+                        "author_name": "otxrobottwo",
+                        "modified": "2026-11-23T20:17:44.559000",
+                        "created": "2019-05-01T14:58:13.502000",
+                        "tags": [],
+                        "references": [],
+                        "public": 1,
+                        "adversary": "",
+                        "targeted_countries": [],
+                        "malware_families": [],
+                        "attack_ids": [],
+                        "industries": [],
+                        "TLP": "white",
+                        "revision": 1,
+                        "groups": [],
+                        "in_group": false,
+                        "author": {
+                            "username": "otxrobottwo",
+                            "id": "78495",
+                            "avatar_url": "/otxapi/users/avatar_image/media/avatars/user_78495/resized/80/avatar_ba5a8acdbd.png",
+                            "is_subscribed": false,
+                            "is_following": false
+                        },
+                        "is_subscribing": null
+                    },
+                    {
+                        "id": "5eda79a2058b833012b95dc3",
+                        "name": "Nivdort - Malware Domain Feed V2",
+                        "description": "Command and Control domains for Nivdort. These domains are extracted from a number of sources, and are suspicious.",
+                        "author_name": "otxrobottwo_testing",
+                        "modified": "2026-11-25T23:58:43.571000",
+                        "created": "2020-06-05T16:58:10.377000",
+                        "tags": [],
+                        "references": [],
+                        "public": 1,
+                        "adversary": "",
+                        "targeted_countries": [],
+                        "malware_families": [],
+                        "attack_ids": [],
+                        "industries": [],
+                        "TLP": "white",
+                        "revision": 1,
+                        "groups": [],
+                        "in_group": false,
+                        "author": {
+                            "username": "otxrobottwo_testing",
+                            "id": "83138",
+                            "avatar_url": "https://otx.alienvault.com/assets/images/default-avatar.png",
+                            "is_subscribed": false,
+                            "is_following": false
+                        },
+                        "is_subscribing": null
+                    },
+                    {
+                        "id": "5eda907658adf358987905e6",
+                        "name": "W32.Bayrob - Malware Domain Feed V2",
+                        "description": "Command and Control domains for W32.Bayrob. These domains are extracted from a number of sources, and are suspicious.",
+                        "author_name": "otxrobottwo_testing",
+                        "modified": "2026-11-25T23:57:48.556000",
+                        "created": "2020-06-05T18:35:33.994000",
+                        "tags": [],
+                        "references": [],
+                        "public": 1,
+                        "adversary": "",
+                        "targeted_countries": [],
+                        "malware_families": [],
+                        "attack_ids": [],
+                        "industries": [],
+                        "TLP": "white",
+                        "revision": 1,
+                        "groups": [],
+                        "in_group": false,
+                        "author": {
+                            "username": "otxrobottwo_testing",
+                            "id": "83138",
+                            "avatar_url": "https://otx.alienvault.com/assets/images/default-avatar.png",
+                            "is_subscribed": false,
+                            "is_following": false
+                        },
+                        "is_subscribing": null
+                    },
+                    {
+                        "id": "5ee7247cdb3820b358b37a71",
+                        "name": "Phishing &  scam domain names",
+                        "description": "Phishing, scams, all junk goes here.",
+                        "author_name": "RiskReact.eu",
+                        "modified": "2026-11-22T08:49:36.891000",
+                        "created": "2020-06-15T07:34:20.062000",
+                        "tags": [],
+                        "references": [],
+                        "public": 1,
+                        "adversary": "phishing",
+                        "targeted_countries": [],
+                        "malware_families": [],
+                        "attack_ids": [],
+                        "industries": [],
+                        "TLP": "green",
+                        "revision": 8,
+                        "groups": [],
+                        "in_group": false,
+                        "author": {
+                            "username": "RiskReact.eu",
+                            "id": "116639",
+                            "avatar_url": "/otxapi/users/avatar_image/media/avatars/user_116639/resized/80/avatar_30b576054c.png",
+                            "is_subscribed": false,
+                            "is_following": false
+                        },
+                        "is_subscribing": null
+                    },
+                    {
+                        "id": "5fa1852d337eca8e99c2ec32",
+                        "name": "Malware - Malware Domain Feed V2 - November 03 2020",
+                        "description": "Command and Control domains for Malware. These domains are extracted from a number of sources, and are suspicious.",
+                        "author_name": "otxrobottwo",
+                        "modified": "2026-11-25T13:41:45.229000",
+                        "created": "2020-11-03T16:28:29.011000",
+                        "tags": [],
+                        "references": [],
+                        "public": 1,
+                        "adversary": "",
+                        "targeted_countries": [],
+                        "malware_families": [],
+                        "attack_ids": [],
+                        "industries": [],
+                        "TLP": "white",
+                        "revision": 2,
+                        "groups": [],
+                        "in_group": false,
+                        "author": {
+                            "username": "otxrobottwo",
+                            "id": "78495",
+                            "avatar_url": "/otxapi/users/avatar_image/media/avatars/user_78495/resized/80/avatar_ba5a8acdbd.png",
+                            "is_subscribed": false,
+                            "is_following": false
+                        },
+                        "is_subscribing": null
+                    },
+                    {
+                        "id": "5fcfe3ae3b148af931f72401",
+                        "name": "Phishing Landing Pages",
+                        "description": "Microsoft 365 themed phishing landing pages, at least one of which (revengescatter[.]com) was actively used in a campaign on 2020-12-08. All of these domains resolved to the same IP address 162.241.67.239 between September and December 2020.",
+                        "author_name": "BinaryDefense",
+                        "modified": "2020-12-08T20:37:12.427000",
+                        "created": "2020-12-08T20:35:58.911000",
+                        "tags": [],
+                        "references": [],
+                        "public": 1,
+                        "adversary": "",
+                        "targeted_countries": [],
+                        "malware_families": [],
+                        "attack_ids": [],
+                        "industries": [],
+                        "TLP": "white",
+                        "revision": 1,
+                        "groups": [],
+                        "in_group": false,
+                        "author": {
+                            "username": "BinaryDefense",
+                            "id": "111374",
+                            "avatar_url": "/otxapi/users/avatar_image/media/avatars/user_111374/resized/80/avatar_ca13c2b840.png",
+                            "is_subscribed": false,
+                            "is_following": false
+                        },
+                        "is_subscribing": null
+                    },
+                    {
+                        "id": "629251a7261459933cde712b",
+                        "name": "Tasheel IoC",
+                        "description": "",
+                        "author_name": "ucfs-otx",
+                        "modified": "2022-06-27T00:04:33.529000",
+                        "created": "2022-05-28T16:45:27.524000",
+                        "tags": [],
+                        "references": [],
+                        "public": 1,
+                        "adversary": "",
+                        "targeted_countries": [],
+                        "malware_families": [],
+                        "attack_ids": [],
+                        "industries": [],
+                        "TLP": "white",
+                        "revision": 1,
+                        "groups": [],
+                        "in_group": false,
+                        "author": {
+                            "username": "ucfs-otx",
+                            "id": "117946",
+                            "avatar_url": "https://otx.alienvault.com/assets/images/default-avatar.png",
+                            "is_subscribed": false,
+                            "is_following": false
+                        },
+                        "is_subscribing": null
+                    },
+                    {
+                        "id": "629251a874a16678d3b6bef0",
+                        "name": "Tasheel IoC",
+                        "description": "",
+                        "author_name": "ucfs-otx",
+                        "modified": "2022-06-27T00:04:33.529000",
+                        "created": "2022-05-28T16:45:28.111000",
+                        "tags": [],
+                        "references": [],
+                        "public": 1,
+                        "adversary": "",
+                        "targeted_countries": [],
+                        "malware_families": [],
+                        "attack_ids": [],
+                        "industries": [],
+                        "TLP": "white",
+                        "revision": 1,
+                        "groups": [],
+                        "in_group": false,
+                        "author": {
+                            "username": "ucfs-otx",
+                            "id": "117946",
+                            "avatar_url": "https://otx.alienvault.com/assets/images/default-avatar.png",
+                            "is_subscribed": false,
+                            "is_following": false
+                        },
+                        "is_subscribing": null
+                    },
+                    {
+                        "id": "6372fcbbdf0f94984ca6b1ee",
+                        "name": "42,000 malicious web domains impersonating well-known brands",
+                        "description": "",
+                        "author_name": "cryptocti",
+                        "modified": "2022-11-15T02:43:07.882000",
+                        "created": "2022-11-15T02:43:07.882000",
+                        "tags": [],
+                        "references": [],
+                        "public": 1,
+                        "adversary": "",
+                        "targeted_countries": [],
+                        "malware_families": [],
+                        "attack_ids": [],
+                        "industries": [],
+                        "TLP": "white",
+                        "revision": 1,
+                        "groups": [],
+                        "in_group": false,
+                        "author": {
+                            "username": "cryptocti",
+                            "id": "110256",
+                            "avatar_url": "/otxapi/users/avatar_image/media/avatars/user_110256/resized/80/avatar_e237a4257c.png",
+                            "is_subscribed": false,
+                            "is_following": false
+                        },
+                        "is_subscribing": null
+                    }
+                ],
+                "exact_match": "",
+                "previous": null,
+                "next": "https://otx.alienvault.com/api/v1/search/pulses?q=Gentleman&limit=10&page=2"
+            },
+            "error": null
+        },
+        "mitreattack": {
+            "label": "MITRE ATT&CK",
+            "data": {
+                "error": {
+                    "code": "NotFound",
+                    "message": "'Gentleman' was not found in the MITRE ATT&CK dataset."
+                }
+            },
+            "error": null
+        },
+        "recordedfuture": {
+            "label": "Recorded Future",
+            "data": {
+                "kind": "actor",
+                "found": true,
+                "exact": true,
+                "query": "Gentleman",
+                "id": "Tx8bgE",
+                "name": "Gentleman",
+                "common_names": [],
+                "aliases": [],
+                "aliases_total": 0,
+                "categories": [
+                    "Underground Forum Member",
+                    "Financially Motivated"
+                ],
+                "insikt_links": {},
+                "threat_map": null,
+                "on_threat_map": null,
+                "link": "https://app.recordedfuture.com/live/sc/entity/Tx8bgE",
+                "threat_map_error": {
+                    "code": "Forbidden",
+                    "message": "The Recorded Future token has no access to the Threat Map (missing API privileges)."
+                }
+            },
+            "error": null
+        },
+        "malpedia": {
+            "label": "Malpedia",
+            "data": {
+                "found": false,
+                "query": "Gentleman"
+            },
+            "error": null
+        },
+        "ransomwarelive": {
+            "label": "ransomware.live",
+            "data": {
+                "error": {
+                    "code": "RateLimitExceeded",
+                    "message": "ransomware.live groups rate limit exceeded while downloading the list."
+                }
+            },
+            "error": null
+        }
+    }
+}

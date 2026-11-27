@@ -34,7 +34,7 @@ function ArtifactResults({ indicator, type }: { indicator: string; type: Indicat
         {/* Header */}
         {/* Title first, flush left; frequency and "back" on the right so they never push it */}
         <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 basis-64">
             <h2 className="text-xl font-semibold text-foreground font-mono break-all">{indicator}</h2>
             <span className="text-xs text-muted-foreground uppercase tracking-wide">
               {t(`type.${type}`)}

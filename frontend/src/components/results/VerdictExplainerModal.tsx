@@ -44,7 +44,7 @@ function KnowledgeTab({ verdict }: { verdict: VerdictResult }) {
             <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 text-xs text-muted-foreground uppercase tracking-wide font-medium px-1">
               <span>{t('explainer.source')}</span>
               <span className="text-right w-14">{t('explainer.weight')}</span>
-              <span className="text-right w-14">{t('explainer.depth')}</span>
+              <span className="text-right w-24">{t('explainer.depth')}</span>
               <span className="text-right w-24">{t('explainer.outcome')}</span>
             </div>
             {rows.map(c => (
@@ -54,7 +54,7 @@ function KnowledgeTab({ verdict }: { verdict: VerdictResult }) {
               >
                 <span className="text-foreground font-medium truncate">{c.label}</span>
                 <span className={`text-right text-muted-foreground w-14 ${c.inTotal === false ? 'line-through opacity-60' : ''}`}>{c.weight}</span>
-                <span className="text-right text-foreground font-medium w-14">{depthLabel(c.depth, t)}</span>
+                <span className="text-right text-foreground font-medium w-24">{depthLabel(c.depth, t)}</span>
                 <span className={`text-right text-xs w-24 ${OUTCOME_META[c.outcome].className}`}>
                   {c.inTotal === false ? t('explainer.notInTotal') : outcomeLabel(c.outcome, t)}
                 </span>
@@ -132,7 +132,10 @@ export default function VerdictExplainerModal({ open, onClose, verdict, threshol
 
   if (!open) return null
 
-  const q = verdict.quadrant
+  // Threat actors show neither Risk nor a quadrant: only the Knowledge part applies.
+  const knowledgeOnly = type === 'threat-actor'
+  const q = knowledgeOnly ? null : verdict.quadrant
+  const shownTab: Tab = knowledgeOnly ? 'knowledge' : tab
 
   return (
     <div
@@ -144,7 +147,7 @@ export default function VerdictExplainerModal({ open, onClose, verdict, threshol
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/40 shrink-0">
-          <span className="text-sm font-semibold text-foreground">{t('explainer.title')}</span>
+          <span className="text-sm font-semibold text-foreground">{t(knowledgeOnly ? 'explainer.titleKnowledge' : 'explainer.title')}</span>
           <button
             onClick={onClose}
             aria-label={t('common.close')}
@@ -154,7 +157,7 @@ export default function VerdictExplainerModal({ open, onClose, verdict, threshol
           </button>
         </div>
 
-        <div className="flex border-b border-border shrink-0">
+        {!knowledgeOnly && <div className="flex border-b border-border shrink-0">
           {(['knowledge', 'risk'] as Tab[]).map(id => (
             <button
               key={id}
@@ -168,10 +171,10 @@ export default function VerdictExplainerModal({ open, onClose, verdict, threshol
                 : `${t('score.risk')} · ${verdict.risk ?? t('score.noData')}`}
             </button>
           ))}
-        </div>
+        </div>}
 
         <div className="overflow-auto flex-1 px-4 py-4 flex flex-col gap-4">
-          {tab === 'knowledge' ? <KnowledgeTab verdict={verdict} /> : <RiskTab verdict={verdict} />}
+          {shownTab === 'knowledge' ? <KnowledgeTab verdict={verdict} /> : <RiskTab verdict={verdict} />}
 
           {q && (
             <div className="rounded-md border border-border bg-muted/10 px-3 py-2 text-xs text-muted-foreground">

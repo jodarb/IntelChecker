@@ -18,7 +18,7 @@ Built for SOC analysts and CTI teams who triage IPs, domains, URLs, hashes, ASNs
 
 </div>
 
-<img src="docs/screenshot.png" alt="IntelChecker results view" width="100%" />
+<img src="docs/screenshot.png" alt="IntelChecker threat actor report" width="100%" />
 
 ## Why IntelChecker
 

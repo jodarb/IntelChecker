@@ -1,0 +1,3151 @@
+{
+ "_comment": "Names and aliases of the MITRE ATT&CK groups and ransomware.live groups (2026-11-27), for actor_resolve_check.py.",
+ "mitre": [
+  {
+   "attack_id": "G0001",
+   "name": "Axiom",
+   "aliases": [
+    "Group 72"
+   ]
+  },
+  {
+   "attack_id": "G0002",
+   "name": "Moafee",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0003",
+   "name": "Cleaver",
+   "aliases": [
+    "Threat Group 2889",
+    "TG-2889"
+   ]
+  },
+  {
+   "attack_id": "G0004",
+   "name": "Ke3chang",
+   "aliases": [
+    "APT15",
+    "Mirage",
+    "Vixen Panda",
+    "GREF",
+    "Playful Dragon",
+    "RoyalAPT",
+    "NICKEL",
+    "Nylon Typhoon"
+   ]
+  },
+  {
+   "attack_id": "G0005",
+   "name": "APT12",
+   "aliases": [
+    "IXESHE",
+    "DynCalc",
+    "Numbered Panda",
+    "DNSCALC"
+   ]
+  },
+  {
+   "attack_id": "G0006",
+   "name": "APT1",
+   "aliases": [
+    "Comment Crew",
+    "Comment Group",
+    "Comment Panda"
+   ]
+  },
+  {
+   "attack_id": "G0007",
+   "name": "APT28",
+   "aliases": [
+    "IRON TWILIGHT",
+    "SNAKEMACKEREL",
+    "Swallowtail",
+    "Group 74",
+    "Sednit",
+    "Sofacy",
+    "Pawn Storm",
+    "Fancy Bear",
+    "STRONTIUM",
+    "Tsar Team",
+    "Threat Group-4127",
+    "TG-4127",
+    "Forest Blizzard",
+    "FROZENLAKE",
+    "GruesomeLarch"
+   ]
+  },
+  {
+   "attack_id": "G0008",
+   "name": "Carbanak",
+   "aliases": [
+    "Anunak"
+   ]
+  },
+  {
+   "attack_id": "G0009",
+   "name": "Deep Panda",
+   "aliases": [
+    "Shell Crew",
+    "WebMasters",
+    "KungFu Kittens",
+    "PinkPanther",
+    "Black Vine"
+   ]
+  },
+  {
+   "attack_id": "G0010",
+   "name": "Turla",
+   "aliases": [
+    "IRON HUNTER",
+    "Group 88",
+    "Waterbug",
+    "WhiteBear",
+    "Snake",
+    "Krypton",
+    "Venomous Bear",
+    "Secret Blizzard",
+    "BELUGASTURGEON"
+   ]
+  },
+  {
+   "attack_id": "G0011",
+   "name": "PittyTiger",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0012",
+   "name": "Darkhotel",
+   "aliases": [
+    "DUBNIUM",
+    "Zigzag Hail"
+   ]
+  },
+  {
+   "attack_id": "G0013",
+   "name": "APT30",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0016",
+   "name": "APT29",
+   "aliases": [
+    "IRON RITUAL",
+    "IRON HEMLOCK",
+    "NobleBaron",
+    "Dark Halo",
+    "NOBELIUM",
+    "UNC2452",
+    "YTTRIUM",
+    "The Dukes",
+    "Cozy Bear",
+    "CozyDuke",
+    "SolarStorm",
+    "Blue Kitsune",
+    "UNC3524",
+    "Midnight Blizzard"
+   ]
+  },
+  {
+   "attack_id": "G0017",
+   "name": "DragonOK",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0018",
+   "name": "admin@338",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0019",
+   "name": "Naikon",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0020",
+   "name": "Equation",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0021",
+   "name": "Molerats",
+   "aliases": [
+    "Operation Molerats",
+    "Gaza Cybergang"
+   ]
+  },
+  {
+   "attack_id": "G0022",
+   "name": "APT3",
+   "aliases": [
+    "Gothic Panda",
+    "Pirpi",
+    "UPS Team",
+    "Buckeye",
+    "Threat Group-0110",
+    "TG-0110"
+   ]
+  },
+  {
+   "attack_id": "G0023",
+   "name": "APT16",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0024",
+   "name": "Putter Panda",
+   "aliases": [
+    "APT2",
+    "MSUpdater"
+   ]
+  },
+  {
+   "attack_id": "G0025",
+   "name": "APT17",
+   "aliases": [
+    "Deputy Dog"
+   ]
+  },
+  {
+   "attack_id": "G0026",
+   "name": "APT18",
+   "aliases": [
+    "TG-0416",
+    "Dynamite Panda",
+    "Threat Group-0416"
+   ]
+  },
+  {
+   "attack_id": "G0027",
+   "name": "Threat Group-3390",
+   "aliases": [
+    "Earth Smilodon",
+    "TG-3390",
+    "Emissary Panda",
+    "BRONZE UNION",
+    "APT27",
+    "Iron Tiger",
+    "LuckyMouse",
+    "Linen Typhoon"
+   ]
+  },
+  {
+   "attack_id": "G0028",
+   "name": "Threat Group-1314",
+   "aliases": [
+    "TG-1314"
+   ]
+  },
+  {
+   "attack_id": "G0029",
+   "name": "Scarlet Mimic",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0030",
+   "name": "Lotus Blossom",
+   "aliases": [
+    "DRAGONFISH",
+    "Spring Dragon",
+    "RADIUM",
+    "Raspberry Typhoon",
+    "Bilbug",
+    "Thrip"
+   ]
+  },
+  {
+   "attack_id": "G0032",
+   "name": "Lazarus Group",
+   "aliases": [
+    "Labyrinth Chollima",
+    "HIDDEN COBRA",
+    "Guardians of Peace",
+    "ZINC",
+    "NICKEL ACADEMY",
+    "Diamond Sleet"
+   ]
+  },
+  {
+   "attack_id": "G0033",
+   "name": "Poseidon Group",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0034",
+   "name": "Sandworm Team",
+   "aliases": [
+    "ELECTRUM",
+    "Telebots",
+    "IRON VIKING",
+    "BlackEnergy (Group)",
+    "Quedagh",
+    "Voodoo Bear",
+    "IRIDIUM",
+    "Seashell Blizzard",
+    "FROZENBARENTS",
+    "APT44"
+   ]
+  },
+  {
+   "attack_id": "G0035",
+   "name": "Dragonfly",
+   "aliases": [
+    "TEMP.Isotope",
+    "DYMALLOY",
+    "Berserk Bear",
+    "TG-4192",
+    "Crouching Yeti",
+    "IRON LIBERTY",
+    "Energetic Bear",
+    "Ghost Blizzard",
+    "BROMINE"
+   ]
+  },
+  {
+   "attack_id": "G0036",
+   "name": "GCMAN",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0037",
+   "name": "FIN6",
+   "aliases": [
+    "Magecart Group 6",
+    "ITG08",
+    "Skeleton Spider",
+    "TAAL",
+    "Camouflage Tempest"
+   ]
+  },
+  {
+   "attack_id": "G0038",
+   "name": "Stealth Falcon",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0039",
+   "name": "Suckfly",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0040",
+   "name": "Patchwork",
+   "aliases": [
+    "Hangover Group",
+    "Dropping Elephant",
+    "Chinastrats",
+    "MONSOON",
+    "Operation Hangover"
+   ]
+  },
+  {
+   "attack_id": "G0041",
+   "name": "Strider",
+   "aliases": [
+    "ProjectSauron"
+   ]
+  },
+  {
+   "attack_id": "G0043",
+   "name": "Group5",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0044",
+   "name": "Winnti Group",
+   "aliases": [
+    "Blackfly"
+   ]
+  },
+  {
+   "attack_id": "G0045",
+   "name": "menuPass",
+   "aliases": [
+    "Cicada",
+    "POTASSIUM",
+    "Stone Panda",
+    "APT10",
+    "Red Apollo",
+    "CVNX",
+    "HOGFISH",
+    "BRONZE RIVERSIDE"
+   ]
+  },
+  {
+   "attack_id": "G0046",
+   "name": "FIN7",
+   "aliases": [
+    "GOLD NIAGARA",
+    "ITG14",
+    "Carbon Spider",
+    "ELBRUS",
+    "Sangria Tempest"
+   ]
+  },
+  {
+   "attack_id": "G0047",
+   "name": "Gamaredon Group",
+   "aliases": [
+    "IRON TILDEN",
+    "Primitive Bear",
+    "ACTINIUM",
+    "Armageddon",
+    "Shuckworm",
+    "DEV-0157",
+    "Aqua Blizzard",
+    "NastyShrew"
+   ]
+  },
+  {
+   "attack_id": "G0048",
+   "name": "RTM",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0049",
+   "name": "OilRig",
+   "aliases": [
+    "COBALT GYPSY",
+    "IRN2",
+    "APT34",
+    "Helix Kitten",
+    "Evasive Serpens",
+    "Hazel Sandstorm",
+    "EUROPIUM",
+    "ITG13",
+    "Earth Simnavaz",
+    "Crambus",
+    "TA452"
+   ]
+  },
+  {
+   "attack_id": "G0050",
+   "name": "APT32",
+   "aliases": [
+    "SeaLotus",
+    "OceanLotus",
+    "APT-C-00",
+    "Canvas Cyclone",
+    "BISMUTH"
+   ]
+  },
+  {
+   "attack_id": "G0051",
+   "name": "FIN10",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0052",
+   "name": "CopyKittens",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0053",
+   "name": "FIN5",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0054",
+   "name": "Sowbug",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0055",
+   "name": "NEODYMIUM",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0056",
+   "name": "PROMETHIUM",
+   "aliases": [
+    "StrongPity"
+   ]
+  },
+  {
+   "attack_id": "G0059",
+   "name": "Magic Hound",
+   "aliases": [
+    "TA453",
+    "COBALT ILLUSION",
+    "Charming Kitten",
+    "ITG18",
+    "Phosphorus",
+    "Newscaster",
+    "APT35",
+    "Mint Sandstorm"
+   ]
+  },
+  {
+   "attack_id": "G0060",
+   "name": "BRONZE BUTLER",
+   "aliases": [
+    "REDBALDKNIGHT",
+    "Tick"
+   ]
+  },
+  {
+   "attack_id": "G0061",
+   "name": "FIN8",
+   "aliases": [
+    "Syssphinx"
+   ]
+  },
+  {
+   "attack_id": "G0062",
+   "name": "TA459",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0063",
+   "name": "BlackOasis",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0064",
+   "name": "APT33",
+   "aliases": [
+    "HOLMIUM",
+    "Elfin",
+    "Peach Sandstorm"
+   ]
+  },
+  {
+   "attack_id": "G0065",
+   "name": "Leviathan",
+   "aliases": [
+    "MUDCARP",
+    "Kryptonite Panda",
+    "Gadolinium",
+    "BRONZE MOHAWK",
+    "TEMP.Jumper",
+    "APT40",
+    "TEMP.Periscope",
+    "Gingham Typhoon"
+   ]
+  },
+  {
+   "attack_id": "G0066",
+   "name": "Elderwood",
+   "aliases": [
+    "Elderwood Gang",
+    "Beijing Group",
+    "Sneaky Panda"
+   ]
+  },
+  {
+   "attack_id": "G0067",
+   "name": "APT37",
+   "aliases": [
+    "InkySquid",
+    "ScarCruft",
+    "Reaper",
+    "Group123",
+    "TEMP.Reaper",
+    "Ricochet Chollima"
+   ]
+  },
+  {
+   "attack_id": "G0068",
+   "name": "PLATINUM",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0069",
+   "name": "MuddyWater",
+   "aliases": [
+    "Earth Vetala",
+    "MERCURY",
+    "Static Kitten",
+    "Seedworm",
+    "TEMP.Zagros",
+    "Mango Sandstorm",
+    "TA450",
+    "MuddyKrill"
+   ]
+  },
+  {
+   "attack_id": "G0070",
+   "name": "Dark Caracal",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0071",
+   "name": "Orangeworm",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0073",
+   "name": "APT19",
+   "aliases": [
+    "Codoso",
+    "C0d0so0",
+    "Codoso Team",
+    "Sunshop Group"
+   ]
+  },
+  {
+   "attack_id": "G0075",
+   "name": "Rancor",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0077",
+   "name": "Leafminer",
+   "aliases": [
+    "Raspite"
+   ]
+  },
+  {
+   "attack_id": "G0078",
+   "name": "Gorgon Group",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0079",
+   "name": "DarkHydrus",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0080",
+   "name": "Cobalt Group",
+   "aliases": [
+    "GOLD KINGSWOOD",
+    "Cobalt Gang",
+    "Cobalt Spider"
+   ]
+  },
+  {
+   "attack_id": "G0081",
+   "name": "Tropic Trooper",
+   "aliases": [
+    "Pirate Panda",
+    "KeyBoy"
+   ]
+  },
+  {
+   "attack_id": "G0082",
+   "name": "APT38",
+   "aliases": [
+    "NICKEL GLADSTONE",
+    "BeagleBoyz",
+    "Bluenoroff",
+    "Stardust Chollima",
+    "Sapphire Sleet",
+    "COPERNICIUM"
+   ]
+  },
+  {
+   "attack_id": "G0083",
+   "name": "SilverTerrier",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0084",
+   "name": "Gallmaker",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0085",
+   "name": "FIN4",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0087",
+   "name": "APT39",
+   "aliases": [
+    "ITG07",
+    "Chafer",
+    "Remix Kitten"
+   ]
+  },
+  {
+   "attack_id": "G0088",
+   "name": "TEMP.Veles",
+   "aliases": [
+    "XENOTIME"
+   ]
+  },
+  {
+   "attack_id": "G0089",
+   "name": "The White Company",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0090",
+   "name": "WIRTE",
+   "aliases": [
+    "Ashen Lepus"
+   ]
+  },
+  {
+   "attack_id": "G0091",
+   "name": "Silence",
+   "aliases": [
+    "Whisper Spider"
+   ]
+  },
+  {
+   "attack_id": "G0092",
+   "name": "TA505",
+   "aliases": [
+    "Hive0065",
+    "Spandex Tempest",
+    "CHIMBORAZO"
+   ]
+  },
+  {
+   "attack_id": "G0093",
+   "name": "GALLIUM",
+   "aliases": [
+    "Granite Typhoon"
+   ]
+  },
+  {
+   "attack_id": "G0094",
+   "name": "Kimsuky",
+   "aliases": [
+    "Black Banshee",
+    "Velvet Chollima",
+    "Emerald Sleet",
+    "THALLIUM",
+    "APT43",
+    "TA427",
+    "Springtail",
+    "Earth Kumiho",
+    "PatheticSlug"
+   ]
+  },
+  {
+   "attack_id": "G0095",
+   "name": "Machete",
+   "aliases": [
+    "APT-C-43",
+    "El Machete"
+   ]
+  },
+  {
+   "attack_id": "G0096",
+   "name": "APT41",
+   "aliases": [
+    "Wicked Panda",
+    "Brass Typhoon",
+    "BARIUM"
+   ]
+  },
+  {
+   "attack_id": "G0098",
+   "name": "BlackTech",
+   "aliases": [
+    "Palmerworm"
+   ]
+  },
+  {
+   "attack_id": "G0099",
+   "name": "APT-C-36",
+   "aliases": [
+    "Blind Eagle",
+    "TAG-144",
+    "AguilaCiega",
+    "APT-Q-98"
+   ]
+  },
+  {
+   "attack_id": "G0100",
+   "name": "Inception",
+   "aliases": [
+    "Inception Framework",
+    "Cloud Atlas"
+   ]
+  },
+  {
+   "attack_id": "G0102",
+   "name": "Wizard Spider",
+   "aliases": [
+    "UNC1878",
+    "TEMP.MixMaster",
+    "Grim Spider",
+    "FIN12",
+    "GOLD BLACKBURN",
+    "ITG23",
+    "Periwinkle Tempest",
+    "DEV-0193",
+    "Pistachio Tempest",
+    "DEV-0237"
+   ]
+  },
+  {
+   "attack_id": "G0103",
+   "name": "Mofang",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0105",
+   "name": "DarkVishnya",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0106",
+   "name": "Rocke",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0107",
+   "name": "Whitefly",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0108",
+   "name": "Blue Mockingbird",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0112",
+   "name": "Windshift",
+   "aliases": [
+    "Bahamut"
+   ]
+  },
+  {
+   "attack_id": "G0114",
+   "name": "Chimera",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0115",
+   "name": "GOLD SOUTHFIELD",
+   "aliases": [
+    "Pinchy Spider"
+   ]
+  },
+  {
+   "attack_id": "G0117",
+   "name": "Fox Kitten",
+   "aliases": [
+    "UNC757",
+    "Parisite",
+    "Pioneer Kitten",
+    "RUBIDIUM",
+    "Lemon Sandstorm"
+   ]
+  },
+  {
+   "attack_id": "G0119",
+   "name": "Indrik Spider",
+   "aliases": [
+    "Evil Corp",
+    "Manatee Tempest",
+    "DEV-0243",
+    "UNC2165"
+   ]
+  },
+  {
+   "attack_id": "G0120",
+   "name": "Evilnum",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0121",
+   "name": "Sidewinder",
+   "aliases": [
+    "T-APT-04",
+    "Rattlesnake"
+   ]
+  },
+  {
+   "attack_id": "G0122",
+   "name": "Silent Librarian",
+   "aliases": [
+    "TA407",
+    "COBALT DICKENS"
+   ]
+  },
+  {
+   "attack_id": "G0123",
+   "name": "Volatile Cedar",
+   "aliases": [
+    "Lebanese Cedar"
+   ]
+  },
+  {
+   "attack_id": "G0124",
+   "name": "Windigo",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0125",
+   "name": "HAFNIUM",
+   "aliases": [
+    "Operation Exchange Marauder",
+    "Silk Typhoon"
+   ]
+  },
+  {
+   "attack_id": "G0126",
+   "name": "Higaisa",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0127",
+   "name": "TA551",
+   "aliases": [
+    "GOLD CABIN",
+    "Shathak"
+   ]
+  },
+  {
+   "attack_id": "G0128",
+   "name": "ZIRCONIUM",
+   "aliases": [
+    "APT31",
+    "Violet Typhoon"
+   ]
+  },
+  {
+   "attack_id": "G0129",
+   "name": "Mustang Panda",
+   "aliases": [
+    "TA416",
+    "RedDelta",
+    "BRONZE PRESIDENT",
+    "STATELY TAURUS",
+    "FIREANT",
+    "CAMARO DRAGON",
+    "EARTH PRETA",
+    "HIVE0154",
+    "TWILL TYPHOON",
+    "TANTALUM",
+    "LUMINOUS MOTH",
+    "UNC6384",
+    "TEMP.Hex",
+    "Red Lich",
+    "ClumsyToad"
+   ]
+  },
+  {
+   "attack_id": "G0130",
+   "name": "Ajax Security Team",
+   "aliases": [
+    "Operation Woolen-Goldfish",
+    "AjaxTM",
+    "Rocket Kitten",
+    "Flying Kitten",
+    "Operation Saffron Rose"
+   ]
+  },
+  {
+   "attack_id": "G0131",
+   "name": "Tonto Team",
+   "aliases": [
+    "Earth Akhlut",
+    "BRONZE HUNTLEY",
+    "CactusPete",
+    "Karma Panda"
+   ]
+  },
+  {
+   "attack_id": "G0133",
+   "name": "Nomadic Octopus",
+   "aliases": [
+    "DustSquad"
+   ]
+  },
+  {
+   "attack_id": "G0134",
+   "name": "Transparent Tribe",
+   "aliases": [
+    "COPPER FIELDSTONE",
+    "APT36",
+    "Mythic Leopard",
+    "ProjectM"
+   ]
+  },
+  {
+   "attack_id": "G0135",
+   "name": "BackdoorDiplomacy",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0136",
+   "name": "IndigoZebra",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0137",
+   "name": "Ferocious Kitten",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0138",
+   "name": "Andariel",
+   "aliases": [
+    "Silent Chollima",
+    "PLUTONIUM",
+    "Onyx Sleet"
+   ]
+  },
+  {
+   "attack_id": "G0139",
+   "name": "TeamTNT",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0140",
+   "name": "LazyScripter",
+   "aliases": []
+  },
+  {
+   "attack_id": "G0142",
+   "name": "Confucius",
+   "aliases": [
+    "Confucius APT"
+   ]
+  },
+  {
+   "attack_id": "G0143",
+   "name": "Aquatic Panda",
+   "aliases": []
+  },
+  {
+   "attack_id": "G1001",
+   "name": "HEXANE",
+   "aliases": [
+    "Lyceum",
+    "Siamesekitten",
+    "Spirlin"
+   ]
+  },
+  {
+   "attack_id": "G1002",
+   "name": "BITTER",
+   "aliases": [
+    "T-APT-17"
+   ]
+  },
+  {
+   "attack_id": "G1003",
+   "name": "Ember Bear",
+   "aliases": [
+    "UNC2589",
+    "Bleeding Bear",
+    "DEV-0586",
+    "Cadet Blizzard",
+    "Frozenvista",
+    "UAC-0056"
+   ]
+  },
+  {
+   "attack_id": "G1004",
+   "name": "LAPSUS$",
+   "aliases": [
+    "DEV-0537",
+    "Strawberry Tempest"
+   ]
+  },
+  {
+   "attack_id": "G1005",
+   "name": "POLONIUM",
+   "aliases": [
+    "Plaid Rain"
+   ]
+  },
+  {
+   "attack_id": "G1006",
+   "name": "Earth Lusca",
+   "aliases": [
+    "TAG-22",
+    "Charcoal Typhoon",
+    "CHROMIUM",
+    "ControlX"
+   ]
+  },
+  {
+   "attack_id": "G1007",
+   "name": "Aoqin Dragon",
+   "aliases": []
+  },
+  {
+   "attack_id": "G1008",
+   "name": "SideCopy",
+   "aliases": []
+  },
+  {
+   "attack_id": "G1009",
+   "name": "Moses Staff",
+   "aliases": [
+    "DEV-0500",
+    "Marigold Sandstorm"
+   ]
+  },
+  {
+   "attack_id": "G1011",
+   "name": "EXOTIC LILY",
+   "aliases": []
+  },
+  {
+   "attack_id": "G1012",
+   "name": "CURIUM",
+   "aliases": [
+    "Crimson Sandstorm",
+    "TA456",
+    "Tortoise Shell",
+    "Yellow Liderc"
+   ]
+  },
+  {
+   "attack_id": "G1013",
+   "name": "Metador",
+   "aliases": []
+  },
+  {
+   "attack_id": "G1014",
+   "name": "LuminousMoth",
+   "aliases": []
+  },
+  {
+   "attack_id": "G1015",
+   "name": "Scattered Spider",
+   "aliases": [
+    "Roasted 0ktapus",
+    "Octo Tempest",
+    "Storm-0875",
+    "UNC3944"
+   ]
+  },
+  {
+   "attack_id": "G1016",
+   "name": "FIN13",
+   "aliases": [
+    "Elephant Beetle"
+   ]
+  },
+  {
+   "attack_id": "G1017",
+   "name": "Volt Typhoon",
+   "aliases": [
+    "BRONZE SILHOUETTE",
+    "Vanguard Panda",
+    "DEV-0391",
+    "UNC3236",
+    "Voltzite",
+    "Insidious Taurus",
+    "DazedToad"
+   ]
+  },
+  {
+   "attack_id": "G1018",
+   "name": "TA2541",
+   "aliases": []
+  },
+  {
+   "attack_id": "G1019",
+   "name": "MoustachedBouncer",
+   "aliases": []
+  },
+  {
+   "attack_id": "G1020",
+   "name": "Mustard Tempest",
+   "aliases": [
+    "DEV-0206",
+    "TA569",
+    "GOLD PRELUDE",
+    "UNC1543"
+   ]
+  },
+  {
+   "attack_id": "G1021",
+   "name": "Cinnamon Tempest",
+   "aliases": [
+    "DEV-0401",
+    "Emperor Dragonfly",
+    "BRONZE STARLIGHT"
+   ]
+  },
+  {
+   "attack_id": "G1022",
+   "name": "ToddyCat",
+   "aliases": []
+  },
+  {
+   "attack_id": "G1023",
+   "name": "APT5",
+   "aliases": [
+    "Mulberry Typhoon",
+    "MANGANESE",
+    "BRONZE FLEETWOOD",
+    "Keyhole Panda",
+    "UNC2630"
+   ]
+  },
+  {
+   "attack_id": "G1024",
+   "name": "Akira",
+   "aliases": [
+    "GOLD SAHARA",
+    "PUNK SPIDER",
+    "Howling Scorpius"
+   ]
+  },
+  {
+   "attack_id": "G1026",
+   "name": "Malteiro",
+   "aliases": []
+  },
+  {
+   "attack_id": "G1028",
+   "name": "APT-C-23",
+   "aliases": [
+    "Mantis",
+    "Arid Viper",
+    "Desert Falcon",
+    "TAG-63",
+    "Grey Karkadann",
+    "Big Bang APT",
+    "Two-tailed Scorpion"
+   ]
+  },
+  {
+   "attack_id": "G1030",
+   "name": "Agrius",
+   "aliases": [
+    "Pink Sandstorm",
+    "AMERICIUM",
+    "Agonizing Serpens",
+    "BlackShadow"
+   ]
+  },
+  {
+   "attack_id": "G1031",
+   "name": "Saint Bear",
+   "aliases": [
+    "Storm-0587",
+    "TA471",
+    "UAC-0056",
+    "Lorec53"
+   ]
+  },
+  {
+   "attack_id": "G1032",
+   "name": "INC Ransom",
+   "aliases": [
+    "GOLD IONIC"
+   ]
+  },
+  {
+   "attack_id": "G1033",
+   "name": "Star Blizzard",
+   "aliases": [
+    "SEABORGIUM",
+    "Callisto Group",
+    "TA446",
+    "COLDRIVER"
+   ]
+  },
+  {
+   "attack_id": "G1034",
+   "name": "Daggerfly",
+   "aliases": [
+    "Evasive Panda",
+    "BRONZE HIGHLAND"
+   ]
+  },
+  {
+   "attack_id": "G1035",
+   "name": "Winter Vivern",
+   "aliases": [
+    "TA473",
+    "UAC-0114"
+   ]
+  },
+  {
+   "attack_id": "G1036",
+   "name": "Moonstone Sleet",
+   "aliases": [
+    "Storm-1789"
+   ]
+  },
+  {
+   "attack_id": "G1037",
+   "name": "TA577",
+   "aliases": []
+  },
+  {
+   "attack_id": "G1038",
+   "name": "TA578",
+   "aliases": []
+  },
+  {
+   "attack_id": "G1039",
+   "name": "RedCurl",
+   "aliases": []
+  },
+  {
+   "attack_id": "G1040",
+   "name": "Play",
+   "aliases": []
+  },
+  {
+   "attack_id": "G1041",
+   "name": "Sea Turtle",
+   "aliases": [
+    "Teal Kurma",
+    "Marbled Dust",
+    "Cosmic Wolf",
+    "SILICON"
+   ]
+  },
+  {
+   "attack_id": "G1042",
+   "name": "RedEcho",
+   "aliases": []
+  },
+  {
+   "attack_id": "G1043",
+   "name": "BlackByte",
+   "aliases": [
+    "Hecamede"
+   ]
+  },
+  {
+   "attack_id": "G1044",
+   "name": "APT42",
+   "aliases": []
+  },
+  {
+   "attack_id": "G1045",
+   "name": "Salt Typhoon",
+   "aliases": []
+  },
+  {
+   "attack_id": "G1046",
+   "name": "Storm-1811",
+   "aliases": []
+  },
+  {
+   "attack_id": "G1047",
+   "name": "Velvet Ant",
+   "aliases": []
+  },
+  {
+   "attack_id": "G1048",
+   "name": "UNC3886",
+   "aliases": []
+  },
+  {
+   "attack_id": "G1049",
+   "name": "AppleJeus",
+   "aliases": [
+    "Gleaming Pisces",
+    "Citrine Sleet",
+    "UNC1720",
+    "UNC4736"
+   ]
+  },
+  {
+   "attack_id": "G1050",
+   "name": "Water Galura",
+   "aliases": [
+    "GOLD FEATHER"
+   ]
+  },
+  {
+   "attack_id": "G1051",
+   "name": "Medusa Group",
+   "aliases": []
+  },
+  {
+   "attack_id": "G1052",
+   "name": "Contagious Interview",
+   "aliases": [
+    "DeceptiveDevelopment",
+    "Gwisin Gang",
+    "Tenacious Pungsan",
+    "DEV#POPPER",
+    "PurpleBravo",
+    "TAG-121"
+   ]
+  },
+  {
+   "attack_id": "G1053",
+   "name": "Storm-0501",
+   "aliases": []
+  },
+  {
+   "attack_id": "G1054",
+   "name": "MirrorFace",
+   "aliases": [
+    "Earth Kasha"
+   ]
+  },
+  {
+   "attack_id": "G1055",
+   "name": "VOID MANTICORE",
+   "aliases": [
+    "COBALT MYSTIQUE",
+    "Handala Hack",
+    "Homeland Justice",
+    "Karma",
+    "Karmabelow80",
+    "BANISHED KITTEN",
+    "Red Sandstorm"
+   ]
+  },
+  {
+   "attack_id": "G1056",
+   "name": "TeamPCP",
+   "aliases": [
+    "PCPCat",
+    "ShellForce",
+    "DeadCatx3",
+    "SHADOW-WATER-058",
+    "UNC6780"
+   ]
+  },
+  {
+   "attack_id": "G1057",
+   "name": "ShinyHunters",
+   "aliases": [
+    "UNC6240",
+    "Bling Libra"
+   ]
+  },
+  {
+   "attack_id": "G1058",
+   "name": "The Gentlemen",
+   "aliases": [
+    "Storm-2697",
+    "GOLD SHERWOOD"
+   ]
+  },
+  {
+   "attack_id": "G1059",
+   "name": "NIMBUS MANTICORE",
+   "aliases": [
+    "UNC1549",
+    "TA455",
+    "COBALT SMOKEY"
+   ]
+  }
+ ],
+ "ransomwarelive": [
+  {
+   "name": "0apt",
+   "altname": null
+  },
+  {
+   "name": "0day Syndicate",
+   "altname": null
+  },
+  {
+   "name": "0mega",
+   "altname": null
+  },
+  {
+   "name": "0x00",
+   "altname": null
+  },
+  {
+   "name": "8base",
+   "altname": null
+  },
+  {
+   "name": "ALP-001",
+   "altname": null
+  },
+  {
+   "name": "Abrahams_Ax",
+   "altname": null
+  },
+  {
+   "name": "AiLock",
+   "altname": null
+  },
+  {
+   "name": "Aoqin",
+   "altname": null
+  },
+  {
+   "name": "Aptlock",
+   "altname": null
+  },
+  {
+   "name": "AuditTeam",
+   "altname": null
+  },
+  {
+   "name": "BYOD",
+   "altname": null
+  },
+  {
+   "name": "Barracuda",
+   "altname": null
+  },
+  {
+   "name": "Black X",
+   "altname": null
+  },
+  {
+   "name": "BlackLocks",
+   "altname": null
+  },
+  {
+   "name": "Blackfield",
+   "altname": null
+  },
+  {
+   "name": "BlueWhale",
+   "altname": null
+  },
+  {
+   "name": "Bolt Team",
+   "altname": "Bolt"
+  },
+  {
+   "name": "Booba Project",
+   "altname": "Booba Team"
+  },
+  {
+   "name": "BrainCipher",
+   "altname": null
+  },
+  {
+   "name": "CMDOrganization",
+   "altname": null
+  },
+  {
+   "name": "CRPxO",
+   "altname": "CRPx0"
+  },
+  {
+   "name": "Climax Inc",
+   "altname": null
+  },
+  {
+   "name": "ContFR",
+   "altname": ""
+  },
+  {
+   "name": "Curious Worm",
+   "altname": null
+  },
+  {
+   "name": "Cyberleek",
+   "altname": "Leek Road"
+  },
+  {
+   "name": "D1R",
+   "altname": null
+  },
+  {
+   "name": "DYSPHOR1A",
+   "altname": null
+  },
+  {
+   "name": "Dark Project",
+   "altname": null
+  },
+  {
+   "name": "DarkMatter",
+   "altname": null
+  },
+  {
+   "name": "Deadlock",
+   "altname": null
+  },
+  {
+   "name": "Destello",
+   "altname": null
+  },
+  {
+   "name": "Doommageddon",
+   "altname": null
+  },
+  {
+   "name": "Eclipse",
+   "altname": null
+  },
+  {
+   "name": "ElDorado",
+   "altname": null
+  },
+  {
+   "name": "Emperador",
+   "altname": null
+  },
+  {
+   "name": "EndZone",
+   "altname": null
+  },
+  {
+   "name": "Ethics",
+   "altname": null
+  },
+  {
+   "name": "ExfilSquad",
+   "altname": null
+  },
+  {
+   "name": "Falcon",
+   "altname": null
+  },
+  {
+   "name": "GDLockerSec",
+   "altname": null
+  },
+  {
+   "name": "GPT Lock",
+   "altname": null
+  },
+  {
+   "name": "Galago",
+   "altname": null
+  },
+  {
+   "name": "Gammax",
+   "altname": null
+  },
+  {
+   "name": "Global Secret Group",
+   "altname": "GSG"
+  },
+  {
+   "name": "GodDamn ransomwhere",
+   "altname": null
+  },
+  {
+   "name": "HYFLOCK",
+   "altname": null
+  },
+  {
+   "name": "Handsome Boy Hacking Club",
+   "altname": "HBHC"
+  },
+  {
+   "name": "Helix",
+   "altname": "UNC7761"
+  },
+  {
+   "name": "IMNCrew",
+   "altname": null
+  },
+  {
+   "name": "Icarus",
+   "altname": null
+  },
+  {
+   "name": "ImNotAVillain",
+   "altname": null
+  },
+  {
+   "name": "Inception",
+   "altname": null
+  },
+  {
+   "name": "J",
+   "altname": null
+  },
+  {
+   "name": "L Group",
+   "altname": null
+  },
+  {
+   "name": "LeakBazaar",
+   "altname": null
+  },
+  {
+   "name": "Loki",
+   "altname": null
+  },
+  {
+   "name": "Majinahanashi",
+   "altname": "Majin"
+  },
+  {
+   "name": "Meowciety403",
+   "altname": null
+  },
+  {
+   "name": "Mimori",
+   "altname": null
+  },
+  {
+   "name": "Montage",
+   "altname": null
+  },
+  {
+   "name": "N0n",
+   "altname": null
+  },
+  {
+   "name": "Noname057",
+   "altname": null
+  },
+  {
+   "name": "NotPetya",
+   "altname": null
+  },
+  {
+   "name": "OBSOFT",
+   "altname": null
+  },
+  {
+   "name": "Orova",
+   "altname": null
+  },
+  {
+   "name": "Panzer",
+   "altname": null
+  },
+  {
+   "name": "Payday",
+   "altname": null
+  },
+  {
+   "name": "PixelLeaks",
+   "altname": null
+  },
+  {
+   "name": "PrinzEugen",
+   "altname": null
+  },
+  {
+   "name": "Puppeteer",
+   "altname": null
+  },
+  {
+   "name": "Redact",
+   "altname": null
+  },
+  {
+   "name": "RunSomeWares",
+   "altname": null
+  },
+  {
+   "name": "Scarlettgroup",
+   "altname": null
+  },
+  {
+   "name": "Section9",
+   "altname": null
+  },
+  {
+   "name": "SenSayQ",
+   "altname": null
+  },
+  {
+   "name": "SevyWare",
+   "altname": null
+  },
+  {
+   "name": "ShadowByt3$",
+   "altname": null
+  },
+  {
+   "name": "Shiba",
+   "altname": null
+  },
+  {
+   "name": "ShinySp1d3r",
+   "altname": "ShinySpider"
+  },
+  {
+   "name": "SilentRansomGroup",
+   "altname": "Luna Moth"
+  },
+  {
+   "name": "SilentVault",
+   "altname": null
+  },
+  {
+   "name": "SoulGroup",
+   "altname": null
+  },
+  {
+   "name": "Sovcali",
+   "altname": null
+  },
+  {
+   "name": "Spirals",
+   "altname": null
+  },
+  {
+   "name": "Storm",
+   "altname": null
+  },
+  {
+   "name": "Syntax",
+   "altname": null
+  },
+  {
+   "name": "THE SEVEN DEADLY SINS",
+   "altname": "7DS"
+  },
+  {
+   "name": "The Green Blood Group",
+   "altname": null
+  },
+  {
+   "name": "The Syndicate",
+   "altname": null
+  },
+  {
+   "name": "TiMc",
+   "altname": null
+  },
+  {
+   "name": "Tommyleaks",
+   "altname": null
+  },
+  {
+   "name": "Triple X",
+   "altname": "triplex"
+  },
+  {
+   "name": "ULose",
+   "altname": null
+  },
+  {
+   "name": "UmBra",
+   "altname": null
+  },
+  {
+   "name": "United Legion",
+   "altname": null
+  },
+  {
+   "name": "VYPR",
+   "altname": null
+  },
+  {
+   "name": "ValenciaLeaks",
+   "altname": "Valencia"
+  },
+  {
+   "name": "VanHelsing",
+   "altname": null
+  },
+  {
+   "name": "Vexy Ransomware",
+   "altname": "vexy"
+  },
+  {
+   "name": "Vortex",
+   "altname": null
+  },
+  {
+   "name": "Wallstreet",
+   "altname": null
+  },
+  {
+   "name": "Warden",
+   "altname": null
+  },
+  {
+   "name": "Whitearmor",
+   "altname": null
+  },
+  {
+   "name": "ZaWoo",
+   "altname": null
+  },
+  {
+   "name": "aGl0bGVyCg",
+   "altname": null
+  },
+  {
+   "name": "abyss",
+   "altname": null
+  },
+  {
+   "name": "adminlocker",
+   "altname": null
+  },
+  {
+   "name": "againstthewest",
+   "altname": null
+  },
+  {
+   "name": "akira",
+   "altname": null
+  },
+  {
+   "name": "ako",
+   "altname": null
+  },
+  {
+   "name": "alphalocker",
+   "altname": null
+  },
+  {
+   "name": "alphv",
+   "altname": "blackcat"
+  },
+  {
+   "name": "anubis",
+   "altname": null
+  },
+  {
+   "name": "apos",
+   "altname": null
+  },
+  {
+   "name": "apt73",
+   "altname": "bashe"
+  },
+  {
+   "name": "arcusmedia",
+   "altname": null
+  },
+  {
+   "name": "argonauts",
+   "altname": null
+  },
+  {
+   "name": "arkana",
+   "altname": null
+  },
+  {
+   "name": "arvinclub",
+   "altname": null
+  },
+  {
+   "name": "atomsilo",
+   "altname": null
+  },
+  {
+   "name": "aurora",
+   "altname": null
+  },
+  {
+   "name": "avaddon",
+   "altname": null
+  },
+  {
+   "name": "avos",
+   "altname": null
+  },
+  {
+   "name": "avoslocker",
+   "altname": null
+  },
+  {
+   "name": "aware",
+   "altname": null
+  },
+  {
+   "name": "aztroteam",
+   "altname": null
+  },
+  {
+   "name": "babuk",
+   "altname": null
+  },
+  {
+   "name": "babuk2",
+   "altname": "Satanlock"
+  },
+  {
+   "name": "babyduck",
+   "altname": null
+  },
+  {
+   "name": "beast",
+   "altname": "GIGAKICK"
+  },
+  {
+   "name": "benzona",
+   "altname": null
+  },
+  {
+   "name": "bert",
+   "altname": null
+  },
+  {
+   "name": "bianlian",
+   "altname": null
+  },
+  {
+   "name": "blackbasta",
+   "altname": null
+  },
+  {
+   "name": "blackbyte",
+   "altname": null
+  },
+  {
+   "name": "blacklock",
+   "altname": null
+  },
+  {
+   "name": "blackmatter",
+   "altname": null
+  },
+  {
+   "name": "blacknevas",
+   "altname": "Trial Recovery"
+  },
+  {
+   "name": "blackout",
+   "altname": null
+  },
+  {
+   "name": "blackshadow",
+   "altname": null
+  },
+  {
+   "name": "blackshrantac",
+   "altname": null
+  },
+  {
+   "name": "blacksuit",
+   "altname": null
+  },
+  {
+   "name": "blacktor",
+   "altname": null
+  },
+  {
+   "name": "blackwater",
+   "altname": null
+  },
+  {
+   "name": "bluebox",
+   "altname": null
+  },
+  {
+   "name": "bluelocker",
+   "altname": null
+  },
+  {
+   "name": "bluesky",
+   "altname": null
+  },
+  {
+   "name": "bonacigroup",
+   "altname": null
+  },
+  {
+   "name": "bqtlock",
+   "altname": null
+  },
+  {
+   "name": "bravox",
+   "altname": null
+  },
+  {
+   "name": "brotherhood",
+   "altname": null
+  },
+  {
+   "name": "cactus",
+   "altname": null
+  },
+  {
+   "name": "cephalus",
+   "altname": null
+  },
+  {
+   "name": "chaos",
+   "altname": null
+  },
+  {
+   "name": "cheers",
+   "altname": null
+  },
+  {
+   "name": "chilelocker",
+   "altname": null
+  },
+  {
+   "name": "chort",
+   "altname": null
+  },
+  {
+   "name": "cicada3301",
+   "altname": null
+  },
+  {
+   "name": "ciphbit",
+   "altname": null
+  },
+  {
+   "name": "cipherforce",
+   "altname": null
+  },
+  {
+   "name": "cloak",
+   "altname": null
+  },
+  {
+   "name": "clop",
+   "altname": "Cl0p"
+  },
+  {
+   "name": "coinbasecartel",
+   "altname": null
+  },
+  {
+   "name": "conti",
+   "altname": null
+  },
+  {
+   "name": "cooming",
+   "altname": null
+  },
+  {
+   "name": "crazyhunter",
+   "altname": null
+  },
+  {
+   "name": "crosslock",
+   "altname": null
+  },
+  {
+   "name": "cry0",
+   "altname": null
+  },
+  {
+   "name": "crylock",
+   "altname": null
+  },
+  {
+   "name": "cryp70n1c0d3",
+   "altname": null
+  },
+  {
+   "name": "cryptbb",
+   "altname": null
+  },
+  {
+   "name": "cryptnet",
+   "altname": null
+  },
+  {
+   "name": "crypto24",
+   "altname": null
+  },
+  {
+   "name": "cuba",
+   "altname": "Colddraw"
+  },
+  {
+   "name": "cyclops",
+   "altname": null
+  },
+  {
+   "name": "d4rk4rmy",
+   "altname": null
+  },
+  {
+   "name": "dAn0n",
+   "altname": null
+  },
+  {
+   "name": "dagonlocker",
+   "altname": null
+  },
+  {
+   "name": "daixin",
+   "altname": null
+  },
+  {
+   "name": "darkangels",
+   "altname": null
+  },
+  {
+   "name": "darkbit",
+   "altname": null
+  },
+  {
+   "name": "darkleakmarket",
+   "altname": null
+  },
+  {
+   "name": "darkpower",
+   "altname": null
+  },
+  {
+   "name": "darkrace",
+   "altname": null
+  },
+  {
+   "name": "darkside",
+   "altname": ""
+  },
+  {
+   "name": "darkvault",
+   "altname": null
+  },
+  {
+   "name": "datacarry",
+   "altname": null
+  },
+  {
+   "name": "datakeeper",
+   "altname": null
+  },
+  {
+   "name": "dataleak",
+   "altname": null
+  },
+  {
+   "name": "desolator",
+   "altname": null
+  },
+  {
+   "name": "devman",
+   "altname": "Devman 2.0"
+  },
+  {
+   "name": "diavol",
+   "altname": null
+  },
+  {
+   "name": "direwolf",
+   "altname": null
+  },
+  {
+   "name": "dispossessor",
+   "altname": null
+  },
+  {
+   "name": "donex",
+   "altname": null
+  },
+  {
+   "name": "donutleaks",
+   "altname": null
+  },
+  {
+   "name": "doppelpaymer",
+   "altname": null
+  },
+  {
+   "name": "dragonforce",
+   "altname": null
+  },
+  {
+   "name": "dragonransomware",
+   "altname": null
+  },
+  {
+   "name": "dread",
+   "altname": null
+  },
+  {
+   "name": "dunghill",
+   "altname": "darkangel"
+  },
+  {
+   "name": "ech0raix",
+   "altname": null
+  },
+  {
+   "name": "embargo",
+   "altname": null
+  },
+  {
+   "name": "entropy",
+   "altname": null
+  },
+  {
+   "name": "ep918",
+   "altname": null
+  },
+  {
+   "name": "esxiargs",
+   "altname": null
+  },
+  {
+   "name": "everest",
+   "altname": null
+  },
+  {
+   "name": "everstake",
+   "altname": null
+  },
+  {
+   "name": "exitium",
+   "altname": null
+  },
+  {
+   "name": "exorcist",
+   "altname": null
+  },
+  {
+   "name": "fletchen",
+   "altname": null
+  },
+  {
+   "name": "flocker",
+   "altname": null
+  },
+  {
+   "name": "fog",
+   "altname": null
+  },
+  {
+   "name": "frag",
+   "altname": null
+  },
+  {
+   "name": "freecivilian",
+   "altname": null
+  },
+  {
+   "name": "fsteam",
+   "altname": null
+  },
+  {
+   "name": "fulcrumsec",
+   "altname": null
+  },
+  {
+   "name": "funksec",
+   "altname": null
+  },
+  {
+   "name": "genesis",
+   "altname": null
+  },
+  {
+   "name": "global",
+   "altname": "Global Cybernetic Collective"
+  },
+  {
+   "name": "grief",
+   "altname": null
+  },
+  {
+   "name": "groove",
+   "altname": null
+  },
+  {
+   "name": "gunra",
+   "altname": null
+  },
+  {
+   "name": "hades",
+   "altname": null
+  },
+  {
+   "name": "handala",
+   "altname": null
+  },
+  {
+   "name": "haron",
+   "altname": null
+  },
+  {
+   "name": "hellcat",
+   "altname": null
+  },
+  {
+   "name": "helldown",
+   "altname": null
+  },
+  {
+   "name": "hellogookie",
+   "altname": null
+  },
+  {
+   "name": "hellokitty",
+   "altname": null
+  },
+  {
+   "name": "hive",
+   "altname": null
+  },
+  {
+   "name": "holyghost",
+   "altname": null
+  },
+  {
+   "name": "hotarus",
+   "altname": null
+  },
+  {
+   "name": "hunters",
+   "altname": null
+  },
+  {
+   "name": "iah6477",
+   "altname": "Cinder"
+  },
+  {
+   "name": "icefire",
+   "altname": null
+  },
+  {
+   "name": "incransom",
+   "altname": "Inc Ransom"
+  },
+  {
+   "name": "insane",
+   "altname": null
+  },
+  {
+   "name": "insomnia",
+   "altname": null
+  },
+  {
+   "name": "interlock",
+   "altname": null
+  },
+  {
+   "name": "kairos",
+   "altname": null
+  },
+  {
+   "name": "karakurt",
+   "altname": null
+  },
+  {
+   "name": "karma",
+   "altname": null
+  },
+  {
+   "name": "kawa4096",
+   "altname": "KaWaLocker"
+  },
+  {
+   "name": "kazu",
+   "altname": null
+  },
+  {
+   "name": "kelvinsecurity",
+   "altname": null
+  },
+  {
+   "name": "killsec",
+   "altname": null
+  },
+  {
+   "name": "kittykatkrew",
+   "altname": null
+  },
+  {
+   "name": "knight",
+   "altname": null
+  },
+  {
+   "name": "kraken",
+   "altname": null
+  },
+  {
+   "name": "krybit",
+   "altname": null
+  },
+  {
+   "name": "kryptos",
+   "altname": null
+  },
+  {
+   "name": "kyber",
+   "altname": null
+  },
+  {
+   "name": "la_piovra",
+   "altname": null
+  },
+  {
+   "name": "lamashtu",
+   "altname": null
+  },
+  {
+   "name": "lapsus$",
+   "altname": null
+  },
+  {
+   "name": "leaktheanalyst",
+   "altname": null
+  },
+  {
+   "name": "lilith",
+   "altname": null
+  },
+  {
+   "name": "linkc",
+   "altname": null
+  },
+  {
+   "name": "lockbit",
+   "altname": null
+  },
+  {
+   "name": "lockbit2",
+   "altname": null
+  },
+  {
+   "name": "lockbit3",
+   "altname": null
+  },
+  {
+   "name": "lockbit3_fs",
+   "altname": null
+  },
+  {
+   "name": "lockbit5",
+   "altname": null
+  },
+  {
+   "name": "lockdata",
+   "altname": null
+  },
+  {
+   "name": "lolnek",
+   "altname": null
+  },
+  {
+   "name": "lorenz",
+   "altname": null
+  },
+  {
+   "name": "losttrust",
+   "altname": null
+  },
+  {
+   "name": "lunalock",
+   "altname": null
+  },
+  {
+   "name": "lv",
+   "altname": null
+  },
+  {
+   "name": "lynx",
+   "altname": null
+  },
+  {
+   "name": "m3rx",
+   "altname": null
+  },
+  {
+   "name": "madcat",
+   "altname": null
+  },
+  {
+   "name": "madliberator",
+   "altname": null
+  },
+  {
+   "name": "malas",
+   "altname": null
+  },
+  {
+   "name": "malekteam",
+   "altname": null
+  },
+  {
+   "name": "mallox",
+   "altname": null
+  },
+  {
+   "name": "mamona",
+   "altname": null
+  },
+  {
+   "name": "marketo",
+   "altname": null
+  },
+  {
+   "name": "maze",
+   "altname": null
+  },
+  {
+   "name": "mbc",
+   "altname": null
+  },
+  {
+   "name": "medusa",
+   "altname": null
+  },
+  {
+   "name": "medusalocker",
+   "altname": null
+  },
+  {
+   "name": "meow",
+   "altname": null
+  },
+  {
+   "name": "metaencryptor",
+   "altname": null
+  },
+  {
+   "name": "midas",
+   "altname": null
+  },
+  {
+   "name": "mindware",
+   "altname": null
+  },
+  {
+   "name": "minteye",
+   "altname": null
+  },
+  {
+   "name": "mnt6",
+   "altname": null
+  },
+  {
+   "name": "mogilevich",
+   "altname": null
+  },
+  {
+   "name": "moneymessage",
+   "altname": "ThreatLabz"
+  },
+  {
+   "name": "monti",
+   "altname": null
+  },
+  {
+   "name": "morpheus",
+   "altname": null
+  },
+  {
+   "name": "mortar",
+   "altname": null
+  },
+  {
+   "name": "mosesstaff",
+   "altname": null
+  },
+  {
+   "name": "mountlocker",
+   "altname": null
+  },
+  {
+   "name": "ms13089",
+   "altname": "ms13-089"
+  },
+  {
+   "name": "mydecryptor",
+   "altname": null
+  },
+  {
+   "name": "n3tworm",
+   "altname": null
+  },
+  {
+   "name": "nasirsecurity",
+   "altname": null
+  },
+  {
+   "name": "nblock",
+   "altname": null
+  },
+  {
+   "name": "nefilim",
+   "altname": null
+  },
+  {
+   "name": "nemty",
+   "altname": null
+  },
+  {
+   "name": "netrunner",
+   "altname": null
+  },
+  {
+   "name": "netwalker",
+   "altname": null
+  },
+  {
+   "name": "nevada",
+   "altname": null
+  },
+  {
+   "name": "nightsky",
+   "altname": null
+  },
+  {
+   "name": "nightspire",
+   "altname": null
+  },
+  {
+   "name": "nitrogen",
+   "altname": null
+  },
+  {
+   "name": "noescape",
+   "altname": null
+  },
+  {
+   "name": "nokoyawa",
+   "altname": null
+  },
+  {
+   "name": "noname",
+   "altname": null
+  },
+  {
+   "name": "nova",
+   "altname": null
+  },
+  {
+   "name": "obscura",
+   "altname": null
+  },
+  {
+   "name": "onepercent",
+   "altname": null
+  },
+  {
+   "name": "onyx",
+   "altname": null
+  },
+  {
+   "name": "orca",
+   "altname": null
+  },
+  {
+   "name": "orion",
+   "altname": null
+  },
+  {
+   "name": "osiris",
+   "altname": null
+  },
+  {
+   "name": "pandora",
+   "altname": null
+  },
+  {
+   "name": "pay2key",
+   "altname": null
+  },
+  {
+   "name": "payload",
+   "altname": null
+  },
+  {
+   "name": "payloadbin",
+   "altname": null
+  },
+  {
+   "name": "payoutsking",
+   "altname": "Payouts King"
+  },
+  {
+   "name": "pear",
+   "altname": "Pure Extraction And Ransom"
+  },
+  {
+   "name": "play",
+   "altname": null
+  },
+  {
+   "name": "playboy",
+   "altname": null
+  },
+  {
+   "name": "projectrelic",
+   "altname": null
+  },
+  {
+   "name": "prolock",
+   "altname": null
+  },
+  {
+   "name": "prometheus",
+   "altname": null
+  },
+  {
+   "name": "promptlock",
+   "altname": null
+  },
+  {
+   "name": "pysa",
+   "altname": null
+  },
+  {
+   "name": "qilin",
+   "altname": null
+  },
+  {
+   "name": "qiulong",
+   "altname": null
+  },
+  {
+   "name": "qlocker",
+   "altname": null
+  },
+  {
+   "name": "quantum",
+   "altname": null
+  },
+  {
+   "name": "rabbithole",
+   "altname": null
+  },
+  {
+   "name": "radar",
+   "altname": null
+  },
+  {
+   "name": "radiant",
+   "altname": null
+  },
+  {
+   "name": "ragnarlocker",
+   "altname": null
+  },
+  {
+   "name": "ragnarok",
+   "altname": null
+  },
+  {
+   "name": "ralord",
+   "altname": null
+  },
+  {
+   "name": "ramp",
+   "altname": null
+  },
+  {
+   "name": "rancoz",
+   "altname": null
+  },
+  {
+   "name": "ranion",
+   "altname": null
+  },
+  {
+   "name": "ransombay",
+   "altname": ""
+  },
+  {
+   "name": "ransomcartel",
+   "altname": null
+  },
+  {
+   "name": "ransomcortex",
+   "altname": null
+  },
+  {
+   "name": "ransomed",
+   "altname": null
+  },
+  {
+   "name": "ransomexx",
+   "altname": null
+  },
+  {
+   "name": "ransomhouse",
+   "altname": null
+  },
+  {
+   "name": "ransomhub",
+   "altname": null
+  },
+  {
+   "name": "ranstreet",
+   "altname": null
+  },
+  {
+   "name": "ranzy",
+   "altname": null
+  },
+  {
+   "name": "raworld",
+   "altname": "ragroup"
+  },
+  {
+   "name": "raznatovic",
+   "altname": null
+  },
+  {
+   "name": "rebornvc",
+   "altname": "RansomedVC2"
+  },
+  {
+   "name": "redalert",
+   "altname": null
+  },
+  {
+   "name": "redransomware",
+   "altname": null
+  },
+  {
+   "name": "revil",
+   "altname": null
+  },
+  {
+   "name": "reynolds",
+   "altname": null
+  },
+  {
+   "name": "rhysida",
+   "altname": null
+  },
+  {
+   "name": "robinhood",
+   "altname": null
+  },
+  {
+   "name": "rook",
+   "altname": null
+  },
+  {
+   "name": "royal",
+   "altname": null
+  },
+  {
+   "name": "rransom",
+   "altname": null
+  },
+  {
+   "name": "sabbath",
+   "altname": null
+  },
+  {
+   "name": "safepay",
+   "altname": null
+  },
+  {
+   "name": "sarcoma",
+   "altname": null
+  },
+  {
+   "name": "satanlockv2",
+   "altname": null
+  },
+  {
+   "name": "secp0",
+   "altname": "secpo"
+  },
+  {
+   "name": "securotrop",
+   "altname": null
+  },
+  {
+   "name": "settra",
+   "altname": null
+  },
+  {
+   "name": "shadow",
+   "altname": null
+  },
+  {
+   "name": "shaoleaks",
+   "altname": null
+  },
+  {
+   "name": "shinyhunters",
+   "altname": null
+  },
+  {
+   "name": "sicarii",
+   "altname": null
+  },
+  {
+   "name": "siegedsec",
+   "altname": null
+  },
+  {
+   "name": "silent",
+   "altname": ""
+  },
+  {
+   "name": "sinobi",
+   "altname": null
+  },
+  {
+   "name": "skira",
+   "altname": null
+  },
+  {
+   "name": "slug",
+   "altname": null
+  },
+  {
+   "name": "snatch",
+   "altname": null
+  },
+  {
+   "name": "solidbit",
+   "altname": null
+  },
+  {
+   "name": "spacebears",
+   "altname": null
+  },
+  {
+   "name": "sparta",
+   "altname": null
+  },
+  {
+   "name": "spook",
+   "altname": null
+  },
+  {
+   "name": "stormous",
+   "altname": null
+  },
+  {
+   "name": "sugar",
+   "altname": null
+  },
+  {
+   "name": "suncrypt",
+   "altname": null
+  },
+  {
+   "name": "synack",
+   "altname": null
+  },
+  {
+   "name": "teamxxx",
+   "altname": null
+  },
+  {
+   "name": "tengu",
+   "altname": "Shisa"
+  },
+  {
+   "name": "termite",
+   "altname": null
+  },
+  {
+   "name": "thegentlemen",
+   "altname": "Storm-2697"
+  },
+  {
+   "name": "thegreenbloodgroup",
+   "altname": null
+  },
+  {
+   "name": "threeam",
+   "altname": "3Am"
+  },
+  {
+   "name": "titan",
+   "altname": null
+  },
+  {
+   "name": "toufan",
+   "altname": null
+  },
+  {
+   "name": "tridentlocker",
+   "altname": null
+  },
+  {
+   "name": "trigona",
+   "altname": null
+  },
+  {
+   "name": "trinity",
+   "altname": null
+  },
+  {
+   "name": "trisec",
+   "altname": null
+  },
+  {
+   "name": "u-bomb",
+   "altname": null
+  },
+  {
+   "name": "underground",
+   "altname": null
+  },
+  {
+   "name": "unknown",
+   "altname": null
+  },
+  {
+   "name": "unsafe",
+   "altname": null
+  },
+  {
+   "name": "vanirgroup",
+   "altname": null
+  },
+  {
+   "name": "vect",
+   "altname": null
+  },
+  {
+   "name": "vendetta",
+   "altname": null
+  },
+  {
+   "name": "vfokx",
+   "altname": null
+  },
+  {
+   "name": "vicesociety",
+   "altname": null
+  },
+  {
+   "name": "walocker",
+   "altname": null
+  },
+  {
+   "name": "wannacry",
+   "altname": null
+  },
+  {
+   "name": "warlock",
+   "altname": null
+  },
+  {
+   "name": "werewolves",
+   "altname": null
+  },
+  {
+   "name": "weyhro",
+   "altname": null
+  },
+  {
+   "name": "worldleaks",
+   "altname": null
+  },
+  {
+   "name": "x001xs",
+   "altname": null
+  },
+  {
+   "name": "xinglocker",
+   "altname": null
+  },
+  {
+   "name": "xinof",
+   "altname": null
+  },
+  {
+   "name": "xp95",
+   "altname": null
+  },
+  {
+   "name": "xpl0itrs",
+   "altname": null
+  },
+  {
+   "name": "yanluowang",
+   "altname": null
+  },
+  {
+   "name": "yurei",
+   "altname": null
+  },
+  {
+   "name": "zeon",
+   "altname": null
+  },
+  {
+   "name": "zerolockersec",
+   "altname": null
+  },
+  {
+   "name": "zerotolerance",
+   "altname": null
+  },
+  {
+   "name": "Владивосток",
+   "altname": null
+  }
+ ]
+}

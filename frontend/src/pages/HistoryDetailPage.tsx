@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useFetchJson } from '@/hooks/useFetchJson'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, History } from 'lucide-react'
@@ -76,6 +76,13 @@ export default function HistoryDetailPage() {
   const config = useVerdictWeights()
   const { data: entry, failed } = useFetchJson<HistoryDetail>(`${BACKEND}/history/${id}`)
   const error = failed ? t('history.loadError') : null
+  // Threat actor activity is measured from when the lookup ran, not from today.
+  // Memoised (before the early returns) so the actor activity isn't recomputed on every render.
+  const timestamp = entry?.timestamp
+  const archivedAt = useMemo(
+    () => (timestamp ? new Date(timestamp.replace(' ', 'T') + 'Z') : undefined),
+    [timestamp],
+  )
 
   if (error) {
     return (
@@ -109,8 +116,6 @@ export default function HistoryDetailPage() {
   )
   // Scores are the ones computed at query time (with the weights in force then),
   // not recomputed with today's weights.
-  // Threat actor activity is measured from when the lookup ran, not from today.
-  const archivedAt = new Date(entry.timestamp.replace(' ', 'T') + 'Z')
   const verdict: VerdictResult = {
     risk: entry.score,
     knowledge: entry.knowledge_score,
@@ -171,7 +176,7 @@ export default function HistoryDetailPage() {
 
         {/* Title first, flush left; search frequency on the right */}
         <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 basis-64">
             <h2 className="text-xl font-semibold text-foreground font-mono break-all">{entry.indicator}</h2>
             {/* Type, then when / by whom it was archived, on one line */}
             <span className="text-xs text-muted-foreground inline-flex flex-wrap items-center gap-x-1.5">

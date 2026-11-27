@@ -54,6 +54,7 @@ const en = {
   'score.noData': 'No data',
 
   'explainer.title': 'Verdict · How it\'s calculated',
+  'explainer.titleKnowledge': 'Knowledge · How it\'s calculated',
   'explainer.knowledgeIntro': 'How much of the available intel coverage has information on this indicator, good or bad. Every configured and enabled source for this indicator type counts in the total; each one adds its weight × depth of record (None = 0, Basic = 0.5, Rich = 1). Sources with no record — or that failed to answer — add nothing, so knowledge only grows as sources contribute; it saturates at 10 before every source has to know the indicator. Sources without an API key or disabled are left out.',
   'explainer.knowledgeEmpty': 'No configured source has a knowledge weight for this indicator type — showing N/A.',
   'explainer.riskIntro': 'Weighted average of the sources that issued an actual verdict — a risk signal or an explicit clean evaluation. Sources with no record, or with only context (e.g. Shodan, IPinfo), are left out: not knowing an indicator is not the same as confirming it\'s benign.',
@@ -141,6 +142,7 @@ const es: Record<keyof typeof en, string> = {
   'score.noData': 'Sin datos',
 
   'explainer.title': 'Veredicto · Cómo se calcula',
+  'explainer.titleKnowledge': 'Knowledge · Cómo se calcula',
   'explainer.knowledgeIntro': 'Cuánta de la cobertura de inteligencia disponible tiene información sobre este indicador, sea buena o mala. Cuentan en el total todas las fuentes configuradas y activadas para este tipo de indicador; cada una suma su peso × la profundidad de su registro (Ninguna = 0, Básica = 0,5, Rica = 1). Las fuentes sin registro — o que no respondieron — no suman nada, así que el Knowledge solo crece a medida que las fuentes aportan; satura en 10 sin necesidad de que lo conozcan todas las fuentes. Las fuentes sin API key o desactivadas quedan fuera.',
   'explainer.knowledgeEmpty': 'Ninguna fuente configurada tiene peso Knowledge para este tipo de indicador — se muestra N/D.',
   'explainer.riskIntro': 'Media ponderada de las fuentes que emitieron un veredicto real — una señal de riesgo o una evaluación explícita de limpio. Las fuentes sin registro, o solo con contexto (p. ej. Shodan, IPinfo), quedan fuera: no conocer un indicador no es lo mismo que confirmar que es benigno.',
