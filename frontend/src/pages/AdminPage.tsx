@@ -55,14 +55,17 @@ function NumberInput({
 
 /** Slider + numeric input bound to the same 0–10 weight. */
 function WeightControl({
-  value, onChange, label }: {
+  value, onChange, label, column }: {
   value: number
   onChange: (v: number) => void
   label: string
+  /** Column name, shown next to the control on phones (the header row is hidden there) */
+  column: string
 }) {
   const { t } = useI18n()
   return (
-    <div className="flex items-center gap-2 w-44">
+    <div className="flex items-center gap-2 w-full sm:w-44">
+      <span className="sm:hidden w-20 shrink-0 text-xs text-muted-foreground">{column}</span>
       <input
         type="range"
         min={WEIGHT_MIN}
@@ -105,7 +108,8 @@ function EngineRow({
 
   return (
     <div className="rounded-lg border border-border bg-muted/20">
-      <div className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-3 px-3 py-2">
+      {/* Phones: the source, then each control on its own line; wider: one row */}
+      <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] items-center gap-x-3 gap-y-2 px-3 py-2">
         <div className="flex items-center gap-2 min-w-0">
           {logo && (
             <span className="h-6 w-6 shrink-0 rounded-md bg-white border border-border/50 flex items-center justify-center overflow-hidden">
@@ -119,13 +123,13 @@ function EngineRow({
             </span>
           </div>
         </div>
-        <WeightControl label={t('admin.riskOf', { label })} value={weight.risk} onChange={v => onChange({ ...weight, risk: v })} />
-        <WeightControl label={t('admin.knowledgeOf', { label })} value={weight.knowledge} onChange={v => onChange({ ...weight, knowledge: v })} />
+        <WeightControl label={t('admin.riskOf', { label })} column={t('admin.colRisk')} value={weight.risk} onChange={v => onChange({ ...weight, risk: v })} />
+        <WeightControl label={t('admin.knowledgeOf', { label })} column={t('admin.colKnowledge')} value={weight.knowledge} onChange={v => onChange({ ...weight, knowledge: v })} />
         <button
           type="button"
           onClick={() => setOpen(o => !o)}
           title={t('admin.overridesTitle')}
-          className="inline-flex items-center gap-1 h-8 px-2 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 w-24 justify-end"
+          className="inline-flex items-center gap-1 h-8 px-2 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 w-fit sm:w-24 justify-start sm:justify-end -ml-2 sm:ml-0"
         >
           {overrideCount > 0 ? tn('admin.overrides', overrideCount) : t('admin.perType')}
           <ChevronDown className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`} />
@@ -297,7 +301,7 @@ function WeightsEditor() {
             </section>
 
             <section className="flex flex-col gap-2">
-              <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 px-3 text-xs text-muted-foreground uppercase tracking-wide font-medium">
+              <div className="hidden sm:grid grid-cols-[1fr_auto_auto_auto] gap-3 px-3 text-xs text-muted-foreground uppercase tracking-wide font-medium">
                 <span>{t('admin.colSource')}</span>
                 <span className="w-44 text-right">{t('admin.colRisk')}</span>
                 <span className="w-44 text-right">{t('admin.colKnowledge')}</span>

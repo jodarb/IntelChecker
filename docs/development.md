@@ -76,6 +76,7 @@ IntelChecker/
 │   │   ├── actor_resolve_check.py   # Pinned /actor/resolve candidates (offline, fixtures/actor_catalog.json)
 │   │   ├── feeds_persist_check.py   # Downloaded lists saved to / restored from data/feeds/
 │   │   ├── company_unscored_check.py  # Companies get no verdict; old entries' scores are not returned
+│   │   ├── ransomwarelive_actor_check.py  # Group lookup by name, version and MITRE alias (offline)
 │   │   └── fixtures/
 │   ├── certs/                   # mTLS client certs — gitignored, mounted
 │   ├── data/                    # history.db, users.db, weights.json, connectors.json — gitignored, mounted

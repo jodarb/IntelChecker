@@ -2,20 +2,16 @@
 
 Lo que queda por hacer o decidir, ordenado por prioridad dentro de cada bloque. Al final, lo ya hecho en esta tanda.
 
-Última actualización: 2026-11-27 (sobre el commit `aba56c3`, cambios sin commit).
+Última actualización: 2026-11-27 (todo subido a `main` y desplegado en Docker).
 
 ## Decisiones pendientes (tuyas)
 
 - [ ] **ESLint no pasa en todo `src`.** 54 errores anteriores a esta tanda: `no-explicit-any` en `verdictEngine.ts` y `summaryRegistry.ts`, y `react-refresh/only-export-components` en `EnginesContext.tsx` y `components/ui/button.tsx`. Decidir si se tipan o se relaja la regla en esos ficheros. Los ficheros nuevos y los tocados pasan.
 
-## Interfaz
-
-- [ ] **Admin en móvil.** La tabla de pesos (anchos fijos) desborda 179 px a 390 px de ancho. Ya pasaba antes; envolverla en un contenedor con scroll o apilar los controles.
-
 ## Verificación con datos reales
 
 - [ ] **OpenCTI contra una instancia real.** `ACTOR_CONTEXT` (300 relaciones, `x_mitre_id`, `observable_value`, `pattern`) valida contra el esquema 6.0 y master, pero no se ha probado con datos reales ni se ha medido el tamaño de la respuesta. Comprobar también el país de origen (`originates-from` → `Country`).
-- [ ] **Caché de ransomware.live con el servicio real.** La persistencia en `backend/data/feeds/` está probada sin red; la lista Tor ya se guarda y se restaura en Docker, pero las de ransomware.live solo se crearán con la primera consulta de actor o empresa que las use.
+- [ ] **Caché de ransomware.live con el servicio real.** La persistencia en `backend/data/feeds/` está probada sin red; la lista Tor ya se guarda y se restaura en Docker (`tor-exit-nodes.gz`), pero las de ransomware.live todavía no existen: se crearán con la primera consulta de actor o empresa que use esa fuente. Comprobar entonces que aparecen y que un reinicio no da `RateLimitExceeded`.
 
 ## Actores
 
@@ -25,8 +21,6 @@ Lo que queda por hacer o decidir, ordenado por prioridad dentro de cada bloque. 
   - Probar con más casos: APT28/APT29, subgrupos de Lazarus, nombres comunes como "Play" o "Medusa".
 - [ ] **País de origen desde la descripción de MITRE.** Es heurístico (dos primeras frases, patrones como "China-based" o "attributed to Russia's…"). Revisarlo con más grupos y vigilar falsos positivos.
 - [ ] **Arsenal atribuido frente a mencionado.** Atribuido si una fuente dice que lo usa, si lleva su nombre o si lo dan varias fuentes; mencionado si lo nombra una sola fuente por coocurrencia. Revisar la regla con más actores.
-- [ ] **ransomware.live busca solo por el nombre consultado**, no por los alias que dan otras fuentes.
-- [ ] **Coste de `/actor/resolve`.** Hasta 6 llamadas externas por búsqueda (Recorded Future y Malpedia, hasta 3 términos cada una). Valorar una caché breve y vigilar la cuota de RF.
 - [ ] **OTX para actores.**
   - La búsqueda de pulses es de texto libre y devuelve 10 resultados por relevancia, no por fecha, así que los "informes en 90 días" pueden quedarse cortos.
   - Para "Gentleman" dio timeout.
@@ -39,7 +33,6 @@ Lo que queda por hacer o decidir, ordenado por prioridad dentro de cada bloque. 
 
 ## Empresas
 
-- [ ] **Peso de Recorded Future en empresas.** Usa el Knowledge general de RF (9), alto para una fuente que solo da contexto. Valorar un `knowledge_by_type.company` propio.
 - [ ] **Desambiguación en Recorded Future.** `entity-match` elige por nombre y alias; no se puede filtrar por dominio. "Iberia" encuentra la aerolínea, pero otros nombres ambiguos pueden fallar. El endpoint de riesgo de terceros (`/v2/company`) necesita un permiso que la clave actual no tiene.
 
 ---
@@ -47,8 +40,8 @@ Lo que queda por hacer o decidir, ordenado por prioridad dentro de cada bloque. 
 ## Hecho (2026-11-27)
 
 **Decisiones aplicadas**
-- [x] **Las empresas no se puntúan.** `computeVerdict` / `compute_verdict` devuelven un veredicto vacío para `company` (sin Risk, Knowledge ni cuadrante); `POST /history` guarda nulos, `POST /lookup` los devuelve (y `outcome` / `subscore` / `depth` nulos por fuente); las entradas antiguas conservan su puntuación en la base de datos pero la API ya no la devuelve. Admin no muestra las fuentes solo de empresa (Wikidata, GLEIF, Hudson Rock, Have I Been Pwned, GDELT) ni el ajuste por tipo "Empresa". Quitadas las etiquetas `quadrant.company.*`. La valoración interna por fuente solo ordena las tarjetas del informe.
-- [x] **Botón "Volver" unificado** (`components/BackButton.tsx`): en todas las vistas salvo las tres de búsqueda y el inicio de sesión, siempre primero, a la izquierda del título, con el texto "Volver". Vuelve a la pantalla anterior de la app; si la página se abrió directamente, a su vista padre.
+- [x] **Las empresas no se puntúan** (`2f8f3c8`). `computeVerdict` / `compute_verdict` devuelven un veredicto vacío para `company` (sin Risk, Knowledge ni cuadrante); `POST /history` guarda nulos, `POST /lookup` los devuelve (y `outcome` / `subscore` / `depth` nulos por fuente); las entradas antiguas conservan su puntuación en la base de datos pero la API ya no la devuelve. Admin no muestra las fuentes solo de empresa (Wikidata, GLEIF, Hudson Rock, Have I Been Pwned, GDELT) ni el ajuste por tipo "Empresa". Quitadas las etiquetas `quadrant.company.*`. La valoración interna por fuente solo ordena las tarjetas del informe. Con esto deja de tener sentido el peso de Recorded Future en empresas, que estaba pendiente.
+- [x] **Botón "Volver" unificado** (`2f8f3c8`, `components/BackButton.tsx`): en todas las vistas salvo las tres de búsqueda y el inicio de sesión, siempre primero, a la izquierda del título, con el texto "Volver". Vuelve a la pantalla anterior de la app; si la página se abrió directamente, a su vista padre.
 - [x] **"Búsqueda" siempre lleva a Artefactos**: no recuerda la última pestaña (decidido; ya era así).
 
 **Funcionalidades**
@@ -57,10 +50,13 @@ Lo que queda por hacer o decidir, ordenado por prioridad dentro de cada bloque. 
 - [x] **Lista del historial** (`aba56c3`). Marca de tiempo, artefacto (icono, indicador, tipo) y usuario con icono; puntuaciones a la derecha. En móvil la hora va en su propia línea; las IPs ya no se recortan.
 
 **Fuentes y backend**
+- [x] **ransomware.live por alias.** Si ningún grupo tiene el nombre buscado, prueba los alias de MITRE ATT&CK del actor (ya en memoria, sin llamadas extra): "GOLD SAHARA" → `akira`. La tarjeta dice con qué alias se encontró y la identidad no cuenta como coincidencia exacta. Los alias que solo da Malpedia (p. ej. "Storm-1567") no se prueban, porque harían falta llamadas externas.
+- [x] **Caché de `/actor/resolve`.** Las búsquedas en Malpedia y Recorded Future se guardan 15 min por término (hasta 500), con la API key de RF en la clave; los fallos no se guardan. Repetir o reformular una búsqueda ya no gasta cuota.
 - [x] **Caché persistente** (`d655752`, `2c0e291`). `CachedFeed(persist=…)` guarda la última descarga buena en `backend/data/feeds/` (gzip): ransomware.live (víctimas y grupos) y Tor Exit Nodes (dan.me.uk, que responde 403 al pasar el límite: `rate_limit_status`). Al reiniciar se parte de la copia; si caducó y la descarga falla, se sirve la antigua.
 - [x] **"LockBit 3.0"** casa con `lockbit3` (`0da5beb`).
 
 **Interfaz**
+- [x] **Admin en móvil**: cada fuente apilada (nombre, Risk, Knowledge con su etiqueta, ajuste por tipo); desde `sm`, la tabla de siempre.
 - [x] **Revisión visual** con Playwright en escritorio, tablet y móvil, modo claro y oscuro (`0da5beb`, `d655752`).
 - [x] **Cabecera y menú**: se reparte en varias líneas; iconos entre `md` y `xl`; desplegable en móvil; pestañas con scroll.
 - [x] **`<button>` dentro de `<button>`**: las 20 cabeceras de tarjeta son `div role="button"` con teclado (`lib/a11y.ts`).
@@ -69,5 +65,5 @@ Lo que queda por hacer o decidir, ordenado por prioridad dentro de cada bloque. 
 - [x] **`docs/screenshot.png`** con el informe de actor.
 
 **Calidad**
-- [x] **Tests**: frontend `npm test` (45: perfil, actividad, `relevantPulses`, países); backend `actor_resolve_check.py` (9) y `feeds_persist_check.py` (10); paridad del veredicto sin cambios.
+- [x] **Tests**: frontend `npm test` (47: perfil, actividad, `relevantPulses`, países, empresas sin puntuación, ransomware.live por alias); backend `actor_resolve_check.py` (13, con la caché), `feeds_persist_check.py` (10), `company_unscored_check.py` (3) y `ransomwarelive_actor_check.py` (5); paridad del veredicto sin diferencias.
 - [x] **`archivedAt`** memorizado en `HistoryDetailPage`.

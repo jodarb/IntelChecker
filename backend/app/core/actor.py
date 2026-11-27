@@ -11,9 +11,16 @@ Candidates come from:
     "gentleman" ~ "thegentlemen");
   * Malpedia's and Recorded Future's own actor search (sent the query as typed).
 Candidates that share a name or alias are merged into one actor.
+
+The remote searches are cached for a few minutes per term (`_remote_cache`): a search
+asks for up to three terms, and typing variants of the same name ("Gentleman", "The
+Gentlemen") lead to the same terms, so they would spend the Recorded Future quota
+again. Failures are not cached.
 """
 import asyncio
+import hashlib
 import re
+import time
 from urllib.parse import quote
 
 import httpx
@@ -22,6 +29,25 @@ from app.core.connectors import secret
 
 _MAX = 10
 _MAX_ALIASES = 12
+
+_CACHE_TTL = 15 * 60
+_CACHE_MAX = 500
+_remote_cache: dict[tuple, tuple[float, list[dict]]] = {}
+
+
+def _cached(cache_key: tuple) -> list[dict] | None:
+    hit = _remote_cache.get(cache_key)
+    if hit and time.monotonic() - hit[0] < _CACHE_TTL:
+        return hit[1]
+    _remote_cache.pop(cache_key, None)
+    return None
+
+
+def _remember(cache_key: tuple, rows: list[dict]) -> list[dict]:
+    if len(_remote_cache) >= _CACHE_MAX:   # drop the oldest entry
+        _remote_cache.pop(min(_remote_cache, key=lambda k: _remote_cache[k][0]))
+    _remote_cache[cache_key] = (time.monotonic(), rows)
+    return rows
 
 
 def key(v: str | None) -> str:
@@ -110,13 +136,19 @@ async def _ransomwarelive(q: str) -> list[dict]:
     return out
 
 
-async def _malpedia(client: httpx.AsyncClient, q: str) -> list[dict]:
+async def _malpedia(client: httpx.AsyncClient, q: str) -> list[dict] | None:
+    """None when the search failed (not cached); [] when it found nothing."""
+    cache_key = ("malpedia", key(q))
+    if (hit := _cached(cache_key)) is not None:
+        return hit
     try:
         r = await client.get(f"https://malpedia.caad.fkie.fraunhofer.de/api/find/actor/{quote(q, safe='')}",
                              headers={"User-Agent": "IntelChecker/1.0", "Accept": "application/json"})
-        rows = r.json() if r.is_success else []
+        if not r.is_success:
+            return None
+        rows = r.json()
     except (httpx.HTTPError, ValueError):
-        return []
+        return None
     out = []
     for a in rows if isinstance(rows, list) else []:
         if not isinstance(a, dict) or not a.get("common_name"):
@@ -124,19 +156,26 @@ async def _malpedia(client: httpx.AsyncClient, q: str) -> list[dict]:
         names = [a["common_name"], *(x for x in a.get("synonyms") or [] if isinstance(x, str))]
         # Malpedia already matched it: keep it even when our score says no.
         out.append({"source": "Malpedia", "name": a["common_name"], "names": names, "score": max(score(q, names), 50)})
-    return out
+    return _remember(cache_key, out)
 
 
-async def _recordedfuture(client: httpx.AsyncClient, q: str) -> list[dict]:
+async def _recordedfuture(client: httpx.AsyncClient, q: str) -> list[dict] | None:
+    """None when the search failed (not cached); [] when it found nothing."""
     token = secret("RECORDED_FUTURE_API_KEY")
     if not token:
         return []
+    # Keyed by the API key too: another key may see other actors.
+    cache_key = ("recordedfuture", key(q), hashlib.sha256(token.encode()).hexdigest()[:12])
+    if (hit := _cached(cache_key)) is not None:
+        return hit
     try:
         r = await client.post("https://api.recordedfuture.com/threat/actor/search", json={"name": q, "limit": 10},
                               headers={"X-RFToken": token, "Accept": "application/json", "Content-Type": "application/json"})
-        rows = (r.json() or {}).get("data") if r.is_success else []
+        if not r.is_success:
+            return None
+        rows = (r.json() or {}).get("data")
     except (httpx.HTTPError, ValueError, AttributeError):
-        return []
+        return None
     out = []
     for row in rows or []:
         a = (row or {}).get("attributes") or {}
@@ -148,7 +187,7 @@ async def _recordedfuture(client: httpx.AsyncClient, q: str) -> list[dict]:
                     "categories": cats,
                     # Forum handles ("gentleman07"): people, listed apart and never merged with a group.
                     "persona": any("Forum Member" in c or "Community Member" in c for c in cats)})
-    return out
+    return _remember(cache_key, out)
 
 
 # ── Merge ───────────────────────────────────────────────────────────────────

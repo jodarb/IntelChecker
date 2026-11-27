@@ -1,6 +1,7 @@
 import type { CardWeight } from './WeightBadge'
 import { SourceCard, Field, FieldGrid, Note, Chips, SourceLink } from './SourceCard'
 import { useI18n } from '@/i18n/useI18n'
+import { rich } from '@/i18n/rich'
 import { fmtDate } from '@/lib/format'
 import { countryName } from '@/lib/countries'
 
@@ -42,6 +43,8 @@ interface RansomwareLiveResponse {
   top_countries?: { name: string; count: number }[]
   recent?: Victim[]
   victims_error?: { code: string; message: string }
+  /** Found under another name of the actor, not the one searched */
+  matched_alias?: { alias: string; source: string }
   // Company lookups
   query?: string
   listed?: boolean
@@ -102,6 +105,9 @@ function GroupView({ data }: { data: RansomwareLiveResponse }) {
     (xs ?? []).map(x => `${country ? countryName(x.name, locale) : x.name} · ${x.count}`)
   return (
     <>
+      {data.matched_alias && (
+        <Note>{rich(t('rlive.matchedAlias', { query: data.query ?? '', alias: data.matched_alias.alias, source: data.matched_alias.source }))}</Note>
+      )}
       <Field label={t('rlive.groupVariants')} value={<Chips items={groups.map(g => g.altname ? `${g.name} (${g.altname})` : g.name)} />} />
       {main.description && <p className="text-sm text-muted-foreground leading-relaxed line-clamp-5">{main.description}</p>}
       <FieldGrid>

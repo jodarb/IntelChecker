@@ -259,8 +259,9 @@ function identify(engineId: string, source: string, d: any, query: string): Sour
     if (d?.kind !== 'group' || d?.found !== true) return null
     const groups = arr(d?.groups)
     const names = groups.flatMap(g => [g?.name, ...String(g?.altname ?? '').split(/[/,;|]/)])
-    // ransomware.live matched the brand by name (versions included): an exact match.
-    return mk(groups[0]?.name, names, true)
+    // ransomware.live matched the brand by name (versions included): an exact match,
+    // unless it was found under another name of the actor (a MITRE alias).
+    return mk(groups[0]?.name, names, !d?.matched_alias)
   }
   return null
 }

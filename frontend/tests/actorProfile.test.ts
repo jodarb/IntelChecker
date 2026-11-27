@@ -276,3 +276,20 @@ describe('computeActorProfile · country of origin', () => {
     assert.equal(p.country, null)
   })
 })
+
+describe('computeActorProfile · ransomware.live found by alias', () => {
+  it('a group found under a MITRE alias is not an exact match, but joins the MITRE actor', () => {
+    const p = computeActorProfile(engines('mitreattack', 'ransomwarelive'), {
+      mitreattack: mitre('Akira', ['GOLD SAHARA']),
+      ransomwarelive: ok({
+        kind: 'group', found: true, query: 'GOLD SAHARA', groups: [{ name: 'akira' }],
+        matched_alias: { alias: 'Akira', source: 'MITRE ATT&CK' },
+      }),
+    }, 'GOLD SAHARA')
+    const rl = p.identities.find(i => i.engineId === 'ransomwarelive')
+    assert.equal(rl?.exact, false)
+    assert.equal(p.status, 'confirmed')
+    assert.equal(p.name, 'Akira')
+    assert.ok(p.engineIds.has('ransomwarelive'))
+  })
+})

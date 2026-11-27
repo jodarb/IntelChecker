@@ -14,6 +14,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+import httpx
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.core import actor  # noqa: E402
@@ -158,6 +160,65 @@ class ScoreTest(unittest.TestCase):
         # A short query with a typo is compared with whole words, not inside longer names.
         self.assertEqual(actor.score("akria", ["Akira Group"]), 50)
         self.assertEqual(actor.score("akria", ["makiradomains"]), 0)
+
+
+class RemoteCacheTest(unittest.TestCase):
+    """Malpedia / Recorded Future searches are cached per term for a few minutes."""
+
+    def setUp(self):
+        actor._remote_cache.clear()
+        self.addCleanup(actor._remote_cache.clear)
+        self.calls: list[str] = []
+        self.fail = False
+        real = httpx.AsyncClient
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            self.calls.append(request.url.host)
+            if self.fail:
+                return httpx.Response(503)
+            if "malpedia" in request.url.host:
+                return httpx.Response(200, json=[{"common_name": "The Gentlemen", "synonyms": ["Storm-2697"]}])
+            return httpx.Response(200, json={"data": [{"attributes": {"name": "Gentleman", "categories": [{"name": "Underground Forum Member"}]}}]})
+
+        for target, attr, value in (
+            (actor.httpx, "AsyncClient", lambda **kw: real(transport=httpx.MockTransport(handler), **kw)),
+            (actor, "secret", lambda name: "rf-test-key"),
+            (actor, "_mitre", _mitre),
+            (actor, "_ransomwarelive", _ransomwarelive),
+        ):
+            p = mock.patch.object(target, attr, value)
+            p.start()
+            self.addCleanup(p.stop)
+
+    def test_second_search_spends_no_remote_calls(self):
+        first = asyncio.run(actor.resolve("Gentleman"))["candidates"]
+        n = len(self.calls)
+        self.assertGreater(n, 0)
+        again = asyncio.run(actor.resolve("Gentleman"))["candidates"]
+        self.assertEqual(len(self.calls), n)
+        self.assertEqual(first, again)
+
+    def test_variants_of_a_name_share_the_cached_terms(self):
+        asyncio.run(actor.resolve("Gentleman"))   # asks for "Gentleman" and "The Gentlemen"
+        n = len(self.calls)
+        asyncio.run(actor.resolve("the gentlemen"))
+        self.assertEqual(len(self.calls), n)
+
+    def test_failures_are_not_cached(self):
+        self.fail = True
+        asyncio.run(actor.resolve("Gentleman"))
+        n = len(self.calls)
+        self.fail = False
+        cands = asyncio.run(actor.resolve("Gentleman"))["candidates"]
+        self.assertGreater(len(self.calls), n)
+        self.assertIn("Malpedia", cands[0]["sources"])
+
+    def test_entries_expire(self):
+        asyncio.run(actor.resolve("Gentleman"))
+        n = len(self.calls)
+        with mock.patch.object(actor, "_CACHE_TTL", 0):
+            asyncio.run(actor.resolve("Gentleman"))
+        self.assertGreater(len(self.calls), n)
 
 
 if __name__ == "__main__" and "--show" in sys.argv:

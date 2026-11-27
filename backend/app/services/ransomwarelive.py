@@ -258,6 +258,19 @@ def _profile(g: dict) -> dict:
     }
 
 
+async def _mitre_aliases(name: str) -> list[str]:
+    """The other names MITRE ATT&CK gives the actor ("GOLD SAHARA", "Storm-1567" →
+    Akira), from its dataset already held in memory for the MITRE source."""
+    from app.services import mitreattack
+    if await mitreattack._ensure_fresh():
+        return []
+    group = mitreattack._index.get(name.strip().lower())
+    if not group:
+        return []
+    names = [group.get("name"), *(group.get("aliases") or [])]
+    return [n for n in dict.fromkeys(names) if isinstance(n, str) and group_key(n) != group_key(name)]
+
+
 async def lookup_group(indicator: str) -> dict:
     name = (indicator or "").strip()
     needles = _needle_keys(name)
@@ -266,6 +279,15 @@ async def lookup_group(indicator: str) -> dict:
     if err := await _groups.get():
         return err
     groups = [g for g in _groups.data if _group_matches(g, needles)]
+    matched_alias = None
+    if not groups:
+        # Not under the name searched: try the actor's other names (MITRE aliases),
+        # the first that matches a group wins.
+        for alias in await _mitre_aliases(name):
+            groups = [g for g in _groups.data if _group_matches(g, _needle_keys(alias))]
+            if groups:
+                matched_alias = alias
+                break
     if not groups:
         return {"kind": "group", "found": False, "query": name}
     keys = {group_key(g["name"]) for g in groups}
@@ -303,6 +325,8 @@ async def lookup_group(indicator: str) -> dict:
         "list_updated": _feed.updated,
         "link": _profile(groups[0])["link"],
     }
+    if matched_alias:
+        out["matched_alias"] = {"alias": matched_alias, "source": "MITRE ATT&CK"}
     if victims_error:
         out["victims_error"] = victims_error
     return out
