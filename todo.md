@@ -2,7 +2,7 @@
 
 Lo que queda por hacer o decidir, ordenado por prioridad dentro de cada bloque. Al final, lo ya hecho en esta tanda.
 
-Última actualización: 2026-11-27 (todo subido a `main` y desplegado en Docker).
+Última actualización: 2026-11-27 (nueva vista de actores, subida a `main` y desplegada en Docker). Tests: 58 frontend y `ransomwarelive_actor_check` del backend; ESLint sin errores.
 
 ## Calidad de código
 
@@ -11,7 +11,7 @@ Lo que queda por hacer o decidir, ordenado por prioridad dentro de cada bloque. 
 ## Verificación con datos reales
 
 - [ ] **OpenCTI contra una instancia real.** `ACTOR_CONTEXT` (300 relaciones, `x_mitre_id`, `observable_value`, `pattern`) valida contra el esquema 6.0 y master, pero no se ha probado con datos reales ni se ha medido el tamaño de la respuesta. Comprobar también el país de origen (`originates-from` → `Country`).
-- [ ] **Caché de ransomware.live con el servicio real.** La persistencia en `backend/data/feeds/` está probada sin red; la lista Tor ya se guarda y se restaura en Docker (`tor-exit-nodes.gz`), pero las de ransomware.live todavía no existen: se crearán con la primera consulta de actor o empresa que use esa fuente. Comprobar entonces que aparecen y que un reinicio no da `RateLimitExceeded`.
+- [ ] **Caché de ransomware.live con el servicio real.** La persistencia en `backend/data/feeds/` está probada sin red; la lista Tor ya se guarda y se restaura en Docker (`tor-exit-nodes.gz`), pero las de ransomware.live todavía no existen (comprobado en el contenedor tras `61c79e7`): se crearán con la primera consulta de actor o empresa que use esa fuente. Comprobar entonces que aparecen y que un reinicio no da `RateLimitExceeded`.
 
 ## Actores
 
@@ -28,8 +28,12 @@ Lo que queda por hacer o decidir, ordenado por prioridad dentro de cada bloque. 
 - [ ] **Actividad.**
   - El Threat Map de Recorded Future da 403 en este despliegue (falta privilegio), así que no aporta informes.
   - La lista del historial no muestra la actividad de los actores, solo su Knowledge. Valorar guardar el nivel de actividad al guardar la entrada.
-- [ ] **Historial antiguo.** Las entradas anteriores a estos cambios no tienen leak sites, `exact` de Malpedia ni `persona` de RF. Se muestran con valores por defecto: pestaña vacía y la coincidencia exacta deducida de los alias.
-- [ ] **Títulos de leak sites.** Son texto controlado por el atacante. React los escapa, pero valorar ocultarlos o truncarlos más.
+- [ ] **ransomware.live y los alias de Malpedia.** Ahora prueba los alias de MITRE ATT&CK; los que solo da Malpedia ("Storm-1567" para Akira) no, porque exigirían llamadas externas. Valorar usar los sinónimos que Malpedia ya devuelve en la misma consulta de actor (habría que pasarlos al backend) si se ven casos reales.
+- [ ] **Historial antiguo.** Las entradas anteriores no tienen leak sites, `exact` de Malpedia, `persona` de RF ni la lista completa de víctimas. Se muestran con valores por defecto: sin fila Sites, la coincidencia exacta deducida de los alias y solo las 15 últimas víctimas (la tabla lo avisa).
+- [ ] **Tamaño del historial.** Cada búsqueda de un grupo de ransomware guarda ahora todas sus víctimas (hasta 5.000, cinco campos): unos cientos de KB por entrada en los grupos grandes. Vigilar `history.db`; si crece demasiado, guardar solo las últimas en el snapshot.
+- [ ] **Tabla de CVE del actor.** No marca cuáles están en CISA KEV (haría falta consultar cada CVE); hoy se ve con *Consultar*. Valorar cruzarla con la lista KEV que ya se descarga en `feeds.py`.
+- [ ] **Captura del README.** `docs/screenshot.png` muestra la ficha de actor antigua; rehacerla con el nuevo resumen.
+- [ ] **Títulos de leak sites.** Son texto controlado por el atacante. El resumen ya no los muestra; quedan en el JSON crudo de ransomware.live.
 
 ## Empresas
 
@@ -38,6 +42,14 @@ Lo que queda por hacer o decidir, ordenado por prioridad dentro de cada bloque. 
 ---
 
 ## Hecho (2026-11-27)
+
+**Nueva vista de actores** (`components/actor/ActorReport.tsx`, rehecha desde cero)
+- [x] **Resumen arriba, resultados por fuente debajo.** Nombre; alias como tags (*Ver más*: tabla de cada alias con sus fuentes); la descripción de la fuente con más peso de Knowledge y el botón *Otras descripciones*; a la derecha, un cuadro solo con la Actividad y el Knowledge.
+- [x] **Campo: valor con fuentes** (nombre completo de cada fuente al lado de cada valor): Tipo (lo que dice cada fuente agrupado en tipos comunes, `profile.types`), código MITRE, País (un código ISO por país), Sites (leak sites, *DLS* → *Leak Site*, texto para copiar), Activo desde, Linaje (`lineage` de ransomware.live, enlace al grupo), Víctimas publicadas (*Ver víctimas*: tabla con todas) e Identificado por. Debajo, sectores y países más atacados.
+- [x] **Cinco botones con tabla filtrable y exportable (CSV / JSON)**: TTPs, Arsenal (atribuido / mencionado), CVE (enlace a NVD), IOCs (por riesgo) e Informes y campañas. *Consultar →* lanza la búsqueda del valor y no se exporta.
+- [x] **ransomware.live devuelve todas las víctimas** del grupo (`victims`, hasta 5.000, solo fecha, víctima, dominio, sector y país).
+- [x] **Sin Risk en las tarjetas de actor**: fuera "Sin puntuación" y el peso R (`HideScores value="risk"`); queda K.
+- [x] Quitadas las pestañas fijas, las cifras clave y la columna lateral; las claves de i18n que dejaron de usarse, borradas.
 
 **Decisiones aplicadas**
 - [x] **Las empresas no se puntúan** (`2f8f3c8`). `computeVerdict` / `compute_verdict` devuelven un veredicto vacío para `company` (sin Risk, Knowledge ni cuadrante); `POST /history` guarda nulos, `POST /lookup` los devuelve (y `outcome` / `subscore` / `depth` nulos por fuente); las entradas antiguas conservan su puntuación en la base de datos pero la API ya no la devuelve. Admin no muestra las fuentes solo de empresa (Wikidata, GLEIF, Hudson Rock, Have I Been Pwned, GDELT) ni el ajuste por tipo "Empresa". Quitadas las etiquetas `quadrant.company.*`. La valoración interna por fuente solo ordena las tarjetas del informe. Con esto deja de tener sentido el peso de Recorded Future en empresas, que estaba pendiente.

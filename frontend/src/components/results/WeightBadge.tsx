@@ -22,19 +22,19 @@ interface Props {
 export default function WeightBadge({ weight }: Props) {
   const { t } = useI18n()
   const hidden = useScoresHidden()
-  if (hidden) return null
+  if (hidden === true) return null
   const risk = weight?.risk ?? 0
   const knowledge = weight?.knowledge ?? 0
   const depth = weight?.depth
   return (
     <span className="inline-flex items-center gap-1">
-      <span
+      {hidden !== 'risk' && <span
         title={t('weight.riskTitle')}
         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border text-xs font-medium text-muted-foreground bg-muted/30"
       >
         <Scale className="h-3 w-3" />
         R {risk}
-      </span>
+      </span>}
       <span
         title={`${t('weight.knowledgeTitle')}${depth != null ? t('weight.depthSuffix', { depth: depthLabel(depth, t) }) : ''}`}
         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border text-xs font-medium text-muted-foreground bg-muted/30"

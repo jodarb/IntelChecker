@@ -60,6 +60,7 @@ export interface Incident {
 export interface Victim {
   date?: string
   name: string
+  domain?: string
   sector?: string
   country?: string
 }
@@ -98,6 +99,26 @@ export interface RansomwareGroup {
   leakSites: number
   leakSitesUp: number
   recent: Victim[]
+  /** Every victim the source lists (older history entries: only `recent`) */
+  all: Victim[]
+  /** `all` is the full list, not just the latest ones */
+  complete: boolean
+}
+
+/** What kind of actor a source says it is, normalised so sources agree on one row. */
+export type ActorTypeKey = 'ransomware' | 'raas' | 'state' | 'espionage' | 'crime' | 'hacktivist' | 'sabotage' | 'insider' | 'persona'
+
+export interface ActorType {
+  /** Normalised type (translated on display); null: the source's own wording, in `value` */
+  key: ActorTypeKey | null
+  value: string
+  sources: string[]
+}
+
+export interface ActorDescription {
+  text: string
+  /** Every source that gives this text (OpenCTI often copies MITRE's) */
+  sources: string[]
 }
 
 export interface ActorProfile {
@@ -108,21 +129,25 @@ export interface ActorProfile {
   others: { name: string; sources: string[] }[]
   name: string
   mitreId: string | null
-  description: string | null
+  /** Every source's description, most authoritative first, identical texts merged */
+  descriptions: ActorDescription[]
   /** Which source each single-source field comes from (shown next to it) */
-  prov: { mitreId?: string; description?: string; ransomware?: string; country?: string; categories?: string }
-  categories: string[]
-  /** Country of origin / sponsor most sources give (ISO code); see `origins` */
-  country: string | null
+  prov: { mitreId?: string; ransomware?: string }
   /** Every country of origin a source gives, normalised to ISO codes, most sources first */
   origins: { country: string; sources: string[] }[]
+  /** What kind of actor each source says it is, most sources first */
+  types: ActorType[]
   ransomware: RansomwareGroup | null
-  /** Recorded Future says it's a ransomware / extortion group */
-  ransomwareCategory: boolean
+  /** When each source first saw it (earliest first; one date per source) */
+  since: { date: string; source: string }[]
+  /** Groups it descends from or rebrands (ransomware.live lineage), with their sources */
+  lineage: { value: string; sources: string[] }[]
   /** Aliases that are not just a spelling of the name ("Storm-2697", not "TheGentlemen") */
   aliases: ProfileItem[]
   /** Spellings of the name itself ("The Gentlemen Ransomware Group") */
   nameVariants: string[]
+  /** Every name any source gives (aliases and spellings), with its sources */
+  aliasTable: ProfileItem[]
   ttps: ProfileItem[]
   attackVectors: ProfileItem[]
   vulns: ProfileItem[]
@@ -300,6 +325,29 @@ const familyKey = (v: string) => nameKey(v).replace(/^the(?=.{4})/, '').replace(
 const NAME_PRIORITY_LABEL = (label: string) =>
   ['MITRE ATT&CK', 'Malpedia', 'OpenCTI', 'Recorded Future'].findIndex(l => label.startsWith(l)) >>> 0
 
+// Types: the sources' wording (RF categories, OpenCTI threat_actor_types, Malpedia's
+// CFR incident type) mapped onto a few common ones; the rest is kept as written.
+const TYPE_RULES: [ActorTypeKey, RegExp][] = [
+  ['persona', /forum member|community member|individual/i],
+  ['raas', /\braas\b|as[\s-]a[\s-]service/i],
+  ['ransomware', /ransomware|extortion/i],
+  ['state', /nation[\s-]?state|state[\s-]sponsor/i],
+  ['espionage', /espionage|^spy$/i],
+  ['crime', /crim|financial/i],
+  ['hacktivist', /hacktivis/i],
+  ['sabotage', /sabotage|destructi/i],
+  ['insider', /insider/i],
+]
+const GENERIC_TYPE = /^(threat[\s-]?)?actors?$|^intrusion[\s-]set$|^unknown$/i
+const typeKey = (v: string): ActorTypeKey | null => TYPE_RULES.find(([, re]) => re.test(v))?.[0] ?? null
+/** "crime-syndicate" → "Crime syndicate" */
+const typeLabel = (v: string) => { const s = v.replace(/[-_]+/g, ' ').trim(); return s.charAt(0).toUpperCase() + s.slice(1) }
+
+const toVictim = (v: any): Victim => ({
+  date: str(v.discovered ?? v.attack_date) ?? undefined, name: v.victim, domain: str(v.domain) ?? undefined,
+  sector: str(v.sector) ?? undefined, country: str(v.country) ?? undefined,
+})
+
 const pick = (ids: SourceIdentity[]) => [...ids].sort((a, b) => NAME_PRIORITY(a.engineId) - NAME_PRIORITY(b.engineId))[0]
 
 // ── Profile ────────────────────────────────────────────────────────────────
@@ -343,7 +391,23 @@ export function computeActorProfile(
   let ransomware: RansomwareGroup | null = null
   const descriptions: Record<string, { text: string; src: string }> = {}
   const prov: ActorProfile['prov'] = {}
-  let categories: string[] = []
+  const types = new Map<string, ActorType>()
+  const since: { date: string; source: string }[] = []
+  // OpenCTI fills an unknown first_seen with the epoch: only plausible dates count.
+  const addSince = (v: unknown, src: string) => {
+    const d = str(v)?.slice(0, 10)
+    if (d && /^\d{4}-\d{2}-\d{2}$/.test(d) && d >= '1990-01-01' && !since.some(x => x.source === src)) since.push({ date: d, source: src })
+  }
+  const lineage = new Bucket()
+  const addType = (value: unknown, src: string, key?: ActorTypeKey) => {
+    const v = str(value)
+    if (!v || (!key && GENERIC_TYPE.test(v))) return
+    const k = key ?? typeKey(v)
+    const id = k ?? nameKey(v)
+    const cur = types.get(id) ?? { key: k, value: typeLabel(v), sources: [] }
+    if (!cur.sources.includes(src)) cur.sources.push(src)
+    types.set(id, cur)
+  }
   // Country of origin / sponsor, per source: MITRE (description), Malpedia (country,
   // state sponsor), RF ("China Nation State Sponsored"), OpenCTI (originates-from).
   const origins = new Map<string, string[]>()
@@ -396,15 +460,17 @@ export function computeActorProfile(
       if (str(d.description)) descriptions.malpedia = { text: d.description, src }
       addOrigin(d.country, src)
       addOrigin(d.state_sponsor, src)
+      if (str(d.state_sponsor)) addType('state', src, 'state')
+      addType(d.incident_type, src)
       aliases.add(d.name, src)
       arr(d.synonyms).forEach(a => aliases.add(a, src))
       arr(d.victims).forEach(v => (typeof v === 'string' && isCountryName(v) ? addCountry(v, src) : orgs.add(v, src)))
       arr(d.target_category).forEach(c => sectors.add(c, src))
       arr(d.families).forEach(f => str(f?.common_name) && arsenalOwn.add(f.common_name, src, {}, familyKey(f.common_name)))
     } else if (id === 'recordedfuture') {
-      categories = arr(d.categories).filter((c): c is string => typeof c === 'string')
-      if (categories.length) prov.categories = src
-      categories.forEach(c => addOrigin(c.match(/^(.+?)\s+Nation[\s-]State Sponsored$/i)?.[1], src))
+      const categories = arr(d.categories).filter((c): c is string => typeof c === 'string')
+      categories.forEach(c => { addOrigin(c.match(/^(.+?)\s+Nation[\s-]State Sponsored$/i)?.[1], src); addType(c, src) })
+      if (d.persona === true) addType('persona', src, 'persona')
       aliases.add(d.name, src)
       arr(d.common_names).forEach(a => aliases.add(a, src))
       arr(d.aliases).forEach(a => aliases.add(a, src))
@@ -420,6 +486,9 @@ export function computeActorProfile(
     } else if (id.startsWith('opencti_')) {
       if (str(d.entity?.description)) descriptions.opencti = { text: d.entity.description, src }
       aliases.add(d.entity?.value, src)
+      arr(d.actor?.types).forEach(x => addType(x, src))
+      addSince(d.actor?.first_seen, src)
+      if (d.entity?.type === 'Threat-Actor-Individual') addType('persona', src, 'persona')
       arr(d.actor?.aliases).forEach(a => aliases.add(a, src))
       for (const rel of arr(d.relations)) {
         const et = rel?.entity_type
@@ -446,6 +515,10 @@ export function computeActorProfile(
       const groups = arr(d.groups)
       if (str(groups[0]?.description)) descriptions.rlive = { text: groups[0].description, src }
       prov.ransomware = src
+      // A ransomware catalogue: every group in it is one.
+      addType('ransomware', src, 'ransomware')
+      if (groups.some(g => g?.raas === true)) addType('raas', src, 'raas')
+      for (const g of groups) str(g?.lineage)?.split(/[/,;|]/).forEach(l => lineage.add(l.trim(), src))
       for (const g of groups) {
         aliases.add(g?.name, src)
         String(g?.altname ?? '').split(/[/,;|]/).forEach(a => aliases.add(a, src))
@@ -467,11 +540,11 @@ export function computeActorProfile(
         raas: typeof groups[0]?.raas === 'boolean' ? groups[0].raas : null,
         leakSites: groups.reduce((n, g) => n + num(g?.leak_sites), 0),
         leakSitesUp: groups.reduce((n, g) => n + num(g?.leak_sites_up), 0),
-        recent: arr(d.recent).filter(v => str(v?.victim)).map(v => ({
-          date: str(v.discovered ?? v.attack_date) ?? undefined, name: v.victim,
-          sector: str(v.sector) ?? undefined, country: str(v.country) ?? undefined,
-        })),
+        recent: arr(d.recent).filter(v => str(v?.victim)).map(toVictim),
+        all: arr(Array.isArray(d.victims) ? d.victims : d.recent).filter(v => str(v?.victim)).map(toVictim),
+        complete: Array.isArray(d.victims),
       }
+      addSince(ransomware.first, src)
     }
   }
 
@@ -523,7 +596,17 @@ export function computeActorProfile(
   const originList = [...origins.entries()]
     .map(([cc, sources]) => ({ country: cc, sources }))
     .sort((a, b) => b.sources.length - a.sources.length || NAME_PRIORITY_LABEL(a.sources[0]) - NAME_PRIORITY_LABEL(b.sources[0]))
-  if (originList.length) prov.country = originList[0].sources.join(', ')
+
+  // Descriptions, most authoritative first; the same text from two sources is one entry.
+  const descList: ActorDescription[] = []
+  for (const k of ['mitre', 'malpedia', 'opencti', 'rlive']) {
+    const d = descriptions[k]
+    if (!d) continue
+    const key = nameKey(d.text).slice(0, 160)
+    const same = descList.find(x => { const xk = nameKey(x.text).slice(0, 160); return xk.startsWith(key) || key.startsWith(xk) })
+    if (same) { if (!same.sources.includes(d.src)) same.sources.push(d.src); if (d.text.length > same.text.length) same.text = d.text }
+    else descList.push({ text: d.text, sources: [d.src] })
+  }
 
   return {
     status,
@@ -531,15 +614,17 @@ export function computeActorProfile(
     others,
     name,
     mitreId,
-    description: (descriptions.rlive ?? descriptions.mitre ?? descriptions.malpedia ?? descriptions.opencti)?.text ?? null,
-    prov: { ...prov, description: (descriptions.rlive ?? descriptions.mitre ?? descriptions.malpedia ?? descriptions.opencti)?.src },
-    categories,
-    country: originList[0]?.country ?? null,
+    descriptions: descList,
+    prov,
     origins: originList,
+    types: [...types.values()].sort((a, b) => b.sources.length - a.sources.length),
     ransomware,
-    ransomwareCategory: categories.some(c => /ransomware|extortion/i.test(c)),
+    since: since.sort((a, b) => a.date.localeCompare(b.date)),
+    // A group listed as its own lineage (another brand of the same name) says nothing.
+    lineage: lineage.list().filter(l => nameKey(l.value) !== nameKey(name)).map(l => ({ value: l.value, sources: l.sources })),
     aliases: allAliases.filter(a => !isVariant(a.value)),
     nameVariants: allAliases.filter(a => isVariant(a.value) && nameKey(a.value) !== nk).map(a => a.value),
+    aliasTable: allAliases,
     ttps: ttps.list(),
     attackVectors: vectors.list(),
     vulns: vulns.list(),

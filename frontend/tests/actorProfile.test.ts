@@ -43,7 +43,8 @@ describe('computeActorProfile · history #10 (The Gentlemen)', () => {
     assert.equal(p.ransomware.victims, 1139)
     assert.equal(p.ransomware.d90, 349)
     assert.equal(p.ransomware.raas, true)
-    assert.equal(p.ransomwareCategory, true)
+    assert.ok(p.types.some(x => x.key === 'ransomware' && x.sources.includes('Recorded Future')))
+    assert.ok(p.types.some(x => x.key === 'raas'))
     assert.equal(p.countries[0].country, 'US')
     assert.equal(p.sectors[0].value, 'Manufacturing')
     assert.ok(p.ttps.length > 0)
@@ -58,8 +59,7 @@ describe('computeActorProfile · history #10 (The Gentlemen)', () => {
     const q = computeActorProfile(engines(...noRf), f.results, f.indicator)
     assert.equal(q.status, 'confirmed')
     assert.equal(q.name, 'The Gentlemen')
-    assert.deepEqual(q.categories, [])
-    assert.equal(q.ransomwareCategory, false)
+    assert.ok(q.types.every(x => !x.sources.includes('Recorded Future')))
     assert.deepEqual(q.arsenalMentioned, [])
     const own = q.arsenal.find(a => a.value === 'The Gentlemen Ransomware')
     assert.deepEqual(own?.sources.sort(), ['MITRE ATT&CK', 'Malpedia'])
@@ -240,8 +240,30 @@ describe('computeActorProfile · country of origin', () => {
       malpedia: ok({ found: true, exact: true, name: 'APT28', synonyms: ['Fancy Bear'], country: 'RU', state_sponsor: 'Russian Federation', victims: [], target_category: [], families: [] }),
       recordedfuture: rf('APT28', { aliases: ['Fancy Bear'], categories: ['Russia Nation State Sponsored', 'Nation State Sponsored'] }),
     }, 'APT28')
-    assert.equal(p.country, 'RU')
     assert.deepEqual(p.origins, [{ country: 'RU', sources: ['MITRE ATT&CK', 'Malpedia', 'Recorded Future'] }])
+  })
+
+  it('merges the sources\' wording into one type, with every source that gives it', () => {
+    const p = computeActorProfile(engines('malpedia', 'recordedfuture', 'opencti_1'), {
+      malpedia: ok({ found: true, exact: true, name: 'APT28', synonyms: [], state_sponsor: 'Russian Federation', incident_type: 'Espionage', victims: [], target_category: [], families: [] }),
+      recordedfuture: rf('APT28', { categories: ['Russia Nation State Sponsored', 'Threat Actor'] }),
+      opencti_1: ok({ kind: 'actor', found: true, exact: true, entity: { value: 'APT28' }, actor: { aliases: [], types: ['nation-state', 'spy', 'crime-syndicate'] }, relations: [], reports: [] }),
+    }, 'APT28')
+    const by = Object.fromEntries(p.types.map(x => [x.key ?? x.value, x.sources.sort()]))
+    assert.deepEqual(by.state, ['Malpedia', 'OpenCTI', 'Recorded Future'])
+    assert.deepEqual(by.espionage, ['Malpedia', 'OpenCTI'])
+    assert.deepEqual(by.crime, ['OpenCTI'])
+    assert.equal(p.types[0].key, 'state')
+    assert.ok(!p.types.some(x => /threat actor/i.test(x.value)))
+  })
+
+  it('keeps every description with its source, merging copies', () => {
+    const p = computeActorProfile(engines('mitreattack', 'malpedia', 'opencti_1'), {
+      mitreattack: mitre('APT28', [], { description: apt28 }),
+      malpedia: ok({ found: true, exact: true, name: 'APT28', synonyms: [], description: 'Russian military intelligence group.', victims: [], target_category: [], families: [] }),
+      opencti_1: ok({ kind: 'actor', found: true, exact: true, entity: { value: 'APT28', description: apt28 }, actor: { aliases: [] }, relations: [], reports: [] }),
+    }, 'APT28')
+    assert.deepEqual(p.descriptions.map(d => d.sources), [['MITRE ATT&CK', 'OpenCTI'], ['Malpedia']])
   })
 
   it('lists every country when the sources disagree, most sources first', () => {
@@ -251,7 +273,6 @@ describe('computeActorProfile · country of origin', () => {
       recordedfuture: rf('APT5', { categories: ['Iran Nation State Sponsored'] }),
     }, 'APT5')
     assert.deepEqual(p.origins.map(o => [o.country, o.sources.length]), [['CN', 2], ['IR', 1]])
-    assert.equal(p.country, 'CN')
   })
 
   it('OpenCTI originates-from is the origin, not a targeted country', () => {
@@ -273,7 +294,6 @@ describe('computeActorProfile · country of origin', () => {
     const f = historyFixture(10)
     const p = computeActorProfile(engines(...f.engineIds), f.results, f.indicator)
     assert.deepEqual(p.origins, [])
-    assert.equal(p.country, null)
   })
 })
 
@@ -291,5 +311,30 @@ describe('computeActorProfile · ransomware.live found by alias', () => {
     assert.equal(p.status, 'confirmed')
     assert.equal(p.name, 'Akira')
     assert.ok(p.engineIds.has('ransomwarelive'))
+  })
+  it('takes every victim when the source sends them; older entries fall back to the latest', () => {
+    const group = { kind: 'group', found: true, query: 'akira', groups: [{ name: 'akira' }] }
+    const recent = [{ victim: 'A', discovered: '2026-11-01' }]
+    const full = computeActorProfile(engines('ransomwarelive'), {
+      ransomwarelive: ok({ ...group, recent, victims: [...recent, { victim: 'B', domain: 'b.com', country: 'US', attack_date: '2025-01-02' }] }),
+    }, 'akira')
+    assert.equal(full.ransomware?.complete, true)
+    assert.deepEqual(full.ransomware?.all.map(v => [v.name, v.domain, v.date]), [['A', undefined, '2026-11-01'], ['B', 'b.com', '2025-01-02']])
+    const old = computeActorProfile(engines('ransomwarelive'), { ransomwarelive: ok({ ...group, recent }) }, 'akira')
+    assert.equal(old.ransomware?.complete, false)
+    assert.equal(old.ransomware?.all.length, 1)
+  })
+
+  it('active since: one date per source, earliest first, no epoch placeholders; lineage links the parent group', () => {
+    const p = computeActorProfile(engines('ransomwarelive', 'opencti_1'), {
+      ransomwarelive: ok({ kind: 'group', found: true, query: 'akira', groups: [{ name: 'akira', lineage: 'conti' }], first_claim: '2023-03-20' }),
+      opencti_1: ok({ kind: 'actor', found: true, exact: true, entity: { value: 'Akira' }, actor: { aliases: [], first_seen: '2023-01-05T00:00:00Z' }, relations: [], reports: [] }),
+    }, 'akira')
+    assert.deepEqual(p.since, [{ date: '2023-01-05', source: 'OpenCTI' }, { date: '2023-03-20', source: 'ransomware.live' }])
+    assert.deepEqual(p.lineage, [{ value: 'conti', sources: ['ransomware.live'] }])
+    const epoch = computeActorProfile(engines('opencti_1'), {
+      opencti_1: ok({ kind: 'actor', found: true, exact: true, entity: { value: 'X' }, actor: { aliases: [], first_seen: '1970-01-01T00:00:00Z' }, relations: [], reports: [] }),
+    }, 'X')
+    assert.deepEqual(epoch.since, [])
   })
 })

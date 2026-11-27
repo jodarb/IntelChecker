@@ -220,6 +220,8 @@ _groups = CachedFeed(f"{_SOURCE} groups", _GROUPS, 6 * 3600, _parse_groups, time
 
 
 _MAX_LOCATIONS = 20
+_MAX_VICTIMS = 5000
+_VICTIM_ROW = ("victim", "domain", "country", "sector", "discovered", "attack_date")
 
 
 def _location(x: dict) -> dict | None:
@@ -322,6 +324,8 @@ async def lookup_group(indicator: str) -> dict:
         "top_sectors": top("sector"),
         "top_countries": top("country"),
         "recent": [clean(v) for v in victims[:15]],
+        # Every victim, only the fields of the report's table (a big group has thousands).
+        "victims": [{k: v[k] for k in _VICTIM_ROW if v.get(k)} for v in victims[:_MAX_VICTIMS]],
         "list_updated": _feed.updated,
         "link": _profile(groups[0])["link"],
     }
