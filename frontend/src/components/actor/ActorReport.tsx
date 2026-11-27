@@ -219,18 +219,24 @@ function StatusBanner({ profile, suggestions }: { profile: ActorProfile; suggest
 // ── Summary pieces ───────────────────────────────────────────────────────────
 
 /** Alias tags without sources; "see more" opens the table of which source gives each. */
+const MAX_ALIAS_TAGS = 10
+
 function Aliases({ p }: { p: ActorProfile }) {
   const { t } = useI18n()
   const [table, setTable] = useState(false)
   if (p.aliasTable.length === 0) return null
-  const tags = p.aliases.slice(0, 14)
+  // Every other name, real aliases first, then spellings of the name; capped.
+  const own = nameKey(p.name)
+  const real = new Set(p.aliases.map(a => a.value))
+  const others = p.aliasTable.filter(a => nameKey(a.value) !== own)
+  const tags = [...others.filter(a => real.has(a.value)), ...others.filter(a => !real.has(a.value))].slice(0, MAX_ALIAS_TAGS)
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       {tags.map(a => (
         <span key={a.value} className="px-2.5 py-0.5 rounded-md border border-primary/40 bg-primary/10 text-sm font-medium text-foreground">{a.value}</span>
       ))}
       <button type="button" onClick={() => setTable(true)} className="text-xs text-primary hover:underline ml-1">
-        {p.aliases.length > tags.length ? t('ar.aliasMore', { n: p.aliases.length - tags.length }) : t('ar.aliasTable')}
+        {t('ar.aliasAll', { n: p.aliasTable.length })}
       </button>
       {table && (
         <TableModal title={t('ar.aliasTitle', { name: p.name })} subtitle={t('ar.aliasHint')} file={`${p.name}_aliases`} onClose={() => setTable(false)}
