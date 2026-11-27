@@ -99,7 +99,8 @@ IntelChecker/
 │   │   ├── intelAggregates.ts   # Summary: families, actor relations, first/last seen, flagged-by
 │   │   ├── summaryRegistry.ts   # Summary field extractors (GeoIP/ASN/ISP/Tor/ports, CVSS/KEV/EPSS)
 │   │   ├── registry.tsx         # Static engine registry (same order, labels and types as the backend)
-│   │   └── EnginesContext.tsx   # Merges static engines with backend-discovered MISP / OpenCTI instances
+│   │   └── EnginesContext.tsx   # EnginesProvider: merges static engines with backend-discovered MISP / OpenCTI instances
+│   │                            # (the context and `useEngines()` live in hooks/useEngines.ts, for React fast refresh)
 │   ├── Dockerfile               # Multi-stage build → nginx
 │   └── nginx.conf               # SPA + /api proxy + cache headers
 ├── docs/                        # user-guide.md, admin.md, api.md, sources.md, development.md, logo, screenshot

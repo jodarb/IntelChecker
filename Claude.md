@@ -98,7 +98,7 @@ intelchecker/
 │   │   ├── auth/              # AuthProvider, AuthGate, useAuth (role/permission checks)
 │   │   ├── lib/api.ts         # apiFetch/apiJson: every backend call (detects expired sessions)
 │   │   ├── pages/             # Home + Results (artifacts), CompanySearch + CompanyReport (companies), History, HistoryDetail, Admin (weights), Users + Connectors (admin only), Account, Login, Docs
-│   │   ├── hooks/             # useVerdictWeights, useEngineToggles, useTheme, useFetchJson, useMitreAliases
+│   │   ├── hooks/             # useEngines (engines context), useVerdictWeights, useEngineToggles, useTheme, useFetchJson, useMitreAliases, useLookup
 │   │   ├── i18n/              # EN/ES: provider, useI18n, rich(), messages/<area>.ts, docs/{en,es}.ts
 │   │   ├── verdictEngine.ts   # Two-score verdict
 │   │   ├── trajectory.ts      # Matrix view replay

@@ -55,6 +55,15 @@ interface GleifSummary {
 const asWikidata = (d: unknown) => d as WikidataSummary | null
 const asGleif = (d: unknown) => d as GleifSummary | null
 
+// Source responses are untyped JSON: `at` walks a path without failing on a missing
+// level, `val` keeps a non-empty string or number as text (falsy → null, as `x || null`).
+const at = (d: unknown, ...path: (string | number)[]): unknown =>
+  path.reduce<unknown>((o, k) => (o != null && typeof o === 'object' ? (o as Record<string | number, unknown>)[k] : undefined), d)
+const val = (v: unknown): string | null => ((typeof v === 'string' || typeof v === 'number') && v ? String(v) : null)
+const text = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined)
+/** 15169 → "AS15169" (0 / missing → null) */
+const asNumber = (v: unknown): string | null => (v != null && v !== '' ? `AS${v}` : null)
+
 // Display order of summary fields
 export const SUMMARY_FIELDS: SummaryField[] = [
   'country', 'asn', 'isp', 'torExit', 'openPorts', 'cvss', 'kev', 'epss',
@@ -175,74 +184,60 @@ export const SUMMARY_REGISTRY: Record<string, Partial<Record<IndicatorType, Summ
   // reported (net for IPs, reg for domains/URLs).
   tweetfeed: {
     ip: [
-      { field: 'country', extract: (d) => ((d as any)?.net?.country) || null },
-      { field: 'asn', extract: (d) => ((d as any)?.net?.org as string)?.match(/^AS\d+/)?.[0] || null },
-      { field: 'isp', extract: (d) => ((d as any)?.net?.org as string)?.replace(/^AS\d+\s*/, '') || null },
+      { field: 'country', extract: (d) => val(at(d, 'net', 'country')) },
+      { field: 'asn', extract: (d) => text(at(d, 'net', 'org'))?.match(/^AS\d+/)?.[0] || null },
+      { field: 'isp', extract: (d) => text(at(d, 'net', 'org'))?.replace(/^AS\d+\s*/, '') || null },
     ],
     domain: [
-      { field: 'asn', extract: (d) => ((d as any)?.reg?.asn) || null },
-      { field: 'isp', extract: (d) => ((d as any)?.reg?.org) || null },
+      { field: 'asn', extract: (d) => val(at(d, 'reg', 'asn')) },
+      { field: 'isp', extract: (d) => val(at(d, 'reg', 'org')) },
     ],
     url: [
-      { field: 'asn', extract: (d) => ((d as any)?.reg?.asn) || null },
-      { field: 'isp', extract: (d) => ((d as any)?.reg?.org) || null },
+      { field: 'asn', extract: (d) => val(at(d, 'reg', 'asn')) },
+      { field: 'isp', extract: (d) => val(at(d, 'reg', 'org')) },
     ],
   },
   abuseipdb: {
     ip: [
-      { field: 'country', extract: (d) => ((d as any)?.data?.countryCode) || null },
-      { field: 'isp', extract: (d) => ((d as any)?.data?.isp) || null },
-      { field: 'torExit', extract: (d) => ((d as any)?.data?.isTor ? 'Yes' : null) },
+      { field: 'country', extract: (d) => val(at(d, 'data', 'countryCode')) },
+      { field: 'isp', extract: (d) => val(at(d, 'data', 'isp')) },
+      { field: 'torExit', extract: (d) => (at(d, 'data', 'isTor') ? 'Yes' : null) },
     ],
   },
   virustotal: {
     ip: [
-      { field: 'country', extract: (d) => ((d as any)?.data?.attributes?.country) || null },
-      {
-        field: 'asn',
-        extract: (d) => {
-          const n = (d as any)?.data?.attributes?.asn
-          return n != null ? `AS${n}` : null
-        },
-      },
-      { field: 'isp', extract: (d) => ((d as any)?.data?.attributes?.as_owner) || null },
+      { field: 'country', extract: (d) => val(at(d, 'data', 'attributes', 'country')) },
+      { field: 'asn', extract: (d) => asNumber(at(d, 'data', 'attributes', 'asn')) },
+      { field: 'isp', extract: (d) => val(at(d, 'data', 'attributes', 'as_owner')) },
     ],
   },
   alienvault: {
     ip: [
-      { field: 'country', extract: (d) => ((d as any)?.country_code) || null },
+      { field: 'country', extract: (d) => val(at(d, 'country_code')) },
       // OTX returns "AS15169 GOOGLE - Google LLC, US" — normalize to "AS15169"
-      { field: 'asn', extract: (d) => ((d as any)?.asn as string)?.split(' ')[0] || null },
+      { field: 'asn', extract: (d) => text(at(d, 'asn'))?.split(' ')[0] || null },
     ],
   },
   ipinfo: {
     ip: [
-      { field: 'country', extract: (d) => ((d as any)?.country) || null },
+      { field: 'country', extract: (d) => val(at(d, 'country')) },
       // IPinfo returns "AS15169 Google LLC" — normalize to "AS15169"
-      { field: 'asn', extract: (d) => ((d as any)?.org as string)?.split(' ')[0] || null },
+      { field: 'asn', extract: (d) => text(at(d, 'org'))?.split(' ')[0] || null },
       // ...and the ISP/org name is everything after that leading ASN token.
-      {
-        field: 'isp',
-        extract: (d) => {
-          const org = (d as any)?.org as string | undefined
-          if (!org) return null
-          const rest = org.split(' ').slice(1).join(' ')
-          return rest || null
-        },
-      },
+      { field: 'isp', extract: (d) => text(at(d, 'org'))?.split(' ').slice(1).join(' ') || null },
     ],
   },
   shodan: {
     ip: [
-      { field: 'country', extract: (d) => ((d as any)?.country_code) || null },
-      { field: 'asn', extract: (d) => ((d as any)?.asn) || null },
-      { field: 'isp', extract: (d) => ((d as any)?.isp) || null },
+      { field: 'country', extract: (d) => val(at(d, 'country_code')) },
+      { field: 'asn', extract: (d) => val(at(d, 'asn')) },
+      { field: 'isp', extract: (d) => val(at(d, 'isp')) },
       {
         field: 'openPorts',
         extract: (d) => {
-          const ports = (d as any)?.ports as number[] | undefined
-          if (!ports || ports.length === 0) return null
-          return [...ports].sort((a, b) => a - b).join(', ')
+          const ports = at(d, 'ports')
+          if (!Array.isArray(ports) || ports.length === 0) return null
+          return ports.filter((p): p is number => typeof p === 'number').sort((a, b) => a - b).join(', ') || null
         },
       },
     ],
@@ -252,34 +247,28 @@ export const SUMMARY_REGISTRY: Record<string, Partial<Record<IndicatorType, Summ
       {
         field: 'asn',
         extract: (d) => {
-          const asns = (d as any)?.network_info?.asns as string[] | undefined
-          return asns && asns.length > 0 ? `AS${asns[0]}` : null
+          const asns = at(d, 'network_info', 'asns')
+          return Array.isArray(asns) && asns.length > 0 ? `AS${asns[0]}` : null
         },
       },
     ],
   },
   crowdsec: {
     ip: [
-      { field: 'country', extract: (d) => ((d as any)?.location?.country) || null },
-      {
-        field: 'asn',
-        extract: (d) => {
-          const n = (d as any)?.as_num
-          return n != null ? `AS${n}` : null
-        },
-      },
-      { field: 'isp', extract: (d) => ((d as any)?.as_name) || null },
+      { field: 'country', extract: (d) => val(at(d, 'location', 'country')) },
+      { field: 'asn', extract: (d) => asNumber(at(d, 'as_num')) },
+      { field: 'isp', extract: (d) => val(at(d, 'as_name')) },
     ],
   },
   torexitlist: {
     ip: [
-      { field: 'torExit', extract: (d) => ((d as any)?.is_tor_exit ? 'Yes' : null) },
+      { field: 'torExit', extract: (d) => (at(d, 'is_tor_exit') ? 'Yes' : null) },
     ],
   },
   anyrun: {
     ip: [
-      { field: 'country', extract: (d) => ((d as any)?.destinationIPgeo?.[0]) || null },
-      { field: 'asn', extract: (d) => ((d as any)?.destinationIpAsn?.[0]?.asn) || null },
+      { field: 'country', extract: (d) => val(at(d, 'destinationIPgeo', 0)) },
+      { field: 'asn', extract: (d) => val(at(d, 'destinationIpAsn', 0, 'asn')) },
     ],
   },
 }

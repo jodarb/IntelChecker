@@ -7,7 +7,7 @@ import {
 import { cardState, compareCards } from '@/resultOrder'
 import { useVerdictWeights } from '@/hooks/useVerdictWeights'
 import { useEngineToggles } from '@/hooks/useEngineToggles'
-import { useEngines } from '@/EnginesContext'
+import { useEngines } from '@/hooks/useEngines'
 import { BACKEND_DOWN } from '@/i18n/errors'
 import { apiFetch } from '@/lib/api'
 

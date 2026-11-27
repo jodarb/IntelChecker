@@ -1,40 +1,16 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode, type ComponentType } from 'react'
-import { STATIC_ENGINES, type EngineConfig, type IndicatorType, type CardProps } from '@/registry'
+import { useCallback, useEffect, useMemo, useState, type ReactNode, type ComponentType } from 'react'
+import { STATIC_ENGINES, type EngineConfig, type CardProps } from '@/registry'
+import { EnginesContext, type StatusMap } from '@/hooks/useEngines'
 import MISPCard from '@/components/results/MISPCard'
 import OpenCTICard from '@/components/results/OpenCTICard'
 import { apiFetch } from '@/lib/api'
 
 const BACKEND = '/api'
 
-export interface EngineStatus {
-  connected: boolean
-  supports: IndicatorType[]
-  label?: string
-  /** Multi-instance platforms: which card renders the instance */
-  kind?: 'misp' | 'opencti'
-}
-
 const INSTANCE_CARDS: Record<'misp' | 'opencti', { component: ComponentType<CardProps>; logo: string }> = {
   misp: { component: MISPCard as ComponentType<CardProps>, logo: '/logos/misp.png' },
   opencti: { component: OpenCTICard as ComponentType<CardProps>, logo: '/logos/opencti.png' },
 }
-
-export type StatusMap = Record<string, EngineStatus>
-
-interface EnginesContextValue {
-  engines: EngineConfig[]
-  status: StatusMap | null
-  loading: boolean
-  /** Re-fetch the status (after a change on the Connectors page). */
-  reload: () => void
-}
-
-const EnginesContext = createContext<EnginesContextValue>({
-  engines: STATIC_ENGINES,
-  status: null,
-  loading: true,
-  reload: () => {},
-})
 
 export function EnginesProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<StatusMap | null>(null)
@@ -70,8 +46,4 @@ export function EnginesProvider({ children }: { children: ReactNode }) {
       {children}
     </EnginesContext.Provider>
   )
-}
-
-export function useEngines() {
-  return useContext(EnginesContext)
 }

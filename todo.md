@@ -4,9 +4,9 @@ Lo que queda por hacer o decidir, ordenado por prioridad dentro de cada bloque. 
 
 Última actualización: 2026-11-27 (todo subido a `main` y desplegado en Docker).
 
-## Decisiones pendientes (tuyas)
+## Calidad de código
 
-- [ ] **ESLint no pasa en todo `src`.** 54 errores anteriores a esta tanda: `no-explicit-any` en `verdictEngine.ts` y `summaryRegistry.ts`, y `react-refresh/only-export-components` en `EnginesContext.tsx` y `components/ui/button.tsx`. Decidir si se tipan o se relaja la regla en esos ficheros. Los ficheros nuevos y los tocados pasan.
+- [ ] **`eslint-disable` de `no-explicit-any` en otros ficheros.** ESLint ya pasa en todo el proyecto, pero cinco ficheros siguen silenciando `any` en bloque: `actorProfile.ts`, `actorActivity.ts`, `intelAggregates.ts`, `components/company/CompanyReport.tsx` y `scripts/verdict-cli.ts`. Tiparlos con el mismo método que `verdictEngine.ts` (interfaces mínimas por fuente, sin cambiar la lógica) si se quiere el proyecto sin excepciones.
 
 ## Verificación con datos reales
 
@@ -65,5 +65,6 @@ Lo que queda por hacer o decidir, ordenado por prioridad dentro de cada bloque. 
 - [x] **`docs/screenshot.png`** con el informe de actor.
 
 **Calidad**
-- [x] **Tests**: frontend `npm test` (47: perfil, actividad, `relevantPulses`, países, empresas sin puntuación, ransomware.live por alias); backend `actor_resolve_check.py` (13, con la caché), `feeds_persist_check.py` (10), `company_unscored_check.py` (3) y `ransomwarelive_actor_check.py` (5); paridad del veredicto sin diferencias.
+- [x] **ESLint en verde en todo el proyecto** (antes 54 errores). `verdictEngine.ts`: cada fuente se lee con una interfaz mínima de los campos que usa (sin cambiar la lógica: paridad 0 diferencias, también con el historial real) y sin bloques `eslint-disable`; `summaryRegistry.ts`: helpers `at()` / `val()` y test de los extractores; el contexto de motores y `useEngines()` pasan a `hooks/useEngines.ts`; `buttonVariants` deja de exportarse.
+- [x] **Tests**: frontend `npm test` (54, con los extractores del resumen; antes 47: perfil, actividad, `relevantPulses`, países, empresas sin puntuación, ransomware.live por alias); backend `actor_resolve_check.py` (13, con la caché), `feeds_persist_check.py` (10), `company_unscored_check.py` (3) y `ransomwarelive_actor_check.py` (5); paridad del veredicto sin diferencias.
 - [x] **`archivedAt`** memorizado en `HistoryDetailPage`.

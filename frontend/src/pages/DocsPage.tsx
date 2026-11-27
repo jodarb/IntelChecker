@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { BookOpen, PowerOff, ShieldCheck, Users } from 'lucide-react'
 import Layout from '@/components/Layout'
-import { useEngines } from '@/EnginesContext'
+import { useEngines } from '@/hooks/useEngines'
 import { useVerdictWeights } from '@/hooks/useVerdictWeights'
 import { QUADRANT_META, OUTCOME_META, outcomeLabel, quadrantLabel } from '@/quadrants'
 import { INDICATOR_TYPES as TYPES } from '@/registry'

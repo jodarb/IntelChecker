@@ -141,12 +141,112 @@ export function knowledgeWeightOf(config: VerdictConfig | null, engineId: string
   return w.knowledge_by_type?.[type] ?? w.knowledge
 }
 
+// ── Raw source responses ──────────────────────────────────────────────────────
+// Third-party payloads arrive as untyped JSON. Each function below reads its source's
+// response through a small interface naming only the fields it uses; every level is
+// optional and still guarded at runtime (`?.`, `typeof`, `=== true`, `arr()`), since
+// nothing validates the payload against the interface.
+
+/** The array, or [] for anything else. */
+const arr = <T = unknown>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : [])
+
+interface VtResponse {
+  data?: { attributes?: {
+    last_analysis_stats?: { malicious?: number; suspicious?: number }
+    total_votes?: { harmless?: number; malicious?: number }
+    tags?: unknown
+  } }
+}
+interface AbuseIpdbResponse { data?: { abuseConfidenceScore?: number; totalReports?: number; isWhitelisted?: boolean } }
+interface OtxResponse {
+  pulse_info?: { count?: number }
+  count?: number
+  results?: unknown
+  type_title?: string
+  seen_wild?: unknown
+  exploits_total?: unknown
+}
+interface ThreatFoxIoc { confidence_level?: number }
+interface RecordedFutureResponse {
+  risk?: { score?: number; evidenceDetails?: unknown }
+  entity?: unknown
+  kind?: string
+  found?: unknown
+  insikt_links?: unknown
+}
+interface UrlhausResponse { query_status?: string; url_status?: unknown; urls?: { url_status?: string }[]; payloads?: unknown }
+interface GreyNoiseResponse { noise?: unknown; riot?: unknown; classification?: unknown }
+interface PhishTankResponse { in_database?: unknown; valid?: unknown; verified?: unknown }
+interface AnyRunResponse { summary?: { threatLevel?: number | null } }
+interface TweetFeedRecord { users?: unknown; tweets?: unknown; tags?: unknown }
+interface TweetFeedResponse { found?: unknown; records?: unknown; campaigns?: unknown; ai?: { family?: unknown } }
+interface MispAttribute { to_ids?: unknown; event_id?: unknown; Event?: { id?: unknown } }
+interface OpenCtiResponse {
+  found?: unknown
+  kind?: string
+  vulnerability?: { kev?: unknown }
+  threat_links?: unknown
+  indicators?: unknown
+  relations?: unknown
+  reports_total?: unknown
+}
+interface OpenCtiIndicator { active?: unknown; score?: unknown }
+interface SpamhausListing { code?: unknown }
+/** Fields shared by the simpler sources: found / listed / exact flags and a few scalars. */
+interface FlagResponse {
+  found?: unknown
+  exact?: unknown
+  listed?: unknown
+  kind?: unknown
+  rank?: unknown
+  total?: unknown
+  matches?: unknown
+  reputation?: unknown
+  classifications?: { false_positives?: unknown }
+  behaviors?: unknown
+  KnownMalicious?: unknown
+  age_days?: unknown
+  clamav?: unknown
+  rules?: unknown
+  rejected?: unknown
+  cvss?: { score?: unknown }
+  ransomware?: unknown
+  epss?: unknown
+  Zone?: unknown
+  applicable?: unknown
+  description?: unknown
+  families?: unknown
+  sectors?: unknown
+  countries?: unknown
+  listings?: unknown
+  'hashlookup:trust'?: unknown
+  'hashlookup:parent-total'?: unknown
+}
+interface ShodanResponse { ip_str?: unknown; ports?: unknown; vulns?: unknown; tags?: unknown; total?: unknown }
+interface MitreResponse { name?: unknown; techniques?: unknown; software?: unknown }
+interface IpinfoResponse { bogon?: unknown }
+interface RipestatResponse { as_overview?: { holder?: unknown }; network_info?: { asns?: unknown } }
+interface HybridResult { verdict?: unknown }
+interface CompanyExposureResponse {
+  listed?: unknown
+  kind?: unknown
+  found?: unknown
+  victim_count?: unknown
+  days_since_last?: unknown
+  total?: unknown
+  employees?: unknown
+  days_since_employee?: unknown
+  count?: unknown
+  days_since_latest?: unknown
+  in_title?: unknown
+}
+
 // ── Per-engine normalizers: raw API response → 0-10 subscore, or null if no signal ──
 // Stepped thresholds (not raw ratios) so a handful of independent hits isn't
 // diluted by a large denominator (e.g. 5/70 VT engines reading as ~0.7).
 
 function vtSubscore(d: unknown): number | null {
-  const stats = (d as any)?.data?.attributes?.last_analysis_stats
+  const stats = (d as VtResponse | null)?.data?.attributes?.last_analysis_stats
   if (!stats) return null
   const flagged = (stats.malicious ?? 0) + (stats.suspicious ?? 0)
   if (flagged === 0) return 0
@@ -163,24 +263,24 @@ function vtSubscore(d: unknown): number | null {
 function vtHostSubscore(d: unknown): number | null {
   const score = vtSubscore(d)
   if (score !== 0) return score
-  const a = (d as any)?.data?.attributes
+  const a = (d as VtResponse | null)?.data?.attributes
   const votes = (a?.total_votes?.harmless ?? 0) + (a?.total_votes?.malicious ?? 0)
-  const tags = Array.isArray(a?.tags) ? a.tags.length : 0
+  const tags = arr(a?.tags).length
   return votes > 0 || tags > 0 ? 0 : null
 }
 
 function abuseipdbSubscore(d: unknown): number | null {
-  const data = (d as any)?.data
+  const data = (d as AbuseIpdbResponse | null)?.data
   const score = data?.abuseConfidenceScore
   if (score == null) return null
   // Zero reports means nobody has reported this IP — that's absence of data, not an
   // explicit benign verdict. A whitelisted IP *is* an explicit benign verdict.
-  if (score === 0 && !data.totalReports && !data.isWhitelisted) return null
+  if (score === 0 && !data?.totalReports && !data?.isWhitelisted) return null
   return Math.min(10, score / 10)
 }
 
 function alienvaultSubscore(d: unknown): number | null {
-  const count = (d as any)?.pulse_info?.count
+  const count = (d as OtxResponse | null)?.pulse_info?.count
   if (count == null) return null
   // Zero pulses means no researcher has flagged this indicator, not that OTX
   // actively verified it's safe — treat as "no signal", not a clean verdict.
@@ -193,38 +293,36 @@ function alienvaultSubscore(d: unknown): number | null {
 // OTX for CVEs: pulses only say the CVE is talked about (most are bulk KEV/feed
 // roundups), so they're context. OTX's own "seen in the wild" flag → 9; a public
 // exploit (Exploit-DB, Metasploit…) → 7; otherwise no verdict.
-/* eslint-disable @typescript-eslint/no-explicit-any */
 function alienvaultCveSubscore(d: unknown): number | null {
-  const p = d as any
+  const p = d as OtxResponse | null
   if (p?.seen_wild === true) return 9
   const n = p?.exploits_total
   return typeof n === 'number' && n > 0 ? 7 : null
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 function abusechSubscore(d: unknown): number | null {
-  const iocs = (d as any)?.data
+  const iocs = (d as { data?: unknown } | null)?.data
   if (!Array.isArray(iocs)) return null
   // No match in ThreatFox's feed ≠ confirmed clean, just not (yet) reported.
   if (iocs.length === 0) return null
-  const topConfidence = Math.max(...iocs.map((i: any) => i.confidence_level ?? 0))
+  const topConfidence = Math.max(...arr<ThreatFoxIoc>(iocs).map(i => i?.confidence_level ?? 0))
   return Math.min(10, 7 + (topConfidence / 100) * 3)
 }
 
 function recordedFutureSubscore(d: unknown): number | null {
-  const risk = (d as any)?.risk
+  const risk = (d as RecordedFutureResponse | null)?.risk
   const score = risk?.score
   if (score == null) return null
   // No risk rule triggered means RF simply has nothing on it yet — not that it
   // assessed the indicator as benign. Same principle as VirusTotal's empty profiles.
-  const evidence = Array.isArray(risk.evidenceDetails) ? risk.evidenceDetails.length : 0
+  const evidence = arr(risk?.evidenceDetails).length
   if (evidence === 0 && score === 0) return null
   // Recorded Future's score is already 0-99, pre-normalized by their own rules engine.
   return Math.min(10, score / 9.9)
 }
 
 function torExitListSubscore(d: unknown): number | null {
-  const isExit = (d as any)?.is_tor_exit
+  const isExit = (d as { is_tor_exit?: unknown } | null)?.is_tor_exit
   // Not being on the exit list says nothing about the IP being benign — only a match
   // is a signal. Being an active exit node isn't malicious per se, just elevated risk.
   if (!isExit) return null
@@ -232,7 +330,7 @@ function torExitListSubscore(d: unknown): number | null {
 }
 
 function urlhausSubscore(d: unknown): number | null {
-  const payload = d as any
+  const payload = d as UrlhausResponse | null
   // Not in URLhaus's malware/phishing URL feed ≠ confirmed clean, just not (yet) reported.
   if (payload?.query_status === 'no_results') return null
   // Single indicator (/url/) lookup shape.
@@ -242,14 +340,14 @@ function urlhausSubscore(d: unknown): number | null {
   // Host/hash lookup shape: a list of URLs associated with the indicator.
   if (Array.isArray(payload?.urls)) {
     if (payload.urls.length === 0) return null
-    const anyOnline = payload.urls.some((u: any) => u.url_status === 'online')
+    const anyOnline = payload.urls.some(u => u?.url_status === 'online')
     return anyOnline ? 9 : 6
   }
   return null
 }
 
 function urlscanSubscore(d: unknown): number | null {
-  const total = (d as any)?.total
+  const total = (d as { total?: number | null } | null)?.total
   if (total == null) return null
   // No prior scans on record ≠ verified clean, just never submitted — no signal either way.
   if (total === 0) return null
@@ -259,11 +357,11 @@ function urlscanSubscore(d: unknown): number | null {
 }
 
 function malwareBazaarSubscore(d: unknown): number | null {
-  const payload = d as any
+  const payload = d as { query_status?: string; data?: unknown } | null
   // Hash not on file ≠ confirmed benign, just not a known sample in this specific DB.
   if (payload?.query_status === 'no_results') return null
   if (Array.isArray(payload?.data)) {
-    if (payload.data.length === 0) return null
+    if (arr(payload?.data).length === 0) return null
     // The indicator is the hash of a sample MalwareBazaar has on file — high-confidence match.
     return 10
   }
@@ -271,7 +369,7 @@ function malwareBazaarSubscore(d: unknown): number | null {
 }
 
 function phishtankSubscore(d: unknown): number | null {
-  const payload = d as any
+  const payload = d as PhishTankResponse | null
   if (payload?.in_database == null) return null
   // Not submitted to PhishTank's crowdsourced DB ≠ verified legitimate — no signal either way.
   if (!payload.in_database) return null
@@ -281,7 +379,7 @@ function phishtankSubscore(d: unknown): number | null {
 }
 
 function anyrunSubscore(d: unknown): number | null {
-  const threatLevel = (d as any)?.summary?.threatLevel
+  const threatLevel = (d as AnyRunResponse | null)?.summary?.threatLevel
   // null means no sandbox intelligence record at all — not the same as "checked,
   // found clean" (threatLevel 0, ANY.RUN's own "No info" verdict).
   if (threatLevel == null) return null
@@ -291,26 +389,26 @@ function anyrunSubscore(d: unknown): number | null {
 }
 
 function greynoiseSubscore(d: unknown): number | null {
-  const payload = d as any
+  const payload = d as GreyNoiseResponse | null
   // Neither an internet-scanner hit nor a known-good RIOT match means GreyNoise
   // has no observation for this IP at all — not a "clean" verdict, just no data.
   if (!payload?.noise && !payload?.riot) return null
-  if (payload.classification === 'malicious') return 9
+  if (payload?.classification === 'malicious') return 9
   // RIOT = a verified known-good business service (search engine, CDN...); an
   // explicit "benign" classification is the same kind of confident clean result.
-  if (payload.riot || payload.classification === 'benign') return 0
+  if (payload?.riot || payload?.classification === 'benign') return 0
   // Seen actively scanning the internet but not yet classified — a real, if
   // mild, elevated-risk signal (comparable to being a Tor exit node).
   return 4
 }
 
 function hybridAnalysisSubscore(d: unknown): number | null {
-  const results = (d as any)?.result
-  if (!Array.isArray(results) || results.length === 0) return null
-  const verdicts = results.map((r: any) => String(r?.verdict ?? '').toLowerCase())
+  const results = arr<HybridResult>((d as { result?: unknown } | null)?.result)
+  if (results.length === 0) return null
+  const verdicts = results.map(r => String(r?.verdict ?? '').toLowerCase())
   if (verdicts.includes('malicious')) return 9
   if (verdicts.includes('suspicious')) return 5
-  if (verdicts.some((v: string) => v === 'whitelisted' || v === 'no specific threat')) return 0
+  if (verdicts.some(v => v === 'whitelisted' || v === 'no specific threat')) return 0
   // Only "no verdict" entries — sandboxed but never classified, no usable signal.
   return null
 }
@@ -320,7 +418,7 @@ function safeBrowsingSubscore(d: unknown): number | null {
   // empty match list is a genuine "checked, not on any threat list" clean result,
   // not an absence of data. So unlike most normalizers here, this never returns
   // null once we have a response at all.
-  const matches = (d as any)?.matches
+  const matches = (d as FlagResponse | null)?.matches
   return Array.isArray(matches) && matches.length > 0 ? 9 : 0
 }
 
@@ -329,12 +427,12 @@ function safeBrowsingSubscore(d: unknown): number | null {
 const TWEETFEED_GENERIC_TAGS = new Set(['#phishing', '#malware', '#scam', '#spam', '#opendir', '#ioc', '#iocs', '#threatintel'])
 
 function tweetFeedSignals(d: unknown) {
-  const p = d as any
-  const records: any[] = p?.found && Array.isArray(p?.records) ? p.records : []
-  const users = new Set(records.flatMap(r => (Array.isArray(r?.users) ? r.users : [])))
-  const tweets = new Set(records.flatMap(r => (Array.isArray(r?.tweets) ? r.tweets : [])))
-  const tags: string[] = records.flatMap(r => (Array.isArray(r?.tags) ? r.tags : []))
-  const inCampaign = Array.isArray(p?.campaigns) && p.campaigns.length > 0
+  const p = d as TweetFeedResponse | null
+  const records = p?.found ? arr<TweetFeedRecord>(p?.records) : []
+  const users = new Set(records.flatMap(r => arr(r?.users)))
+  const tweets = new Set(records.flatMap(r => arr(r?.tweets)))
+  const tags = records.flatMap(r => arr(r?.tags))
+  const inCampaign = arr(p?.campaigns).length > 0
   const hasFamily = inCampaign || !!p?.ai?.family
     || tags.some(t => !TWEETFEED_GENERIC_TAGS.has(String(t).toLowerCase()))
   return { found: records.length > 0, users: users.size, tweets: tweets.size, inCampaign, hasFamily }
@@ -348,12 +446,11 @@ function tweetFeedSubscore(d: unknown): number | null {
   return 5
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // CrowdSec CTI: reputation from the CrowdSec network's attack signals. An IP the
 // network lists as a false positive (public resolver, known scanner…) or rates
 // "safe"/"benign" is an explicit clean verdict; "unknown" or not reported is no data.
 function crowdsecSubscore(d: unknown): number | null {
-  const p = d as any
+  const p = d as FlagResponse | null
   if (!p?.found) return null
   const rep = p?.reputation
   if (arr(p?.classifications?.false_positives).length > 0 || rep === 'safe' || rep === 'benign') return 0
@@ -367,7 +464,7 @@ function crowdsecSubscore(d: unknown): number | null {
 // packages…) — an explicit clean verdict, unless the same file is also recorded in a
 // malware repository (KnownMalicious: EICAR, dual-use tools), then no verdict.
 function hashlookupSubscore(d: unknown): number | null {
-  const p = d as any
+  const p = d as FlagResponse | null
   if (!p?.found || p?.KnownMalicious) return null
   return 0
 }
@@ -376,7 +473,7 @@ function hashlookupSubscore(d: unknown): number | null {
 // proves nothing (compromised sites are old too), so age only ever raises risk.
 // age_days is frozen at lookup time by the backend.
 function rdapSubscore(d: unknown): number | null {
-  const p = d as any
+  const p = d as FlagResponse | null
   const age = p?.age_days
   if (!p?.found || typeof age !== 'number') return null
   if (age < 7) return 7
@@ -391,7 +488,7 @@ export const TRANCO_CLEAN_MAX_RANK = 100000
 // the ranked registered domain (exact): a subdomain of a popular parent
 // (evil.duckdns.org, x.blogspot.com) inherits nothing.
 function trancoSubscore(d: unknown): number | null {
-  const p = d as any
+  const p = d as FlagResponse | null
   const rank = p?.rank
   if (!p?.found || p?.exact !== true || typeof rank !== 'number') return null
   return rank <= TRANCO_CLEAN_MAX_RANK ? 0 : null
@@ -408,9 +505,9 @@ export const SPAMHAUS_SCORES: Record<string, number> = {
   asndrop: 9,
 }
 
-function spamhausScores(d: any): number[] {
+function spamhausScores(d: unknown): number[] {
   const out: number[] = []
-  for (const item of arr(d?.listings)) {
+  for (const item of arr<SpamhausListing>((d as FlagResponse | null)?.listings)) {
     const code = item?.code
     if (typeof code === 'string' && Object.prototype.hasOwnProperty.call(SPAMHAUS_SCORES, code)) out.push(SPAMHAUS_SCORES[code])
   }
@@ -428,27 +525,27 @@ function spamhausSubscore(d: unknown): number | null {
 // OpenPhish: the URL itself listed → 9; a domain/IP that hosts listed phishing → 7;
 // a URL on a host serving other phishing URLs → 6. Not listed → no data.
 function openphishSubscore(d: unknown): number | null {
-  const p = d as any
+  const p = d as FlagResponse | null
   if (p?.exact === true) return p?.kind === 'url' ? 9 : 7
   return arr(p?.matches).length > 0 ? 6 : null
 }
 
 // SSLBL: certificate (SHA-1) used by a botnet C&C or malware → 9.
 function sslblSubscore(d: unknown): number | null {
-  return (d as any)?.listed === true ? 9 : null
+  return (d as FlagResponse | null)?.listed === true ? 9 : null
 }
 
 // YARAify: ClamAV signatures are the maliciousness signal; community YARA rules are
 // often generic (Go binary, packer…), so they only feed Knowledge.
 function yaraifySubscore(d: unknown): number | null {
-  const p = d as any
+  const p = d as FlagResponse | null
   if (!p?.found || arr(p?.clamav).length === 0) return null
   return 7
 }
 // NVD: the CVSS base score as is (newest version, NVD's own assessment first).
 // Rejected CVEs and records still awaiting analysis (no CVSS) give no verdict.
 function nvdSubscore(d: unknown): number | null {
-  const p = d as any
+  const p = d as FlagResponse | null
   const score = p?.cvss?.score
   if (!p?.found || p?.rejected || typeof score !== 'number') return null
   return Math.max(0, Math.min(10, score))
@@ -457,7 +554,7 @@ function nvdSubscore(d: unknown): number | null {
 // CISA KEV: confirmed exploitation in the wild → 9; used in ransomware campaigns → 10.
 // Not in the catalog is no data, never clean.
 function kevSubscore(d: unknown): number | null {
-  const p = d as any
+  const p = d as FlagResponse | null
   if (p?.listed !== true) return null
   return p?.ransomware === 'Known' ? 10 : 9
 }
@@ -468,7 +565,7 @@ export const EPSS_TIERS: [number, number][] = [[0.5, 10], [0.2, 8], [0.05, 6], [
 // EPSS: probability of exploitation in the next 30 days. Under 1 % is an explicit
 // low-risk (clean) verdict: the model has scored it and expects no exploitation.
 function epssSubscore(d: unknown): number | null {
-  const p = d as any
+  const p = d as FlagResponse | null
   const prob = p?.epss
   if (!p?.found || typeof prob !== 'number') return null
   for (const [floor, score] of EPSS_TIERS) if (prob >= floor) return score
@@ -479,15 +576,16 @@ function epssSubscore(d: unknown): number | null {
 export const OPENTIP_ZONE_SCORES: Record<string, number> = { Red: 9, Orange: 7, Yellow: 5, Green: 0 }
 
 function opentipSubscore(d: unknown): number | null {
-  const zone = (d as any)?.Zone
-  if ((d as any)?.applicable === false || typeof zone !== 'string') return null
+  const p = d as FlagResponse | null
+  const zone = p?.Zone
+  if (p?.applicable === false || typeof zone !== 'string') return null
   return Object.prototype.hasOwnProperty.call(OPENTIP_ZONE_SCORES, zone) ? OPENTIP_ZONE_SCORES[zone] : null
 }
 
 // VulnCheck KEV: exploitation reported publicly or seen by VulnCheck's canaries → 9;
 // used in ransomware campaigns → 10. Not listed is no data, never clean.
 function vulncheckKevSubscore(d: unknown): number | null {
-  const p = d as any
+  const p = d as FlagResponse | null
   if (p?.listed !== true) return null
   return p?.ransomware === 'Known' ? 10 : 9
 }
@@ -498,7 +596,7 @@ function vulncheckKevSubscore(d: unknown): number | null {
 // the claim, the higher: ≤ 90 days → 10, ≤ 1 year → 9, older → 7 (undated → 8).
 // Not listed is no data, never clean: leak sites only show who didn't pay.
 function ransomwareLiveSubscore(d: unknown): number | null {
-  const p = d as any
+  const p = d as CompanyExposureResponse | null
   if (p?.listed !== true) return null
   const days = p?.days_since_last
   if (typeof days !== 'number') return 8
@@ -511,7 +609,7 @@ function ransomwareLiveSubscore(d: unknown): number | null {
 // ones (≤ 90 days → 9, ≤ 1 year → 7, older → 5). Only customers / third parties → 2.
 // Nothing in the whole database for the domain is an explicit clean (0).
 function hudsonRockSubscore(d: unknown): number | null {
-  const p = d as any
+  const p = d as CompanyExposureResponse | null
   const total = p?.total
   if (typeof total !== 'number') return null
   const employees = typeof p?.employees === 'number' ? p.employees : 0
@@ -527,7 +625,7 @@ function hudsonRockSubscore(d: unknown): number | null {
 // HIBP: public breach of the company's own service. Breach ≤ 1 year ago → 7,
 // ≤ 3 years → 5, older → 3. No breach is no data (HIBP only lists known ones).
 function hibpSubscore(d: unknown): number | null {
-  const p = d as any
+  const p = d as CompanyExposureResponse | null
   const count = p?.count
   if (typeof count !== 'number' || count <= 0) return null
   const days = p?.days_since_latest
@@ -535,17 +633,16 @@ function hibpSubscore(d: unknown): number | null {
   if (typeof days === 'number' && days <= 1095) return 5
   return 3
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 function mispSubscore(d: unknown): number | null {
-  const attrs = (d as any)?.Attribute
+  const attrs = (d as { Attribute?: unknown } | null)?.Attribute
   if (!Array.isArray(attrs)) return null
   // No matching attribute in this instance ≠ confirmed clean, just not (yet) shared.
   if (attrs.length === 0) return null
   // Only attributes flagged for detection (to_ids) are actionable IOCs — a match
   // with to_ids off is context (e.g. a resolver or benign infra referenced in an
   // event), so it feeds Knowledge but issues no risk verdict, and never a clean one.
-  const idsHit = attrs.some((a: any) => a?.to_ids === true || a?.to_ids === 1 || a?.to_ids === '1')
+  const idsHit = arr<MispAttribute>(attrs).some(a => a?.to_ids === true || a?.to_ids === 1 || a?.to_ids === '1')
   return idsHit ? 9 : null
 }
 
@@ -554,9 +651,8 @@ function mispSubscore(d: unknown): number | null {
 // active indicator is context (OpenCTI gives every observable a default score of 50,
 // which says nothing). CVEs: in CISA KEV → 9, tied to an actor / malware / campaign
 // → 8. Threat actors are context only. Never a clean verdict from an indicator scored 0.
-/* eslint-disable @typescript-eslint/no-explicit-any */
 function openctiSubscore(d: unknown): number | null {
-  const p = d as any
+  const p = d as OpenCtiResponse | null
   if (!p?.found) return null
   if (p?.kind === 'actor') return null
   if (p?.kind === 'vulnerability') {
@@ -564,15 +660,14 @@ function openctiSubscore(d: unknown): number | null {
     const n = p?.threat_links
     return typeof n === 'number' && n > 0 ? 8 : null
   }
-  const active = arr(p?.indicators).filter((i: any) => i?.active === true)
+  const active = arr<OpenCtiIndicator>(p?.indicators).filter(i => i?.active === true)
   if (active.length === 0) return null
-  const scores = active.map((i: any) => i?.score).filter((s: unknown): s is number => typeof s === 'number')
+  const scores = active.map(i => i?.score).filter((s): s is number => typeof s === 'number')
   if (scores.length === 0) return 7
   let best = scores[0]
   for (const s of scores) if (s > best) best = s
   return best > 0 ? Math.min(10, best / 10) : null
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // Registry: engineId → indicatorType → normalizer.
 // Purely contextual engines (Shodan, IPinfo, RIPEstat, MITRE ATT&CK) have no
@@ -617,7 +712,7 @@ const VERDICT_NORMALIZERS: Record<string, Partial<Record<IndicatorType, (data: u
 // engine errored, is still loading, or its response carries no maliciousness data
 // (distinct from an explicit 0, which means "checked and found clean").
 export function getEngineSubscore(engineId: string, type: IndicatorType, data: unknown): number | null {
-  if (!data || (data as any)?.error) return null
+  if (!data || (data as { error?: unknown }).error) return null
   // MISP instance ids (misp_1, misp_2...) are only known at deploy time, so they
   // can't be pre-registered in VERDICT_NORMALIZERS like the static engines above.
   if (engineId.startsWith('misp_')) return mispSubscore(data)
@@ -631,33 +726,36 @@ export function getEngineSubscore(engineId: string, type: IndicatorType, data: u
 // 0 = no record, 0.5 = basic/generic record, 1 = rich record. Independent of the
 // risk subscore: Safe Browsing "not listed" is a clean verdict with depth 0.
 
-// Raw third-party payloads are untyped by nature; each fn guards every access.
-/* eslint-disable @typescript-eslint/no-explicit-any */
+// Each fn takes the raw payload (`unknown`) and reads it through its source's
+// interface (see "Raw source responses" above); every access is guarded.
 
 type Depth = 0 | 0.5 | 1
 
-const arr = (v: unknown): any[] => (Array.isArray(v) ? v : [])
 const byCount = (n: number, basicMax: number): Depth => (n <= 0 ? 0 : n <= basicMax ? 0.5 : 1)
 
-function vtDepth(d: any): Depth {
+function vtDepth(raw: unknown): Depth {
+  const d = raw as VtResponse | null | undefined
   const a = d?.data?.attributes
   if (!a) return 0
-  const s = a.last_analysis_stats ?? {}
-  const detections = (s.malicious ?? 0) + (s.suspicious ?? 0)
+  const s = a.last_analysis_stats
+  const detections = (s?.malicious ?? 0) + (s?.suspicious ?? 0)
   const votes = (a.total_votes?.harmless ?? 0) + (a.total_votes?.malicious ?? 0)
   if (detections > 0 || votes > 0 || arr(a.tags).length > 0) return 1
   return 0.5
 }
 
-function alienvaultDepth(d: any): Depth {
+function alienvaultDepth(raw: unknown): Depth {
+  const d = raw as OtxResponse | null | undefined
   // CVE record: seen in the wild or with public exploits is a rich record by itself.
-  if (d?.type_title === 'CVE' && (d?.seen_wild === true || (typeof d?.exploits_total === 'number' && d.exploits_total > 0))) return 1
+  const exploits = d?.exploits_total
+  if (d?.type_title === 'CVE' && (d?.seen_wild === true || (typeof exploits === 'number' && exploits > 0))) return 1
   // Indicator lookup → pulse_info.count; threat-actor pulse search → count/results.
   const count = d?.pulse_info?.count ?? d?.count ?? arr(d?.results).length
   return byCount(count ?? 0, 2)
 }
 
-function recordedFutureDepth(d: any): Depth {
+function recordedFutureDepth(raw: unknown): Depth {
+  const d = raw as RecordedFutureResponse | null | undefined
   // Threat actor profile: rich when RF links it to malware, techniques, infrastructure…
   if (d?.kind === 'actor' || d?.kind === 'company') {
     const links = d?.insikt_links
@@ -668,53 +766,62 @@ function recordedFutureDepth(d: any): Depth {
   return arr(d?.risk?.evidenceDetails).length > 0 ? 1 : 0.5
 }
 
-function mispDepth(d: any): Depth {
-  const attrs = arr(d?.Attribute)
+function mispDepth(raw: unknown): Depth {
+  const d = raw as { Attribute?: unknown } | null | undefined
+  const attrs = arr<MispAttribute>(d?.Attribute)
   if (attrs.length === 0) return 0
   const events = new Set(attrs.map(a => a?.event_id ?? a?.Event?.id).filter(Boolean))
   return attrs.length >= 3 || events.size >= 2 ? 1 : 0.5
 }
 
-function mitreDepth(d: any): Depth {
+function mitreDepth(raw: unknown): Depth {
+  const d = raw as MitreResponse | null | undefined
   if (!d?.name) return 0
-  return arr(d.techniques).length > 0 || arr(d.software).length > 0 ? 1 : 0.5
+  return arr(d?.techniques).length > 0 || arr(d?.software).length > 0 ? 1 : 0.5
 }
 
-function abuseipdbDepth(d: any): Depth {
+function abuseipdbDepth(raw: unknown): Depth {
+  const d = raw as AbuseIpdbResponse | null | undefined
   const data = d?.data
   if (!data) return 0
   if (data.isWhitelisted) return 1
   return byCount(data.totalReports ?? 0, 9)
 }
 
-function listHitDepth(d: any): Depth {
+function listHitDepth(raw: unknown): Depth {
+  const d = raw as { data?: unknown } | null | undefined
   // ThreatFox / MalwareBazaar: any match is already a specific, rich record.
   return arr(d?.data).length > 0 ? 1 : 0
 }
 
-function urlhausDepth(d: any): Depth {
+function urlhausDepth(raw: unknown): Depth {
+  const d = raw as UrlhausResponse | null | undefined
   if (d?.query_status === 'no_results') return 0
-  if (typeof d?.url_status === 'string') return arr(d.payloads).length > 0 ? 1 : 0.5
+  if (typeof d?.url_status === 'string') return arr(d?.payloads).length > 0 ? 1 : 0.5
   return byCount(arr(d?.urls).length, 1)
 }
 
-function anyrunDepth(d: any): Depth {
+function anyrunDepth(raw: unknown): Depth {
+  const d = raw as AnyRunResponse | null | undefined
   const level = d?.summary?.threatLevel
   if (level == null) return 0
   return level >= 1 ? 1 : 0.5
 }
 
-function shodanDepth(d: any): Depth {
+function shodanDepth(raw: unknown): Depth {
+  const d = raw as ShodanResponse | null | undefined
   if (d?.ip_str) {
-    if (arr(d.ports).length >= 3 || arr(d.vulns).length > 0 || arr(d.tags).length > 0) return 1
+    if (arr(d?.ports).length >= 3 || arr(d?.vulns).length > 0 || arr(d?.tags).length > 0) return 1
     return 0.5
   }
-  if (typeof d?.total === 'number') return d.total > 0 ? 1 : 0
+  const total = d?.total
+  if (typeof total === 'number') return total > 0 ? 1 : 0
   return 0
 }
 
-function hybridAnalysisDepth(d: any): Depth {
-  const results = arr(d?.result)
+function hybridAnalysisDepth(raw: unknown): Depth {
+  const d = raw as { result?: unknown } | null | undefined
+  const results = arr<HybridResult>(d?.result)
   if (results.length === 0) return 0
   const hasVerdict = results.some(r => {
     const v = String(r?.verdict ?? '').toLowerCase()
@@ -723,173 +830,204 @@ function hybridAnalysisDepth(d: any): Depth {
   return hasVerdict ? 1 : 0.5
 }
 
-function urlscanDepth(d: any): Depth {
+function urlscanDepth(raw: unknown): Depth {
+  const d = raw as { total?: number } | null | undefined
   return byCount(d?.total ?? 0, 2)
 }
 
-function greynoiseDepth(d: any): Depth {
+function greynoiseDepth(raw: unknown): Depth {
+  const d = raw as GreyNoiseResponse | null | undefined
   if (!d?.noise && !d?.riot) return 0
-  if (d.riot || d.classification === 'malicious' || d.classification === 'benign') return 1
+  if (d?.riot || d?.classification === 'malicious' || d?.classification === 'benign') return 1
   return 0.5
 }
 
-function phishtankDepth(d: any): Depth {
+function phishtankDepth(raw: unknown): Depth {
+  const d = raw as PhishTankResponse | null | undefined
   if (!d?.in_database) return 0
-  return d.verified ? 1 : 0.5
+  return d?.verified ? 1 : 0.5
 }
 
-function safeBrowsingDepth(d: any): Depth {
+function safeBrowsingDepth(raw: unknown): Depth {
+  const d = raw as FlagResponse | null | undefined
   return arr(d?.matches).length > 0 ? 1 : 0
 }
 
-function torDepth(d: any): Depth {
+function torDepth(raw: unknown): Depth {
+  const d = raw as { is_tor_exit?: unknown } | null | undefined
   return d?.is_tor_exit ? 1 : 0
 }
 
-function ipinfoDepth(d: any): Depth {
+function ipinfoDepth(raw: unknown): Depth {
+  const d = raw as IpinfoResponse | null | undefined
   if (!d || d.bogon) return 0
   return 0.5
 }
 
-function ripestatDepth(d: any): Depth {
+function ripestatDepth(raw: unknown): Depth {
+  const d = raw as RipestatResponse | null | undefined
   if (d?.as_overview) return d.as_overview.holder ? 1 : 0
   return arr(d?.network_info?.asns).length > 0 ? 0.5 : 0
 }
 
-function tweetFeedDepth(d: any): Depth {
-  const s = tweetFeedSignals(d)
+function tweetFeedDepth(raw: unknown): Depth {
+  const s = tweetFeedSignals(raw)
   if (!s.found) return 0
   return s.users >= 2 || s.tweets >= 2 || s.inCampaign ? 1 : 0.5
 }
 
-function crowdsecDepth(d: any): Depth {
+function crowdsecDepth(raw: unknown): Depth {
+  const d = raw as FlagResponse | null | undefined
   if (!d?.found) return 0
   if (arr(d?.behaviors).length > 0 || arr(d?.classifications?.false_positives).length > 0
-    || ['malicious', 'suspicious', 'safe', 'benign'].includes(d?.reputation)) return 1
+    || ['malicious', 'suspicious', 'safe', 'benign'].includes(String(d?.reputation))) return 1
   return 0.5
 }
 
-function hashlookupDepth(d: any): Depth {
+function hashlookupDepth(raw: unknown): Depth {
+  const d = raw as FlagResponse | null | undefined
   if (!d?.found) return 0
   const trust = d?.['hashlookup:trust']
   const parents = d?.['hashlookup:parent-total']
   return (typeof trust === 'number' && trust > 50) || (typeof parents === 'number' && parents > 0) ? 1 : 0.5
 }
 
-function rdapDepth(d: any): Depth {
+function rdapDepth(raw: unknown): Depth {
+  const d = raw as FlagResponse | null | undefined
   return d?.found ? 0.5 : 0
 }
 
-function trancoDepth(d: any): Depth {
+function trancoDepth(raw: unknown): Depth {
+  const d = raw as FlagResponse | null | undefined
   const rank = d?.rank
   if (!d?.found || d?.exact !== true || typeof rank !== 'number') return 0
   return rank <= TRANCO_CLEAN_MAX_RANK ? 1 : 0.5
 }
 
-function malpediaDepth(d: any): Depth {
+function malpediaDepth(raw: unknown): Depth {
+  const d = raw as FlagResponse | null | undefined
   if (!d?.found) return 0
   return arr(d?.families).length > 0 || d?.description ? 1 : 0.5
 }
 
-function spamhausDepth(d: any): Depth {
-  if (spamhausScores(d).length > 0) return 1
-  return arr(d?.listings).length > 0 ? 0.5 : 0
+function spamhausDepth(raw: unknown): Depth {
+  if (spamhausScores(raw).length > 0) return 1
+  return arr((raw as FlagResponse | null)?.listings).length > 0 ? 0.5 : 0
 }
 
-function openphishDepth(d: any): Depth {
+function openphishDepth(raw: unknown): Depth {
+  const d = raw as FlagResponse | null | undefined
   if (d?.exact === true) return 1
   return arr(d?.matches).length > 0 ? 0.5 : 0
 }
 
-function sslblDepth(d: any): Depth {
+function sslblDepth(raw: unknown): Depth {
+  const d = raw as FlagResponse | null | undefined
   return d?.listed === true ? 1 : 0
 }
 
-function yaraifyDepth(d: any): Depth {
+function yaraifyDepth(raw: unknown): Depth {
+  const d = raw as FlagResponse | null | undefined
   if (!d?.found) return 0
   return arr(d?.rules).length > 0 || arr(d?.clamav).length > 0 ? 1 : 0.5
 }
 
-function circlpdnsDepth(d: any): Depth {
+function circlpdnsDepth(raw: unknown): Depth {
+  const d = raw as FlagResponse | null | undefined
   const total = d?.total
   if (typeof total !== 'number' || total <= 0) return 0
   return total <= 4 ? 0.5 : 1
 }
 
 // NVD: a scored record is a full one; rejected or awaiting analysis is basic.
-function nvdDepth(d: any): Depth {
+function nvdDepth(raw: unknown): Depth {
+  const d = raw as FlagResponse | null | undefined
   if (!d?.found) return 0
   if (d?.rejected) return 0.5
   return typeof d?.cvss?.score === 'number' ? 1 : 0.5
 }
 
-function kevDepth(d: any): Depth {
+function kevDepth(raw: unknown): Depth {
+  const d = raw as FlagResponse | null | undefined
   return d?.listed === true ? 1 : 0
 }
 
-function epssDepth(d: any): Depth {
+function epssDepth(raw: unknown): Depth {
+  const d = raw as FlagResponse | null | undefined
   return d?.found && typeof d?.epss === 'number' ? 1 : 0
 }
 
 // OpenCTI: a record with indicators, relationships or reports is rich; a bare one is basic.
-function openctiDepth(d: any): Depth {
+function openctiDepth(raw: unknown): Depth {
+  const d = raw as OpenCtiResponse | null | undefined
   if (!d?.found) return 0
   const reports = d?.reports_total
   return arr(d?.indicators).length > 0 || arr(d?.relations).length > 0 || (typeof reports === 'number' && reports > 0) ? 1 : 0.5
 }
 
 // OpenTIP: a categorised zone is a full record; Grey (known but not categorised) is basic.
-function opentipDepth(d: any): Depth {
+function opentipDepth(raw: unknown): Depth {
+  const d = raw as FlagResponse | null | undefined
   const zone = d?.Zone
   if (d?.applicable === false || typeof zone !== 'string') return 0
   return Object.prototype.hasOwnProperty.call(OPENTIP_ZONE_SCORES, zone) ? 1 : 0.5
 }
 
-function vulncheckKevDepth(d: any): Depth {
+function vulncheckKevDepth(raw: unknown): Depth {
+  const d = raw as FlagResponse | null | undefined
   return d?.listed === true ? 1 : 0
 }
 
 // Wikidata: the exact item with sector or countries is a full profile; a bare item,
 // or one picked by name only (no QID / domain match), is basic.
-function wikidataDepth(d: any): Depth {
+function wikidataDepth(raw: unknown): Depth {
+  const d = raw as FlagResponse | null | undefined
   if (!d?.found) return 0
   return d?.exact === true && (arr(d?.sectors).length > 0 || arr(d?.countries).length > 0) ? 1 : 0.5
 }
 
 // GLEIF: the LEI was given or came from Wikidata → full; a legal-name match only → basic.
-function gleifDepth(d: any): Depth {
+function gleifDepth(raw: unknown): Depth {
+  const d = raw as FlagResponse | null | undefined
   if (!d?.found) return 0
   return d?.exact === true ? 1 : 0.5
 }
 
-function ransomwareLiveDepth(d: any): Depth {
+function ransomwareLiveDepth(raw: unknown): Depth {
+  const d = raw as CompanyExposureResponse | null | undefined
   // Threat actor: a ransomware group profile, rich when it has claimed victims.
   if (d?.kind === 'group') {
     if (d?.found !== true) return 0
-    return typeof d?.victim_count === 'number' && d.victim_count > 0 ? 1 : 0.5
+    const victims = d?.victim_count
+    return typeof victims === 'number' && victims > 0 ? 1 : 0.5
   }
   return d?.listed === true ? 1 : 0
 }
 
 // Hudson Rock: infected employees → full record; only customers / third parties → basic.
-function hudsonRockDepth(d: any): Depth {
+function hudsonRockDepth(raw: unknown): Depth {
+  const d = raw as CompanyExposureResponse | null | undefined
   const total = d?.total
   if (typeof total !== 'number' || total <= 0) return 0
-  return typeof d?.employees === 'number' && d.employees > 0 ? 1 : 0.5
+  const employees = d?.employees
+  return typeof employees === 'number' && employees > 0 ? 1 : 0.5
 }
 
-function hibpDepth(d: any): Depth {
-  return typeof d?.count === 'number' && d.count > 0 ? 1 : 0
+function hibpDepth(raw: unknown): Depth {
+  const d = raw as CompanyExposureResponse | null | undefined
+  const count = d?.count
+  return typeof count === 'number' && count > 0 ? 1 : 0
 }
 
 // GDELT: only articles whose title names the company count; 1–2 → basic, 3+ → full.
-function gdeltDepth(d: any): Depth {
+function gdeltDepth(raw: unknown): Depth {
+  const d = raw as CompanyExposureResponse | null | undefined
   const n = d?.in_title
   if (typeof n !== 'number' || n <= 0) return 0
   return n <= 2 ? 0.5 : 1
 }
 
-const DEPTH_FNS: Record<string, (data: any) => Depth> = {
+const DEPTH_FNS: Record<string, (data: unknown) => Depth> = {
   tweetfeed: tweetFeedDepth,
   virustotal: vtDepth,
   alienvault: alienvaultDepth,
@@ -931,8 +1069,6 @@ const DEPTH_FNS: Record<string, (data: any) => Depth> = {
   hibp: hibpDepth,
   gdelt: gdeltDepth,
 }
-
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ── Assessment & aggregation ─────────────────────────────────────────────────
 

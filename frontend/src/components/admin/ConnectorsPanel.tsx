@@ -3,7 +3,7 @@ import { ExternalLink, Eye, EyeOff, FlaskConical, Loader2, Plus, ShieldOff, Tras
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { apiJson } from '@/lib/api'
-import { useEngines } from '@/EnginesContext'
+import { useEngines } from '@/hooks/useEngines'
 import type { IndicatorType } from '@/registry'
 import { useI18n } from '@/i18n/useI18n'
 import { rich } from '@/i18n/rich'

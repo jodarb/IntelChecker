@@ -9,7 +9,7 @@ import CompanyReport from '@/components/company/CompanyReport'
 import ActorReport from '@/components/actor/ActorReport'
 import SearchFrequencyCard from '@/components/results/SearchFrequencyCard'
 import RawJsonModal from '@/components/results/RawJsonModal'
-import { useEngines } from '@/EnginesContext'
+import { useEngines } from '@/hooks/useEngines'
 import {
   getEngineAssessment, type Quadrant, type VerdictContributions, type VerdictResult } from '@/verdictEngine'
 import { useVerdictWeights } from '@/hooks/useVerdictWeights'

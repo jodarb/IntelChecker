@@ -40,4 +40,5 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 )
 Button.displayName = 'Button'
 
-export { Button, buttonVariants }
+// buttonVariants stays private: exporting it would break React fast refresh here.
+export { Button }
