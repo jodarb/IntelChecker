@@ -43,6 +43,7 @@ Puntos detectados en el repaso de la sesión de actores / empresas / cabecera qu
 - [ ] **Arsenal atribuido frente a mencionado.** La regla actual es: atribuido si una fuente dice que lo usa, si lleva su nombre o si lo dan varias fuentes; mencionado si lo nombra una sola fuente por coocurrencia. Revisarla con más actores.
 - [ ] **ransomware.live.**
   - ~~Tras reiniciar el backend, la fuente daba `RateLimitExceeded` hasta 30 min.~~ Hecho: `CachedFeed(persist=…)` guarda la última descarga buena en `backend/data/feeds/` (gzip); al arrancar se usa si está en TTL y, si caducó y la descarga falla, se sirve la copia antigua. Tests en `backend/tests/feeds_persist_check.py`.
+- [x] **Tor Exit Nodes (dan.me.uk).** Mismo límite de 30 min (responde 403): ahora usa `CachedFeed` con `persist="tor-exit-nodes"` y `rate_limit_status=(403, 429)`, con refresco en segundo plano al caducar.
   - ~~"LockBit 3.0" (clave `lockbit30`) no casa con `lockbit3`.~~ Hecho: las versiones `N.0` también se buscan sin `.0`.
   - El grupo se busca solo por el nombre consultado, no por los alias que dan otras fuentes.
 - [ ] **Coste de `/actor/resolve`.** Hace hasta 6 llamadas externas por búsqueda (Recorded Future y Malpedia, cada una con hasta 3 términos). Valorar una caché breve y vigilar la cuota de RF.

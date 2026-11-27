@@ -6,7 +6,7 @@ Notes on each integration: how it is queried, what it needs and anything that af
 
 ## Sources without an API key
 
-**Tor Exit Nodes, MITRE ATT&CK, RIPEstat, PhishTank, TweetFeed, CIRCL hashlookup, RDAP, Tranco, Malpedia, Spamhaus, OpenPhish, SSLBL, NVD, CISA KEV and EPSS** are free public datasets/APIs: always on, toggleable like any other source.
+**Tor Exit Nodes, MITRE ATT&CK, RIPEstat, PhishTank, TweetFeed, CIRCL hashlookup, RDAP, Tranco, Malpedia, Spamhaus, OpenPhish, SSLBL, NVD, CISA KEV and EPSS** are free public datasets/APIs: always on, toggleable like any other source. The Tor exit list (dan.me.uk) may only be downloaded once every 30 minutes: it is refreshed in the background, never per lookup, and its last good copy is saved in `backend/data/feeds/`, so a restarted backend starts from it instead of failing with *rate limit exceeded* for up to 30 minutes.
 
 - **MITRE ATT&CK** — the backend downloads the ~50 MB STIX dataset from GitHub and caches it in memory for 24 h (the first lookup after a cold start takes a few seconds). Besides actor lookups, it feeds the Summary's actor detection and malware alias merging (`GET /mitre/aliases`). Without internet those fall back to the built-in family table.
 - **RIPEstat** — routing (ASN / prefix) and abuse-contact data from the RIPE NCC registry.

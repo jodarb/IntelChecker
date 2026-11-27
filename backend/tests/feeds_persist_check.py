@@ -94,6 +94,59 @@ class PersistTest(unittest.TestCase):
         self.assertEqual(list(Path(self.dir.name).iterdir()), [])
 
 
+class RateLimitStatusTest(unittest.TestCase):
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        patcher = mock.patch.object(feeds, "_DIR", Path(self.dir.name))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.addCleanup(self.dir.cleanup)
+
+    def test_custom_status_is_a_rate_limit(self):
+        f = feeds.CachedFeed("t", "https://example.invalid/x", 60, json.loads, retry_after=1800, rate_limit_status=(403, 429))
+        with serve(403):
+            err = asyncio.run(f.get())
+        self.assertEqual(err["error"]["code"], "RateLimitExceeded")
+        self.assertAlmostEqual(f.retrying_in, 1800, delta=2)
+        # Default: a 403 is just an HTTP error.
+        with serve(403):
+            err = asyncio.run(feed().get())
+        self.assertEqual(err["error"]["code"], "HttpError")
+
+    def test_retrying_in_after_a_good_download_is_the_ttl_left(self):
+        with serve(200, "[1]"):
+            f = feed(ttl=600)
+            asyncio.run(f.get())
+        self.assertAlmostEqual(f.retrying_in, 600, delta=2)
+
+    def test_tor_exit_list_starts_from_the_saved_copy(self):
+        from app.services import torexitlist
+        tor = feeds.CachedFeed("tor", "https://example.invalid/tor", 1800, torexitlist._parse,
+                               retry_after=1800, persist="tor-exit-nodes", rate_limit_status=(403, 429))
+        with serve(200, "# exit nodes\n1.2.3.4\n5.6.7.8\n"):
+            asyncio.run(tor.get())
+        calls = []
+        restarted = feeds.CachedFeed("tor", "https://example.invalid/tor", 1800, torexitlist._parse,
+                                     retry_after=1800, persist="tor-exit-nodes", rate_limit_status=(403, 429))
+        with serve(403, calls=calls), mock.patch.object(torexitlist, "_feed", restarted):
+            asyncio.run(restarted.get())
+            hit = asyncio.run(torexitlist.check_ip("1.2.3.4"))
+            miss = asyncio.run(torexitlist.check_ip("9.9.9.9"))
+        self.assertEqual(calls, [])
+        self.assertTrue(hit["is_tor_exit"])
+        self.assertFalse(miss["is_tor_exit"])
+        self.assertEqual(hit["list_size"], 2)
+
+    def test_tor_exit_list_without_copy_reports_the_rate_limit(self):
+        from app.services import torexitlist
+        tor = feeds.CachedFeed("tor", "https://example.invalid/tor", 1800, torexitlist._parse,
+                               retry_after=1800, persist="tor-exit-nodes", rate_limit_status=(403, 429))
+        with serve(403), mock.patch.object(torexitlist, "_feed", tor):
+            asyncio.run(tor.get())
+            res = asyncio.run(torexitlist.check_ip("1.2.3.4"))
+        self.assertEqual(res["error"]["code"], "RateLimitExceeded")
+
+
 async def _load(f: feeds.CachedFeed):
     await f.get()
     return f.data

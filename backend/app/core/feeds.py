@@ -31,16 +31,30 @@ _log = logging.getLogger(__name__)
 class CachedFeed:
     def __init__(self, name: str, url: str, ttl: int, parse: Callable[[str], Any],
                  count: Callable[[Any], int] = len, timeout: float = 30, retry_after: float = 0,
-                 persist: str | None = None):
+                 persist: str | None = None, rate_limit_status: tuple[int, ...] = (429,)):
         self.name, self.url, self.ttl, self._parse, self._count = name, url, ttl, parse, count
         self.timeout, self.retry_after = timeout, retry_after
         self._path = _DIR / f"{persist}.gz" if persist else None
         self._disk_checked = False
+        # HTTP statuses that mean "too many downloads" (dan.me.uk answers 403).
+        self._rate_limit_status = rate_limit_status
         self._failed_at, self._last_error = 0.0, None
         self.data: Any = None
         self.size = 0
         self.fetched_at = 0.0
         self._lock = asyncio.Lock()
+
+    @property
+    def last_error(self) -> dict | None:
+        """Why the last download failed (None after a good one)."""
+        return self._last_error
+
+    @property
+    def retrying_in(self) -> float:
+        """Seconds until a download may be tried again (0: now)."""
+        if self._last_error is None:
+            return max(0.0, self.fetched_at + self.ttl - time.time())
+        return max(0.0, self._failed_at + self.retry_after - time.time())
 
     @property
     def updated(self) -> str | None:
@@ -71,7 +85,7 @@ class CachedFeed:
             return {"code": "Timeout", "message": f"Downloading the {self.name} list timed out."}
         except httpx.RequestError:
             return {"code": "NetworkError", "message": f"Could not download the {self.name} list."}
-        if r.status_code == 429:
+        if r.status_code in self._rate_limit_status:
             return {"code": "RateLimitExceeded", "message": f"{self.name} rate limit exceeded while downloading the list."}
         if not r.is_success:
             return {"code": "HttpError", "message": f"{self.name} list download returned HTTP {r.status_code}."}
