@@ -230,3 +230,49 @@ describe('relevantPulses', () => {
     assert.deepEqual(relevantPulses([null, 3, pulse('Akira')], ['Akira']).length, 1)
   })
 })
+
+describe('computeActorProfile · country of origin', () => {
+  const apt28 = 'APT28 is a threat group that has been attributed to Russia\'s General Staff Main Intelligence Directorate (GRU).'
+
+  it('normalises each source and counts how many give each country', () => {
+    const p = computeActorProfile(engines('mitreattack', 'malpedia', 'recordedfuture'), {
+      mitreattack: mitre('APT28', ['Fancy Bear'], { description: apt28 }),
+      malpedia: ok({ found: true, exact: true, name: 'APT28', synonyms: ['Fancy Bear'], country: 'RU', state_sponsor: 'Russian Federation', victims: [], target_category: [], families: [] }),
+      recordedfuture: rf('APT28', { aliases: ['Fancy Bear'], categories: ['Russia Nation State Sponsored', 'Nation State Sponsored'] }),
+    }, 'APT28')
+    assert.equal(p.country, 'RU')
+    assert.deepEqual(p.origins, [{ country: 'RU', sources: ['MITRE ATT&CK', 'Malpedia', 'Recorded Future'] }])
+  })
+
+  it('lists every country when the sources disagree, most sources first', () => {
+    const p = computeActorProfile(engines('mitreattack', 'malpedia', 'recordedfuture'), {
+      mitreattack: mitre('APT5', [], { description: 'APT5 is a China-based espionage actor.' }),
+      malpedia: ok({ found: true, exact: true, name: 'APT5', synonyms: [], country: 'CN', victims: [], target_category: [], families: [] }),
+      recordedfuture: rf('APT5', { categories: ['Iran Nation State Sponsored'] }),
+    }, 'APT5')
+    assert.deepEqual(p.origins.map(o => [o.country, o.sources.length]), [['CN', 2], ['IR', 1]])
+    assert.equal(p.country, 'CN')
+  })
+
+  it('OpenCTI originates-from is the origin, not a targeted country', () => {
+    const p = computeActorProfile(engines('opencti_1'), {
+      opencti_1: ok({
+        kind: 'actor', found: true, exact: true, entity: { value: 'Kimsuky' }, actor: { aliases: [] },
+        relations: [
+          { type: 'originates-from', direction: 'out', entity_type: 'Country', name: 'North Korea' },
+          { type: 'targets', direction: 'out', entity_type: 'Country', name: 'South Korea' },
+        ],
+        reports: [],
+      }),
+    }, 'Kimsuky')
+    assert.deepEqual(p.origins, [{ country: 'KP', sources: ['OpenCTI'] }])
+    assert.deepEqual(values(p.countries), ['South Korea'])
+  })
+
+  it('no origin when no source gives one (history #10, The Gentlemen)', () => {
+    const f = historyFixture(10)
+    const p = computeActorProfile(engines(...f.engineIds), f.results, f.indicator)
+    assert.deepEqual(p.origins, [])
+    assert.equal(p.country, null)
+  })
+})

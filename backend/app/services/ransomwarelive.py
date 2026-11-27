@@ -87,7 +87,7 @@ def _parse(text: str) -> list[dict]:
     return victims
 
 
-_feed = CachedFeed(_SOURCE, _DUMP, 6 * 3600, _parse, timeout=90, retry_after=1800)
+_feed = CachedFeed(_SOURCE, _DUMP, 6 * 3600, _parse, timeout=90, retry_after=1800, persist="ransomwarelive-victims")
 
 
 def _days_since(date: str | None, now: float) -> int | None:
@@ -215,7 +215,8 @@ def _parse_groups(text: str) -> list[dict]:
     return groups
 
 
-_groups = CachedFeed(f"{_SOURCE} groups", _GROUPS, 6 * 3600, _parse_groups, timeout=60, retry_after=1800)
+_groups = CachedFeed(f"{_SOURCE} groups", _GROUPS, 6 * 3600, _parse_groups, timeout=60, retry_after=1800,
+                     persist="ransomwarelive-groups")
 
 
 _MAX_LOCATIONS = 20

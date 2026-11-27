@@ -41,6 +41,7 @@ The Vite dev server proxies `/api/*` to `http://localhost:8000` (see `frontend/v
 | `.env` (repo root) | `FRONTEND_PORT` / `BACKEND_PORT` for Docker Compose (defaults `8080` / `8000`). Not passed into any container. Template in `.env.example`. |
 | `backend/data/weights.json` | Verdict weights, thresholds and Knowledge saturation, written by the Admin page. No rebuild needed. |
 | `backend/data/history.db` | SQLite query history, created on first run. |
+| `backend/data/feeds/` | Last good download of the ransomware.live lists (gzip), so a restart doesn't wait out its 30-minute download limit (`CachedFeed(persist=…)` in `app/core/feeds.py`). Safe to delete. |
 | `backend/data/users.db` | Users, roles and sessions (see [admin.md § 0](admin.md#0-users-and-roles)). Created on first run with the initial admin. |
 | `backend/certs/` | MISP / OpenCTI mutual-TLS client certificates (see [sources.md](sources.md#misp-any-number-of-instances)). |
 
@@ -73,6 +74,7 @@ IntelChecker/
 │   │   ├── verdict_parity.py    # TypeScript ↔ Python verdict fuzz (Node ≥ 23)
 │   │   ├── opencti_schema_check.py  # Validates the OpenCTI queries against any release's schema
 │   │   ├── actor_resolve_check.py   # Pinned /actor/resolve candidates (offline, fixtures/actor_catalog.json)
+│   │   ├── feeds_persist_check.py   # Downloaded lists saved to / restored from data/feeds/
 │   │   └── fixtures/
 │   ├── certs/                   # mTLS client certs — gitignored, mounted
 │   ├── data/                    # history.db, users.db, weights.json, connectors.json — gitignored, mounted

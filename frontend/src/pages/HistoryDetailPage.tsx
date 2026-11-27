@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useFetchJson } from '@/hooks/useFetchJson'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, History } from 'lucide-react'
+import { ArrowLeft, History, RotateCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Layout from '@/components/Layout'
 import SummarySection from '@/components/results/SummarySection'
@@ -18,6 +18,8 @@ import type { IndicatorType, QueryResult } from '@/registry'
 import { useI18n } from '@/i18n/useI18n'
 import { BACKEND_DOWN } from '@/i18n/errors'
 import { cardState, compareCards } from '@/resultOrder'
+import { useAuth } from '@/auth/context'
+import { rerunUrl } from '@/lib/rerun'
 
 interface StoredEngineResult {
   label: string
@@ -73,6 +75,7 @@ export default function HistoryDetailPage() {
   const { id } = useParams()
   const { engines } = useEngines()
   const { t, locale } = useI18n()
+  const { can } = useAuth()
   const config = useVerdictWeights()
   const { data: entry, failed } = useFetchJson<HistoryDetail>(`${BACKEND}/history/${id}`)
   const error = failed ? t('history.loadError') : null
@@ -188,7 +191,18 @@ export default function HistoryDetailPage() {
               {entry.via === 'api' && <> · {t('history.viaApi')}</>}
             </span>
           </div>
-          <div className="mt-1"><SearchFrequencyCard indicator={entry.indicator} excludeSelf /></div>
+          {/* Right column: "run again" (live lookup) on top, the search frequency below */}
+          <div className="mt-1 flex flex-col items-start sm:items-end gap-1.5">
+            {can('analyze') && (
+              <Button variant="outline" size="sm" asChild className="h-7 px-2.5 text-xs" title={t('history.rerunTitle', { indicator: entry.indicator })}>
+                <Link to={rerunUrl(entry.type, entry.indicator)}>
+                  <RotateCw className="h-3.5 w-3.5 mr-1" />
+                  {t('history.rerun')}
+                </Link>
+              </Button>
+            )}
+            <SearchFrequencyCard indicator={entry.indicator} excludeSelf />
+          </div>
         </div>
 
         {entry.type === 'company' ? (

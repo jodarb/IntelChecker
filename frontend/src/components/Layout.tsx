@@ -1,4 +1,5 @@
-import { Search, History, SlidersHorizontal, BookOpen, LogOut, UserRound, TriangleAlert, Users, Plug, Crosshair, Building2, VenetianMask } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Search, History, SlidersHorizontal, BookOpen, LogOut, UserRound, TriangleAlert, Users, Plug, Crosshair, Building2, VenetianMask, Menu, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import HeaderControls from '@/components/HeaderControls'
@@ -46,8 +47,8 @@ function SearchTabs({ active }: { active: SearchTab }) {
   )
 }
 
-// Header menu entry. Below `xl` the labels don't fit next to the brand: icon only,
-// with the label as tooltip / accessible name.
+// Header menu entry. Between `md` and `xl` the labels don't fit next to the brand:
+// icon only, with the label as tooltip / accessible name (phones use the drop-down).
 function NavItem({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) {
   return (
     <Button variant="ghost" size="sm" asChild className="gap-1.5" title={label}>
@@ -62,6 +63,30 @@ function NavItem({ to, icon, label }: { to: string; icon: React.ReactNode; label
 export default function Layout({ children, tab }: LayoutProps) {
   const { t } = useI18n()
   const { user, can, logout } = useAuth()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // The drop-down closes with Escape or a click outside it.
+  useEffect(() => {
+    if (!menuOpen) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false) }
+    const onDown = (e: MouseEvent) => { if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false) }
+    window.addEventListener('keydown', onKey)
+    window.addEventListener('mousedown', onDown)
+    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('mousedown', onDown) }
+  }, [menuOpen])
+
+  const nav: { to: string; icon: React.ReactNode; label: string }[] = [
+    // Back to the search tools from anywhere (history, admin, docs…)
+    ...(can('analyze') ? [{ to: '/', icon: <Search className="h-4 w-4" />, label: t('layout.search') }] : []),
+    { to: '/history', icon: <History className="h-4 w-4" />, label: t('layout.history') },
+    ...(can('admin') ? [
+      { to: '/admin', icon: <SlidersHorizontal className="h-4 w-4" />, label: t('layout.admin') },
+      { to: '/users', icon: <Users className="h-4 w-4" />, label: t('layout.users') },
+      { to: '/connectors', icon: <Plug className="h-4 w-4" />, label: t('layout.connectors') },
+    ] : []),
+    { to: '/docs', icon: <BookOpen className="h-4 w-4" />, label: t('layout.docs') },
+  ]
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -86,20 +111,9 @@ export default function Layout({ children, tab }: LayoutProps) {
           </div>
         )}
         </div>
-        <div className="flex flex-wrap items-center gap-1">
-          {/* Back to the search tools from anywhere (history, admin, docs…) */}
-          {can('analyze') && (
-            <NavItem to="/" icon={<Search className="h-4 w-4" />} label={t('layout.search')} />
-          )}
-          <NavItem to="/history" icon={<History className="h-4 w-4" />} label={t('layout.history')} />
-          {can('admin') && (
-            <>
-              <NavItem to="/admin" icon={<SlidersHorizontal className="h-4 w-4" />} label={t('layout.admin')} />
-              <NavItem to="/users" icon={<Users className="h-4 w-4" />} label={t('layout.users')} />
-              <NavItem to="/connectors" icon={<Plug className="h-4 w-4" />} label={t('layout.connectors')} />
-            </>
-          )}
-          <NavItem to="/docs" icon={<BookOpen className="h-4 w-4" />} label={t('layout.docs')} />
+        {/* Wide screens: the menu in the header (labels from `xl`, icons below) */}
+        <div className="hidden md:flex flex-wrap items-center gap-1">
+          {nav.map(n => <NavItem key={n.to} {...n} />)}
           <HeaderControls />
           {user && (
             <div className="ml-2 pl-2 border-l border-border flex items-center gap-1">
@@ -115,6 +129,36 @@ export default function Layout({ children, tab }: LayoutProps) {
               <Button variant="ghost" size="icon" onClick={() => logout()} aria-label={t('auth.signOut')} title={t('auth.signOut')}>
                 <LogOut className="h-4 w-4" />
               </Button>
+            </div>
+          )}
+        </div>
+        {/* Phones: one menu button, the entries with their labels in a drop-down */}
+        <div ref={menuRef} className="md:hidden relative">
+          <Button variant="ghost" size="icon" onClick={() => setMenuOpen(o => !o)}
+            aria-expanded={menuOpen} aria-controls="app-menu" aria-label={t('layout.menu')}>
+            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
+          {menuOpen && (
+            <div id="app-menu" className="absolute right-0 top-full mt-2 z-50 w-64 rounded-lg border border-border bg-background shadow-xl p-2 flex flex-col gap-1"
+              onClick={e => { if ((e.target as HTMLElement).closest('a')) setMenuOpen(false) }}>
+              {nav.map(n => (
+                <Link key={n.to} to={n.to} className="flex items-center gap-2 px-3 py-2 rounded-md text-sm hover:bg-muted/60">
+                  {n.icon}{n.label}
+                </Link>
+              ))}
+              <div className="flex items-center gap-1 px-2 py-1 border-t border-border mt-1 pt-2"><HeaderControls /></div>
+              {user && (
+                <div className="flex items-center justify-between gap-1 border-t border-border mt-1 pt-1">
+                  <Link to="/account" className="flex items-center gap-2 px-3 py-2 rounded-md text-sm hover:bg-muted/60 min-w-0">
+                    <UserRound className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{user.username}</span>
+                    <span className="text-[0.65rem] text-muted-foreground uppercase tracking-wide">{t(`role.${user.role}`)}</span>
+                  </Link>
+                  <Button variant="ghost" size="icon" onClick={() => logout()} aria-label={t('auth.signOut')} title={t('auth.signOut')}>
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>

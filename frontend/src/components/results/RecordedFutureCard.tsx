@@ -10,6 +10,7 @@ import { useAuth } from '@/auth/context'
 import { RF_LINKS_MIN_RISK } from '@/intelAggregates'
 import { fmtDate } from '@/lib/format'
 import { Chips } from './SourceCard'
+import { clickOnEnterOrSpace } from '@/lib/a11y'
 
 interface EvidenceDetail {
   rule?: string
@@ -284,7 +285,7 @@ export default function RecordedFutureCard({ loading, error, data, score = null,
 
   return (
     <div className="rounded-lg border border-border overflow-hidden">
-      <button
+      <div role="button" tabIndex={0} onKeyDown={clickOnEnterOrSpace} aria-expanded={open}
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between px-4 py-3 border-b border-border bg-muted/40 hover:bg-muted/60 transition-colors text-left"
       >
@@ -305,7 +306,7 @@ export default function RecordedFutureCard({ loading, error, data, score = null,
           )}
           <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
         </div>
-      </button>
+      </div>
 
       {open && (
         <div className="px-4 py-4 flex flex-col gap-4">

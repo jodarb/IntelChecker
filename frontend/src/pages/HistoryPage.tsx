@@ -1,6 +1,6 @@
 import { useFetchJson } from '@/hooks/useFetchJson'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, ChevronRight, X, Crosshair, Building2, VenetianMask } from 'lucide-react'
+import { ArrowLeft, ChevronRight, X, Crosshair, Building2, VenetianMask, RotateCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Layout from '@/components/Layout'
 import ScoreBadge from '@/components/results/ScoreBadge'
@@ -8,6 +8,8 @@ import { QUADRANT_META, quadrantLabel } from '@/quadrants'
 import type { Quadrant } from '@/verdictEngine'
 import { useI18n } from '@/i18n/useI18n'
 import type { IndicatorType } from '@/registry'
+import { useAuth } from '@/auth/context'
+import { rerunUrl } from '@/lib/rerun'
 
 interface HistoryListEntry {
   id: number
@@ -33,6 +35,7 @@ export default function HistoryPage() {
   const [searchParams] = useSearchParams()
   const indicator = searchParams.get('indicator') ?? ''
   const { t, tn, locale } = useI18n()
+  const { can } = useAuth()
   const query = indicator ? `?indicator=${encodeURIComponent(indicator)}` : ''
   const { data: entries, failed } = useFetchJson<HistoryListEntry[]>(`${BACKEND}/history${query}`)
   const error = failed ? t('common.backendDown') : null
@@ -83,12 +86,14 @@ export default function HistoryPage() {
         {entries && entries.length > 0 && (
           <div className="flex flex-col gap-2">
             {entries.map(entry => (
+              // The row opens the entry; "run again" sits next to it (a link can't hold another link).
+              <div key={entry.id} className="flex items-stretch rounded-lg border border-border bg-muted/20 overflow-hidden">
               <Link
-                key={entry.id}
                 to={`/history/${entry.id}`}
-                className="flex items-center justify-between gap-4 px-4 py-3 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 transition-colors"
+                className="flex-1 min-w-0 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 px-4 py-3 hover:bg-muted/40 transition-colors"
               >
-                <div className="flex items-center gap-4 min-w-0">
+                {/* On narrow screens the details wrap below the indicator instead of covering it */}
+                <div className="flex items-center gap-4 min-w-0 flex-1 basis-56">
                   {/* Same icons as the search tabs: companies, actors, artifacts */}
                   {entry.type === 'company'
                     ? <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" aria-label={t('tabs.companies')}><title>{t('tabs.companies')}</title></Building2>
@@ -102,7 +107,7 @@ export default function HistoryPage() {
                     {t(`type.${entry.type as IndicatorType}`)}
                   </span>
                 </div>
-                <div className="flex items-center gap-4 shrink-0">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 ml-auto justify-end">
                   {entry.via === 'api' && (
                     <span className="inline-flex px-1.5 py-0.5 rounded border border-border text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground" title={t('history.viaApiTitle')}>
                       API
@@ -137,6 +142,17 @@ export default function HistoryPage() {
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </div>
               </Link>
+              {can('analyze') && (
+                <Link
+                  to={rerunUrl(entry.type, entry.indicator)}
+                  title={t('history.rerunTitle', { indicator: entry.indicator })}
+                  aria-label={t('history.rerunTitle', { indicator: entry.indicator })}
+                  className="shrink-0 flex items-center px-3 border-l border-border text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+                >
+                  <RotateCw className="h-4 w-4" />
+                </Link>
+              )}
+              </div>
             ))}
           </div>
         )}

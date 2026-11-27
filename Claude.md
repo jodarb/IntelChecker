@@ -8,7 +8,7 @@
 * **Authentication & roles:** every page and API call requires a session. Three roles: `admin` (everything + edit weights + manage users), `analyst` (run lookups + read history), `reader` (read history only). See §7.
 * **Asynchronous Processing:** Multi-threaded/asynchronous API requests that prevent thread blocking and resource starvation.
 * **Real-Time Data Streaming:** Dynamic frontend components that render individual API responses immediately as they are streamed from the backend.
-* **Near-stateless Operation:** Lookups are always executed in real time (no result caching). The only persisted state lives in `backend/data/` (Docker volume): `history.db` (SQLite query history with frozen snapshots of every lookup, plus who ran it), `users.db` (users, roles, sessions), `weights.json` (verdict weights/thresholds edited from the Admin page) and `connectors.json` (API keys + MISP / OpenCTI instances edited from the Connectors page).
+* **Near-stateless Operation:** Lookups are always executed in real time (no result caching). The only persisted state lives in `backend/data/` (Docker volume): `history.db` (SQLite query history with frozen snapshots of every lookup, plus who ran it), `users.db` (users, roles, sessions), `weights.json` (verdict weights/thresholds edited from the Admin page), `connectors.json` (API keys + MISP / OpenCTI instances edited from the Connectors page) and `feeds/` (last good download of the ransomware.live lists, `CachedFeed(persist=…)`, so a restart doesn't wait out its download limit).
 
 ---
 

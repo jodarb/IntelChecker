@@ -9,6 +9,7 @@ const en = {
   'layout.docs': 'Docs',
   'layout.toggleTheme': 'Toggle theme',
   'layout.language': 'Language',
+  'layout.menu': 'Menu',
 }
 const es: Record<keyof typeof en, string> = {
   'layout.home': 'IntelChecker — inicio',
@@ -21,5 +22,6 @@ const es: Record<keyof typeof en, string> = {
   'layout.docs': 'Docs',
   'layout.toggleTheme': 'Cambiar tema',
   'layout.language': 'Idioma',
+  'layout.menu': 'Menú',
 }
 export default { en, es }

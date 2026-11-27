@@ -1,4 +1,5 @@
 import type { EngineConfig, IndicatorType, QueryResult } from '@/registry'
+import { originCountriesInText, toCountryCode } from '@/lib/countries'
 
 // Threat actor report data (ActorReport): which actor each source identified, whether
 // they agree, and the profile merged from the sources that do — aliases, TTPs,
@@ -111,7 +112,10 @@ export interface ActorProfile {
   /** Which source each single-source field comes from (shown next to it) */
   prov: { mitreId?: string; description?: string; ransomware?: string; country?: string; categories?: string }
   categories: string[]
+  /** Country of origin / sponsor most sources give (ISO code); see `origins` */
   country: string | null
+  /** Every country of origin a source gives, normalised to ISO codes, most sources first */
+  origins: { country: string; sources: string[] }[]
   ransomware: RansomwareGroup | null
   /** Recorded Future says it's a ransomware / extortion group */
   ransomwareCategory: boolean
@@ -291,6 +295,10 @@ function cluster(ids: SourceIdentity[]): SourceIdentity[][] {
 /** Malware family key: "The Gentlemen Ransomware", "Gentlemen" → "gentlemen". */
 const familyKey = (v: string) => nameKey(v).replace(/^the(?=.{4})/, '').replace(/(ransomware|locker)$/, '') || nameKey(v)
 
+// Tie-break between countries given by as many sources: the most authoritative first.
+const NAME_PRIORITY_LABEL = (label: string) =>
+  ['MITRE ATT&CK', 'Malpedia', 'OpenCTI', 'Recorded Future'].findIndex(l => label.startsWith(l)) >>> 0
+
 const pick = (ids: SourceIdentity[]) => [...ids].sort((a, b) => NAME_PRIORITY(a.engineId) - NAME_PRIORITY(b.engineId))[0]
 
 // ── Profile ────────────────────────────────────────────────────────────────
@@ -335,7 +343,16 @@ export function computeActorProfile(
   const descriptions: Record<string, { text: string; src: string }> = {}
   const prov: ActorProfile['prov'] = {}
   let categories: string[] = []
-  let country: string | null = null
+  // Country of origin / sponsor, per source: MITRE (description), Malpedia (country,
+  // state sponsor), RF ("China Nation State Sponsored"), OpenCTI (originates-from).
+  const origins = new Map<string, string[]>()
+  const addOrigin = (value: unknown, src: string) => {
+    const cc = toCountryCode(value)
+    if (!cc) return
+    const list = origins.get(cc) ?? []
+    if (!list.includes(src)) list.push(src)
+    origins.set(cc, list)
+  }
 
   const technique = (id: unknown, tname: unknown, src: string) => {
     const tid = str(id)?.toUpperCase()
@@ -370,12 +387,14 @@ export function computeActorProfile(
       mitreId = str(d.attack_id)
       if (mitreId) prov.mitreId = src
       if (str(d.description)) descriptions.mitre = { text: d.description, src }
+      originCountriesInText(d.description).forEach(cc => addOrigin(cc, src))
       arr(d.aliases).forEach(a => aliases.add(a, src))
       arr(d.techniques).forEach(t => technique(t?.attack_id, t?.name, src))
       arr(d.software).forEach(s => str(s?.name) && arsenalOwn.add(s.name, src, {}, familyKey(s.name)))
     } else if (id === 'malpedia') {
       if (str(d.description)) descriptions.malpedia = { text: d.description, src }
-      if (!country && str(d.country)) { country = str(d.country); prov.country = src }
+      addOrigin(d.country, src)
+      addOrigin(d.state_sponsor, src)
       aliases.add(d.name, src)
       arr(d.synonyms).forEach(a => aliases.add(a, src))
       arr(d.victims).forEach(v => (typeof v === 'string' && isCountryName(v) ? addCountry(v, src) : orgs.add(v, src)))
@@ -384,6 +403,7 @@ export function computeActorProfile(
     } else if (id === 'recordedfuture') {
       categories = arr(d.categories).filter((c): c is string => typeof c === 'string')
       if (categories.length) prov.categories = src
+      categories.forEach(c => addOrigin(c.match(/^(.+?)\s+Nation[\s-]State Sponsored$/i)?.[1], src))
       aliases.add(d.name, src)
       arr(d.common_names).forEach(a => aliases.add(a, src))
       arr(d.aliases).forEach(a => aliases.add(a, src))
@@ -407,6 +427,8 @@ export function computeActorProfile(
         else if (et === 'Vulnerability') vuln(rname, src)
         else if ((et === 'Malware' || et === 'Tool') && str(rname)) arsenalOwn.add(rname, src, {}, familyKey(rname))
         else if (et === 'Sector') sectors.add(rname, src)
+        // The actor's own country (intrusion set → originates-from → country), not a target.
+        else if (et === 'Country' && rel?.type === 'originates-from' && rel?.direction !== 'in') addOrigin(rname, src)
         else if (et === 'Country') addCountry(rname, src)
         else if (et === 'Organization' && rel?.type === 'targets') orgs.add(rname, src)
         else if (et === 'Campaign') incidents.push({ title: rname, kind: 'campaign', source: src, link: rel?.link })
@@ -497,6 +519,11 @@ export function computeActorProfile(
     else related.push(m)
   }
 
+  const originList = [...origins.entries()]
+    .map(([cc, sources]) => ({ country: cc, sources }))
+    .sort((a, b) => b.sources.length - a.sources.length || NAME_PRIORITY_LABEL(a.sources[0]) - NAME_PRIORITY_LABEL(b.sources[0]))
+  if (originList.length) prov.country = originList[0].sources.join(', ')
+
   return {
     status,
     identities: main,
@@ -506,7 +533,8 @@ export function computeActorProfile(
     description: (descriptions.rlive ?? descriptions.mitre ?? descriptions.malpedia ?? descriptions.opencti)?.text ?? null,
     prov: { ...prov, description: (descriptions.rlive ?? descriptions.mitre ?? descriptions.malpedia ?? descriptions.opencti)?.src },
     categories,
-    country,
+    country: originList[0]?.country ?? null,
+    origins: originList,
     ransomware,
     ransomwareCategory: categories.some(c => /ransomware|extortion/i.test(c)),
     aliases: allAliases.filter(a => !isVariant(a.value)),

@@ -23,7 +23,7 @@ export default function ScoreBadge({ score, isError = false, hasResult = false }
   const hidden = useScoresHidden()
   if (isError) {
     return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-semibold text-red-400 bg-red-500/10 border-red-500/30">
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-semibold text-red-600 dark:text-red-400 bg-red-500/10 border-red-500/30">
         <AlertCircle className="h-3 w-3" />
         {t('badge.error')}
       </span>
@@ -34,14 +34,14 @@ export default function ScoreBadge({ score, isError = false, hasResult = false }
   if (score == null) {
     if (hasResult) {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-medium text-yellow-400 bg-yellow-500/10 border-yellow-500/30">
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-medium text-yellow-700 dark:text-yellow-400 bg-yellow-500/10 border-yellow-500/40">
           <Gauge className="h-3 w-3" />
           {t('badge.noScore')}
         </span>
       )
     }
     return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-medium text-yellow-400 bg-yellow-500/10 border-yellow-500/30">
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-medium text-yellow-700 dark:text-yellow-400 bg-yellow-500/10 border-yellow-500/40">
         <SearchX className="h-3 w-3" />
         {t('badge.noResults')}
       </span>

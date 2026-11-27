@@ -5,6 +5,7 @@ import ScoreBadge from './ScoreBadge'
 import WeightBadge, { type CardWeight } from './WeightBadge'
 import { useI18n } from '@/i18n/useI18n'
 import { apiErrorText } from '@/i18n/errors'
+import { clickOnEnterOrSpace } from '@/lib/a11y'
 
 interface MispTag {
   name: string
@@ -190,7 +191,7 @@ export default function MISPCard({ loading, error, data, label, score = null, we
 
   return (
     <div className="rounded-lg border border-border overflow-hidden">
-      <button
+      <div role="button" tabIndex={0} onKeyDown={clickOnEnterOrSpace} aria-expanded={open}
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between px-4 py-3 border-b border-border bg-muted/40 hover:bg-muted/60 transition-colors text-left"
       >
@@ -213,7 +214,7 @@ export default function MISPCard({ loading, error, data, label, score = null, we
           )}
           <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
         </div>
-      </button>
+      </div>
 
       {open && (
         <div className="px-4 py-4 flex flex-col gap-3">

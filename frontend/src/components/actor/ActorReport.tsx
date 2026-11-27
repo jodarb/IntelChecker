@@ -51,9 +51,10 @@ function Src({ names, className = '' }: { names: (string | undefined)[]; classNa
 /** A badge with its source inside, after a thin divider. */
 function Badge({ children, src, tone = 'muted', mono = false }: { children: React.ReactNode; src?: string; tone?: 'muted' | 'red' | 'steel' | 'amber'; mono?: boolean }) {
   const { t } = useI18n()
-  const cls = tone === 'red' ? 'border-red-500/40 bg-red-500/10 text-red-400'
+  // Light mode needs darker text than the dark theme's 300 / 400 tones to stay readable.
+  const cls = tone === 'red' ? 'border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-400'
     : tone === 'steel' ? 'border-primary/40 text-primary'
-      : tone === 'amber' ? 'border-amber-500/40 bg-amber-500/10 text-amber-300'
+      : tone === 'amber' ? 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300'
         : 'border-border text-muted-foreground'
   return (
     <span title={src ? t('ar.sources', { sources: src }) : undefined}
@@ -72,7 +73,8 @@ function Chip({ item, mono = false }: { item: ProfileItem; mono?: boolean }) {
   return (
     <span title={t('ar.sources', { sources: item.sources.join(', ') })}
       className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-border bg-muted/30 text-xs text-foreground/90 whitespace-nowrap max-w-full">
-      <span className={`shrink-0 ${mono ? 'font-mono' : ''}`}>{label}</span>
+      {/* With a detail (TTP id + name) the short label stays whole; a lone long name is cut */}
+      <span className={`${item.detail ? 'shrink-0' : 'min-w-0 truncate'} ${mono ? 'font-mono' : ''}`}>{label}</span>
       {/* Long technique names are cut on narrow screens (full text in the tooltip) */}
       {item.detail && <span className="text-muted-foreground truncate min-w-0" title={item.detail}>{item.detail}</span>}
       <span className={`shrink-0 text-[0.65rem] ${item.sources.length > 1 ? 'font-semibold text-primary' : 'text-muted-foreground/80'}`}>
@@ -123,7 +125,7 @@ function Ranked({ items }: { items: ProfileItem[] }) {
 
 function Kpi({ value, label, sub, src }: { value: React.ReactNode; label: string; sub?: string; src?: string[] }) {
   return (
-    <div className="bg-background/60 px-3 py-2.5 flex flex-col gap-0.5 min-w-0">
+    <div className="bg-background/60 px-3 py-2.5 flex flex-col gap-0.5 min-w-0 flex-1">
       <span className="text-xl font-semibold tabular-nums text-foreground">{value}</span>
       <span className="text-xs text-muted-foreground">{label}</span>
       {sub && <span className="text-xs text-muted-foreground/80 truncate" title={sub}>{sub}</span>}
@@ -199,9 +201,9 @@ function StatusBanner({ profile, suggestions }: { profile: ActorProfile; suggest
 // ── Side column: activity + knowledge ────────────────────────────────────────
 
 const LEVEL_STYLE: Record<ActorActivity['level'], string> = {
-  active: 'text-red-400 bg-red-500/10 border-red-500/40',
-  recent: 'text-amber-400 bg-amber-500/10 border-amber-500/40',
-  dormant: 'text-slate-400 bg-slate-500/10 border-slate-500/40',
+  active: 'text-red-700 dark:text-red-400 bg-red-500/10 border-red-500/40',
+  recent: 'text-amber-700 dark:text-amber-400 bg-amber-500/10 border-amber-500/40',
+  dormant: 'text-slate-600 dark:text-slate-400 bg-slate-500/10 border-slate-500/40',
   unknown: 'text-muted-foreground bg-muted/30 border-border',
 }
 
@@ -257,6 +259,22 @@ function Side({ profile, activity, verdict, thresholds, loading }: {
         </> : row(t('ar.reports90'), reports90, reportSources)}
         {rw?.first && row(t('ar.activeSince'), fmtDate(rw.first, locale), [profile.prov.ransomware])}
       </div>
+      {profile.origins.length > 0 && (
+        // Like the country of an IP: each country the sources give, how many give it and which.
+        <div className="flex flex-col gap-1">
+          <span className={lbl}>{t('ar.origin')}</span>
+          {profile.origins.map(o => (
+            <div key={o.country} className="flex items-baseline justify-between gap-2 text-sm">
+              <span className="text-foreground font-medium">
+                {countryName(o.country, locale)}
+                <span className="text-muted-foreground font-normal ml-1">({o.sources.length})</span>
+              </span>
+              <Src names={o.sources} className="text-right" />
+            </div>
+          ))}
+          {profile.origins.length > 1 && <span className="text-xs text-amber-700 dark:text-amber-400">{t('ar.originConflict')}</span>}
+        </div>
+      )}
       {profile.identities.length > 0 && (
         <div className="flex flex-col gap-1.5">
           <span className={lbl}>{tn('ar.identifiedBy', profile.identities.length)}</span>
@@ -350,7 +368,12 @@ function Card({ profile, activity, side, banner }: { profile: ActorProfile; acti
             {rw && rw.leakSites > 0 && (
               <Badge src={p.prov.ransomware}>{t('ar.badge.leakSites', { n: rw.leakSites, up: rw.leakSitesUp })}</Badge>
             )}
-            {p.country && <Badge src={p.prov.country}>{t('ar.badge.country', { country: countryName(p.country, locale) })}</Badge>}
+            {p.country && (
+              <Badge src={p.origins[0].sources.map(short).join(' · ')}>
+                {t('ar.badge.country', { country: countryName(p.country, locale) })}
+                {p.origins.length > 1 && <span className="text-amber-700 dark:text-amber-400"> +{p.origins.length - 1}</span>}
+              </Badge>
+            )}
             {p.categories.filter(c => !/ransomware|extortion|forum member/i.test(c)).slice(0, 2).map(c => (
               <Badge key={c} src={p.prov.categories}>{c}</Badge>
             ))}
@@ -372,8 +395,14 @@ function Card({ profile, activity, side, banner }: { profile: ActorProfile; acti
         )}
 
         {kpis.length > 0 && (
-          <div className="grid gap-px bg-border border border-border rounded-md overflow-hidden" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(8.5rem, 1fr))' }}>
-            {kpis.map(k => <Kpi key={k.label} {...k} />)}
+          // Rows as even as possible (5 → 3 + 2, 6 → 3 + 3), the last ones stretched to
+          // fill their row: a grid would leave empty grey cells.
+          <div className="flex flex-wrap gap-px bg-border border border-border rounded-md overflow-hidden">
+            {kpis.map(k => (
+              <div key={k.label} className="grow min-w-[8.5rem] flex" style={{ flexBasis: `calc(${100 / Math.ceil(kpis.length / Math.ceil(kpis.length / 4))}% - 1px)` }}>
+                <Kpi {...k} />
+              </div>
+            ))}
           </div>
         )}
 
